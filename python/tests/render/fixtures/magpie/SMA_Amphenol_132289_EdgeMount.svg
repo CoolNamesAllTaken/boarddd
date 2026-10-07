@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 293" width="400" height="293" role="img" aria-label="SMA_Amphenol_132289_EdgeMount">
+<style>
+.fp-bg{fill:var(--fp-bg,transparent)}
+.fp-pad{fill:var(--fp-pad,#c8a14a);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-paste{fill:none;stroke:var(--fp-paste,#7a7a7a);stroke-width:1px;stroke-dasharray:3 2;vector-effect:non-scaling-stroke}
+.fp-drill{fill:var(--fp-bg,#fff);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-court{fill:none;stroke:var(--fp-courtyard,#d040d0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-body{fill:none;stroke:var(--fp-body,#6080a0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-pin1{fill:var(--fp-pin1,#e03030)}
+.fp-origin{stroke:var(--fp-origin,#2a8a2a);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-dim{stroke:var(--fp-dim,#3070c0);fill:none;stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-text{fill:var(--fp-text,#222);font:600 11px system-ui,sans-serif;text-anchor:middle;dominant-baseline:central}
+.fp-dimtext{fill:var(--fp-dim,#3070c0);font:11px system-ui,sans-serif;text-anchor:middle}
+.fp-old{fill:none;stroke:var(--fp-old,#d04040);stroke-width:2px;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.fp-new{fill:var(--fp-new,#3a8ad0);fill-opacity:.35;stroke:var(--fp-new,#3a8ad0);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-same{fill:var(--fp-pad,#c8a14a);fill-opacity:.55;stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-changed{fill:none;stroke:var(--fp-changed,#e09000);stroke-width:3px;vector-effect:non-scaling-stroke}
+.fp-legend{fill:var(--fp-text,#222);font:11px system-ui,sans-serif}
+</style>
+<rect class="fp-bg" width="400" height="293"/>
+<g transform="translate(87.7236 137.6242) scale(19.6459 -19.6459)">
+<polyline class="fp-court" points="14.47,5.58 -3.04,5.58"/>
+<polyline class="fp-court" points="14.47,5.58 14.47,-5.58"/>
+<polyline class="fp-court" points="-3.04,-5.58 -3.04,5.58"/>
+<polyline class="fp-court" points="14.47,-5.58 -3.04,-5.58"/>
+<polyline class="fp-court" points="-3.04,-5.58 -3.04,5.58"/>
+<polyline class="fp-court" points="14.47,5.58 -3.04,5.58"/>
+<polyline class="fp-court" points="14.47,5.58 14.47,-5.58"/>
+<polyline class="fp-court" points="14.47,-5.58 -3.04,-5.58"/>
+<polyline class="fp-body" points="-1.91,3.81 3,3.81"/>
+<polyline class="fp-body" points="-1.91,-3.81 -1.91,-5.08"/>
+<polyline class="fp-body" points="3,-3.81 -1.91,-3.81"/>
+<polyline class="fp-body" points="13.97,-3.81 4.445,-3.81"/>
+<polyline class="fp-body" points="3,0.75 4,-0"/>
+<polyline class="fp-body" points="4.445,3.81 13.97,3.81"/>
+<polyline class="fp-body" points="13.97,3.81 13.97,-3.81"/>
+<polyline class="fp-body" points="-1.91,5.08 -1.91,3.81"/>
+<polyline class="fp-body" points="-1.91,-5.08 4.445,-5.08"/>
+<polyline class="fp-body" points="-1.91,5.08 4.445,5.08"/>
+<polyline class="fp-body" points="4.445,-5.08 4.445,-3.81"/>
+<polyline class="fp-body" points="4,-0 3,-0.75"/>
+<polyline class="fp-body" points="3,3.81 3,-3.81"/>
+<polyline class="fp-body" points="4.445,3.81 4.445,5.08"/>
+<rect class="fp-pad" x="-0.6" y="-2.6" width="1.5" height="5.2" rx="0" transform="rotate(90 0.15 -0)"/>
+<rect class="fp-paste" x="-0.6" y="-2.6" width="1.5" height="5.2" rx="0" transform="rotate(90 0.15 -0)"/>
+<rect class="fp-pad" x="-0.75" y="-6.7" width="1.5" height="4.9" rx="0" transform="rotate(90 0 -4.25)"/>
+<rect class="fp-paste" x="-0.75" y="-6.7" width="1.5" height="4.9" rx="0" transform="rotate(90 0 -4.25)"/>
+<rect class="fp-pad" x="-0.75" y="1.8" width="1.5" height="4.9" rx="0" transform="rotate(90 0 4.25)"/>
+<rect class="fp-paste" x="-0.75" y="1.8" width="1.5" height="4.9" rx="0" transform="rotate(90 0 4.25)"/>
+<rect class="fp-pad" x="-0.75" y="1.8" width="1.5" height="4.9" rx="0" transform="rotate(90 0 4.25)"/>
+<rect class="fp-paste" x="-0.75" y="1.8" width="1.5" height="4.9" rx="0" transform="rotate(90 0 4.25)"/>
+<rect class="fp-pad" x="-0.75" y="-6.7" width="1.5" height="4.9" rx="0" transform="rotate(90 0 -4.25)"/>
+<rect class="fp-paste" x="-0.75" y="-6.7" width="1.5" height="4.9" rx="0" transform="rotate(90 0 -4.25)"/>
+<path class="fp-origin" d="M-0.4072 0H0.4072M0 -0.4072V0.4072"/>
+</g>
+<text class="fp-text" x="90.6705" y="137.6242" style="font-size:11px">1</text>
+<text class="fp-text" x="87.7236" y="221.1194" style="font-size:11px">2</text>
+<text class="fp-text" x="87.7236" y="54.1291" style="font-size:11px">2</text>
+<text class="fp-text" x="87.7236" y="54.1291" style="font-size:11px">2</text>
+<text class="fp-text" x="87.7236" y="221.1194" style="font-size:11px">2</text>
+<text class="fp-legend" x="8" y="287">SMA_Amphenol_132289_EdgeMount</text>
+</svg>
