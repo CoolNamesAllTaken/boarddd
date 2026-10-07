@@ -1,4 +1,4 @@
-"""Validate a board.json document (plain JSON values) against boarddd/board@1.
+"""Validate a board.json (boarddd/board@1) or copper.json (boarddd/copper@1) document (plain JSON values).
 
 A small checker for the JSON Schema subset ``boarddd._codegen`` emits, plus the model rules a schema
 can't express. src/model/index.js implements the same checks with the same messages; the shared
@@ -21,6 +21,14 @@ def schema() -> dict[str, Any]:
     from . import _codegen
 
     return _codegen.schema()
+
+
+@cache
+def copper_schema() -> dict[str, Any]:
+    """schema/copper.schema.json (generated from boarddd.copper)."""
+    from . import _codegen, copper
+
+    return _codegen.schema(copper.Copper)
 
 
 def _type_ok(t: str, v: Any) -> bool:
@@ -154,13 +162,73 @@ def validate_board(data: Any) -> list[str]:
     return errors
 
 
+def _copper_rules(c: dict[str, Any], errors: list[str]) -> None:
+    """copper@1 rules beyond the schema: layer ids and nets are the document's own, spans run top to bottom."""
+    order: dict[str, int] = {}
+    for i, lid in enumerate(c["layers"]):
+        if lid in order:
+            errors.append(f"/layers/{i}: duplicate layer id '{lid}' (also /layers/{order[lid]})")
+        order.setdefault(lid, i)
+    nets = set(c.get("nets", []))
+
+    def layer(path: str, lid: str) -> None:
+        if lid not in order:
+            errors.append(f"{path}: '{lid}' is not in /layers")
+
+    def net(path: str, name: str) -> None:
+        if name not in nets:
+            errors.append(f"{path}: '{name}' is not in /nets")
+
+    for key in ("tracks", "zones"):
+        for i, item in enumerate(c.get(key, [])):
+            layer(f"/{key}/{i}/layer", item["layer"])
+            net(f"/{key}/{i}/net", item["net"])
+    for i, v in enumerate(c.get("vias", [])):
+        for j, lid in enumerate(v["span"]):
+            layer(f"/vias/{i}/span/{j}", lid)
+        if all(lid in order for lid in v["span"]) and order[v["span"][0]] > order[v["span"][1]]:
+            errors.append(f"/vias/{i}/span: must run top to bottom")
+        for j, lid in enumerate(v.get("pad_layers") or []):
+            layer(f"/vias/{i}/pad_layers/{j}", lid)
+        for j, vp in enumerate(v.get("padstack") or []):
+            layer(f"/vias/{i}/padstack/{j}/layer", vp["layer"])
+        net(f"/vias/{i}/net", v["net"])
+    for i, p in enumerate(c.get("pads", [])):
+        for j, lid in enumerate(p["layers"]):
+            layer(f"/pads/{i}/layers/{j}", lid)
+        net(f"/pads/{i}/net", p["net"])
+    for i, k in enumerate(c.get("keepouts", [])):
+        for j, lid in enumerate(k["layers"]):
+            layer(f"/keepouts/{i}/layers/{j}", lid)
+    for i, p in enumerate(c.get("planes", [])):
+        layer(f"/planes/{i}/layer", p["layer"])
+        net(f"/planes/{i}/net", p["net"])
+
+
+def validate_copper(data: Any) -> list[str]:
+    """Return 'json/pointer: message' errors; empty when ``data`` is a valid boarddd/copper@1 document."""
+    errors: list[str] = []
+    root = copper_schema()
+    _check(root, data, "", root, errors)
+    if not errors:
+        _copper_rules(data, errors)
+    return errors
+
+
+def validate(data: Any) -> list[str]:
+    """``validate_board`` or ``validate_copper``, by the document's ``schema``."""
+    if isinstance(data, dict) and data.get("schema") == "boarddd/copper@1":
+        return validate_copper(data)
+    return validate_board(data)
+
+
 def main(argv: list[str] | None = None) -> int:
     import sys
 
     argv = sys.argv[1:] if argv is None else argv
     bad = 0
     for p in argv:
-        errs = validate_board(json.loads(Path(p).read_text("utf-8")))
+        errs = validate(json.loads(Path(p).read_text("utf-8")))
         for e in errs:
             print(f"{p}: {e}")
         bad += bool(errs)

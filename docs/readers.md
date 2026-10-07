@@ -22,6 +22,7 @@ open("board.json", "w").write(board.to_json())
 | `io.classify` | what each file is: X2 `%TF.FileFunction`, `M48`, eight EDA naming conventions, content sniffing; `FabFile` kinds | `pcb/classify.py` + `pcb/kinds.py` |
 | `io.gerber` | the board profile KiCad plots onto other layers (`plots_profile`, `without_profile`) | `pcb/gerber.py` |
 | `io.pads` | flashes/regions as pad boxes; the pad pattern around a placement | `pcb/pads.py` |
+| `io.gerber_copper` | Gerber X2 copper layers (+ drills) → `boarddd/copper@1`: tracks, arcs, vias, regions, pads, nets from `%TO.N` ([copper.md](copper.md)) | boarddd (new, I5) |
 | `io.excellon` | holes and slots (G85 and rout mode), implied decimals, plating; `distinct` | `pcb/excellon.py` (+ `Hole.tool`, `parse(keep_empty=)`) |
 | `io.outline` | Edge.Cuts strokes stitched into loops; `pick_board` by the gbrjob size; `cutouts` | `pcb/outline.py` |
 | `io.gbrjob` | board size, project name, panel naming; `read_stackup`: GeneralSpecs + MaterialStackup (Er/Df strings, KiCad's `(1/2)` sublayers, `ImpedanceControlled`, conductivity) | `pcb/jobfile.py`; `read_stackup` new (I1) |
@@ -83,9 +84,10 @@ latter). `python/tests/io/test_package.py` pins all of this.
 No pcbnew or kicad-cli needed; KiCad 5 to 10 formats.
 
 ```python
-from boarddd.io.kicad import read_kicad_pcb, read_kicad_mod, read_kicad_pro, read_kicad_sym
+from boarddd.io.kicad import read_kicad_copper, read_kicad_pcb, read_kicad_mod, read_kicad_pro, read_kicad_sym
 
 board = read_kicad_pcb("board.kicad_pcb")      # + the .kicad_pro next to it, if there is one
+copper = read_kicad_copper("board.kicad_pcb")  # boarddd/copper@1: tracks, vias, zone fills, pads... (copper.md)
 fp = read_kicad_mod("R_0603.kicad_mod", name="Resistor_SMD:R_0603_1608Metric")
 symbols = read_kicad_sym("Device.kicad_sym")    # {name: Symbol}, parse only
 ```
@@ -93,7 +95,7 @@ symbols = read_kicad_sym("Device.kicad_sym")    # {name: Symbol}, parse only
 | module | reads | source |
 |---|---|---|
 | `io.kicad.sexpr` | the s-expression parser: spans, `Atom` vs quoted strings, `\|base64\|` data, `dumps` | kipr `common/sexpr.py` (magpie's tokenizer dropped) |
-| `io.kicad.pcb` | `read_kicad_pcb` → `Board`: outline (Edge.Cuts incl. footprint cut-outs, ends within 10 µm joined, 72 segments per turn), stackup, origins, footprints, components, drills (pad holes, oval holes as slots, vias), nets with diff pairs; `load` → kipr's item view for diffs (tracks, vias, zones, keys, boxes) | kipr `project/pcb.py` + `geom.py`, magpie `pcb/kicad_pcb.read_board`, `make_board.py` |
+| `io.kicad.pcb` | `read_kicad_pcb` → `Board`: outline (Edge.Cuts incl. footprint cut-outs, ends within 10 µm joined, 72 segments per turn), stackup, origins, footprints, components, drills (pad holes, oval holes as slots, vias), nets with diff pairs; `read_kicad_copper` → `boarddd/copper@1` (tracks, arcs, vias, zone fills, keepouts, pads, net ties; [copper.md](copper.md)); `load` → kipr's item view for diffs (tracks, vias, zones, keys, boxes) | kipr `project/pcb.py` + `geom.py`, magpie `pcb/kicad_pcb.read_board`, `make_board.py` |
 | `io.kicad.footprint` | `read_kicad_mod`, `read_footprint` → model `Footprint` (library form: bottom instances flipped back, pad angles relative); castellated shape offsets (`Pad.offset`), heatsink pads, drawn paste openings; `KicadFootprint`, kipr's raw parse for renderers | `make_board.py` (= the JS parser), magpie `kicad_pcb.read_footprint`, kipr `library/render/fp.py` |
 | `io.kicad.project` | `.kicad_pro` net classes: explicit assignments, patterns (wildcards or regex), priority, values inherited from Default; impedance targets | new (I1) |
 | `io.kicad.symbol` | `.kicad_sym`: symbols, units, De Morgan, pins, graphics, `extends` | kipr `library/render/sym.py` (parse half) |
