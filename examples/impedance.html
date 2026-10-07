@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>boarddd impedance demo</title>
+<style>
+  :root { color-scheme: light dark; --bg: #e4e6ec; --fg: #1b1f24; --chip: #ffffff; --on: #2f6fde; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #15181d; --fg: #e6e8ec; --chip: #2a2f38; --on: #4c8dff; } }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px system-ui, sans-serif; }
+  body { display: grid; grid-template: auto 1fr / 1fr 340px; }
+  #bar { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; padding: 8px 10px; }
+  #bar button, #bar select { background: var(--chip); color: inherit; border: 0; border-radius: 5px; padding: 5px 9px; cursor: pointer; font: inherit; }
+  #bar button[aria-pressed="true"] { background: var(--on); color: #fff; }
+  #stage { min-height: 0; margin: 0 0 10px 10px; }
+  #panel { margin: 0 10px 10px; overflow: auto; }
+  #panel .bdi-panel { border-radius: 6px; }
+  @media (max-width: 700px) { body { grid-template: auto 1fr auto / 1fr; } #stage { margin: 0 10px; min-height: 50vh; } }
+</style>
+<div id="bar">
+  <select id="board" title="board">
+    <option value="rb">royalblue54L_feather (Gerber X2 + gbrjob)</option>
+    <option value="cm5">CM5 MINIMA (KiCad, copper@1)</option>
+  </select>
+  <span id="views"></span>
+  <button id="fit" title="fit">⤢</button>
+  <span id="hint" title="click a trace: its net and pair · alt-click: one segment · hover the profile: the position on the board">⊕</span>
+</div>
+<div id="stage"></div>
+<div id="panel"></div>
+<script src="./importmap.js"></script>
+<script type="module" src="./impedance.js"></script>

@@ -47,6 +47,11 @@
       "default": "./src/impedance/index.js"
     },
     "./impedance/fieldsolver-worker.js": "./src/impedance/fieldsolver-worker.js",
+    "./impedance/ui": {
+      "types": "./src/impedance/ui/index.d.ts",
+      "default": "./src/impedance/ui/index.js"
+    },
+    "./impedance/ui/route-worker.js": "./src/impedance/ui/route-worker.js",
     "./copper": {
       "types": "./src/copper/index.d.ts",
       "default": "./src/copper/index.js"
@@ -72,7 +77,7 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:browser": "playwright test",
     "serve": "node scripts/serve.mjs",
-    "typecheck": "tsc --noEmit --lib es2022,dom --moduleResolution bundler --module esnext src/geom/index.d.ts src/board/index.d.ts src/footprint/index.d.ts src/models/index.d.ts src/scene/index.d.ts src/model/index.d.ts src/gerber/index.d.ts src/view2d/index.d.ts src/impedance/index.d.ts src/copper/index.d.ts && tsc -p test/types/tsconfig.json",
+    "typecheck": "tsc --noEmit --lib es2022,dom --moduleResolution bundler --module esnext src/geom/index.d.ts src/board/index.d.ts src/footprint/index.d.ts src/models/index.d.ts src/scene/index.d.ts src/model/index.d.ts src/gerber/index.d.ts src/view2d/index.d.ts src/impedance/index.d.ts src/copper/index.d.ts src/impedance/ui/index.d.ts && tsc -p test/types/tsconfig.json",
     "build:wasm": "bash scripts/build-wasm.sh",
     "check:wasm": "bash scripts/build-wasm.sh --check"
   },

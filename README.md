@@ -213,6 +213,43 @@ v.dispose();                  // frees GL (content included) and removes the can
   pointer handling). Bottom is mirrored
   left-right, like KiCad. Importmaps must map `three/addons/` too.
 
+### `boarddd/impedance/ui`
+
+Click a trace, read its impedance: framework-free components on a `boarddd/view2d` stage. Symbols and numbers
+on screen; the words are in tooltips.
+
+```js
+import { impedancePanel, copperContent } from 'boarddd/impedance/ui';
+const stage = createStage(el, { bounds });                              // boarddd/view2d
+stage.setScene([{ layers: [{ content: copperContent(copper) }] }]);    // or a Gerber face
+const panel = impedancePanel(panelEl, { board, copper, stage });        // board@1 + copper@1
+// click a trace: its net and its pair (alt-click: that segment); the panel analyses it in a Worker
+panel.on('result', (doc) => doc.summary.z_weighted);                    // the boarddd/impedance@1 document
+```
+
+- **Panel:**
+  - `⇄ D+ D-   106.8 Ω   ✗ 90 ±10 %   [auto ▾]   F.Cu B.Cu`: the pair, the length-weighted Z (Zdiff for a pair), the
+    verdict against the net class target (✓ in, ⚠ near the limit, ✗ out), a structure override that re-runs, and the
+    layers.
+  - Then Z along the route: hover it, and the stage shows the spot and its section while the cross-section follows.
+  - The solved cross-section: εr per dielectric, the copper, the planes, the mask; dimensions on hover.
+  - The discontinuities (◎ via, ⇅ reference change, ⊘ plane gap, ⇔ width, ⇹ breakout, ✗ no reference,
+    ⚠ plane edge): click one to zoom there.
+- **Pieces:** each also works on its own:
+  - `copperHitIndex` / `attachPicker` (hover tooltip: net · width · layer);
+  - `createHighlight` (the nets over a dimmed board, a section, a marker);
+  - `crossSection(el, section, { board })`;
+  - `createAnalyzer` (`analyzeNet` in a module Worker, on the main thread from `file://`);
+  - `copperContent` (draws a copper@1 document, for boards without Gerbers).
+- **3D:** `boardPointFromPick(viewer.pick(x, y))` gives the board mm of a pick on the board solid;
+  `panel.selectAt(x, y)` selects there.
+- **Gerber-only uploads:** `copperFromGerbers(files)` (boarddd/copper) gives the copper. `stackupFromJob(gbrjob)`
+  (boarddd/model) gives the stackup.
+- **Theming:** CSS variables `--bdi-*` on `.bdi-panel` / `.bd2-stage` (light and dark defaults); `IMPEDANCE_UI_CSS`
+  for a CSP without inline styles (`injectCss: false`).
+- **Example:** `examples/impedance.html` has royalblue54L from its Gerber X2 export (the USB pair) and CM5 MINIMA (the
+  100 Ω Ethernet pair).
+
 ## Peers
 
 `three` is a peer dependency, imported by the bare specifier `"three"`: map it with an importmap,
@@ -327,6 +364,12 @@ coordinates), z up out of the top copper, board bottom face at z = 0 and top fac
 - `boarddd/copper`: `validateCopper` on the shared cases in `fixtures/copper/`, `copperFromGerbers` on the
   royalblue54L_feather and NFC-antenna Gerber exports against the KiCad reader's golden (pytest also checks
   Python = JS on both).
+- `boarddd/impedance/ui` (`test/impedance-ui/`): picking, pairs, route slices, the section layout and the gbrjob
+  stackup under node; in Chromium on `examples/impedance.html`:
+  - a click picks the net and its pair, and the panel's Z matches analyzeNet's;
+  - alt-click picks one segment, the profile moves the marker, and a discontinuity zooms;
+  - an override re-runs, and the cross-section draws;
+  - CM5's 100 Ω pair, the 3D hook, and a `file://` bundle (main thread). `IMP_SHOTS=dir` saves screenshots.
 - Python: `cd python && pip install -e ".[dev]" && pytest` (model, validator, golden board, impedance, copper), `ruff`,
   `python -m boarddd.model --check` (generated schema/typings up to date).
 - `npm run typecheck`: the `.d.ts` files, plus `test/types/` (type-level use of `boarddd/gerber` and `boarddd/view2d`).

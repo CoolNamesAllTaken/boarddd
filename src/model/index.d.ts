@@ -15,3 +15,5 @@ export const toKicad: (p: Vec2) => Vec2;
 export const toBoard: (p: Vec2) => Vec2;
 /** A footprint-frame point (KiCad footprint coordinates, y down) placed by a component, in the board frame. */
 export function footprintToBoard(component: Pick<Component, 'x' | 'y' | 'rotation' | 'side'>, p: Vec2): Vec2;
+/** A board@1 Stackup from a Gerber job file (JSON text or object), as python's boarddd.io.gbrjob.read_stackup. */
+export function stackupFromJob(job: string | object, copperIds?: string[] | null): import('./board.js').Stackup;

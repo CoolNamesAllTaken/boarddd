@@ -517,7 +517,8 @@ function targetOf(board, net, kind, o, warnings) {
  * @param {object} [options]  see ROUTE_DEFAULTS; plus `target` (Ω or {value, tolerance_pct}), `groundNets`
  *   (names to treat as ground besides zones, solid planes and GND-like names) and `overrides`
  *   ({net: {...}, tracks: {id: {...}}} with structure, refTop, refBottom (layer or false), coplanar: false), and
- *   `cache` (a Map shared between calls: solved cross-sections by geometry key, e.g. for every net of a board)
+ *   `cache` (a Map shared between calls: solved cross-sections by geometry key, e.g. for every net of a board),
+ *   and `onProgress({phase: 'route' | 'solve', done, total})` (JS only; the UI's progress bar)
  */
 export function analyzeNet(board, copper, net, options = {}) {
   const t0 = now();
@@ -540,8 +541,13 @@ export function analyzeNet(board, copper, net, options = {}) {
   const sections = [];
   const routes = nets.map((x) => netRoute(copper, x));
   if (!routes[0].length) throw new RangeError(`net ${nets[0]} has no tracks`);
+  const progress = typeof o.onProgress === 'function' ? o.onProgress : null;
+  const totalLen = routes.reduce((t, r) => t + r.reduce((u, e) => u + e.path.len, 0), 0) || 1;
+  let doneLen = 0;
   nets.forEach((x, k) => {
     for (const e of routes[k]) {
+      doneLen += e.path.len;
+      progress?.({ phase: 'route', done: doneLen, total: totalLen });
       if (!stack.order.has(e.track.layer)) { warnings.push(`${e.track.layer} is not in the stackup: track skipped`); continue; }
       const nb = Math.max(1, Math.ceil(e.path.len / o.step - 1e-9));
       const ov = o.overrides?.tracks?.[e.track.id] ?? o.overrides?.net ?? null;
@@ -591,7 +597,8 @@ export function analyzeNet(board, copper, net, options = {}) {
   // how much route each cross-section covers decides its accuracy (fieldOptions or shortFieldOptions)
   const covers = new Map();
   for (const sec of sections) covers.set(sec._key, (covers.get(sec._key) ?? 0) + sec.length);
-  for (const sec of sections) {
+  sections.forEach((sec, i) => {
+    progress?.({ phase: 'solve', done: i, total: sections.length });
     const fine = covers.get(sec._key) >= o.shortLength - 1e-9;
     const had = cache.get(sec._key);
     if (!had || (fine && !had.fine)) {
@@ -607,7 +614,8 @@ export function analyzeNet(board, copper, net, options = {}) {
       sec.z = { Z0: z.Z0, Zdiff: z.Zdiff, Zcommon: z.Zcommon, Zodd: z.Zodd, Zeven: z.Zeven, eps_eff: z.eps_eff, error_pct: z.error_pct, solver: z.solver, model: z.model };
       if (kind === 'differential' && sec.kind === 'single') sec.z.Zdiff = R6(2 * z.Z0);   // uncoupled: two single lines
     }
-  }
+  });
+  progress?.({ phase: 'solve', done: sections.length, total: sections.length });
   const target = targetOf(board, nets[0], kind, o, warnings);
   const summary = summarise(sections.filter((s) => s.net === nets[0]), target, kind);
   const discontinuities = discontinuitiesOf(sections);

@@ -321,6 +321,8 @@ export interface RouteOptions {
   overrides?: { net?: RouteOverride; tracks?: Record<string, RouteOverride> };
   /** Solved cross-sections by geometry key, shared between calls (e.g. every net of a board). */
   cache?: Map<string, unknown>;
+  /** Called while it runs: stations cut along the route (done/total mm), then sections solved. */
+  onProgress?: (p: { phase: 'route' | 'solve'; done: number; total: number }) => void;
 }
 
 export const ROUTE_DEFAULTS: Readonly<Required<Omit<RouteOptions, 'target' | 'groundNets' | 'overrides' | 'cache'>>>;

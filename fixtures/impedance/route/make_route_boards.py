@@ -17,6 +17,9 @@ And royalblue-usb.json.gz: royalblue54L_feather's board@1 (stackup, nets) and th
 (/Debugger/D+, /Debugger/D-; every item whose box comes within 3 mm of the pair's tracks), read with
 boarddd.io.kicad from fixtures/royalblue54L_feather/kicad; the browser and JS tests analyse it
 (python/tests/test_impedance_route.py checks that the subset gives the full board's answer).
+
+And cm5.json.gz: KiCad's CM5 MINIMA demo (fixtures/cm5_minima) as board@1 (no footprints) + its whole copper@1,
+for the impedance UI example and tests (examples/impedance.html, test/impedance-ui/).
 """
 
 from __future__ import annotations
@@ -241,6 +244,18 @@ def royalblue_usb() -> dict:
     return {"board": board.to_dict(), "copper": copper.to_dict()}
 
 
+def cm5() -> dict:
+    """KiCad's CM5 MINIMA demo (fixtures/cm5_minima): board@1 without footprints and its whole copper@1."""
+    pcb = REPO / "fixtures" / "cm5_minima" / "kicad" / "CM5_MINIMA_3.kicad_pcb.gz"
+    text = gzip.decompress(pcb.read_bytes()).decode()
+    board = read_kicad_pcb(text, pcb.parent / "CM5_MINIMA_3.kicad_pro", name="CM5_MINIMA_3")
+    copper = read_kicad_copper(text, name="CM5_MINIMA_3")
+    board.footprints, board.components = {}, []  # not needed for the analysis
+    board.source.reader = "boarddd io.kicad.read_kicad_pcb"
+    copper.source.reader = "boarddd io.kicad.read_kicad_copper"
+    return {"board": board.to_dict(), "copper": copper.to_dict()}
+
+
 CASES = {"split": split, "cpwg": cpwg, "inner": inner, "pair": pair}
 
 
@@ -248,6 +263,8 @@ def outputs() -> dict[str, bytes]:
     out = {f"{k}.json": (json.dumps(f(), separators=(",", ":")) + "\n").encode() for k, f in CASES.items()}
     text = json.dumps(royalblue_usb(), separators=(",", ":")) + "\n"
     out["royalblue-usb.json.gz"] = gzip.compress(text.encode(), compresslevel=9, mtime=0)
+    text = json.dumps(cm5(), separators=(",", ":")) + "\n"
+    out["cm5.json.gz"] = gzip.compress(text.encode(), compresslevel=9, mtime=0)
     return out
 
 

@@ -8,7 +8,7 @@ import pytest
 from boarddd.io import gbrjob
 from boarddd.io.kicad import read_kicad_pcb
 
-from conftest import FIXTURES
+from conftest import FIXTURES, GENERATED, REPO
 
 RB = FIXTURES / "royalblue54L_feather"
 
@@ -96,3 +96,53 @@ def test_kicad_job_with_sublayers_and_strings():
 def test_junk(text):
     st = gbrjob.read_stackup(text)
     assert st.layers == [] and st.thickness is None and st.copper_layers is None
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# the browser's twin: boarddd/model stackupFromJob (src/model/gbrjob.js)
+
+_NODE = __import__("shutil").which("node")
+
+
+def _js_and_py(text: str):
+    import json
+    import subprocess
+
+    from boarddd.io.layers import layer_id
+    from boarddd.model import to_dict
+
+    script = (
+        "import { stackupFromJob } from './src/model/index.js';"
+        f"process.stdout.write(JSON.stringify(stackupFromJob({json.dumps(text)})));"
+    )
+    out = subprocess.run(
+        [_NODE, "--input-type=module", "-e", script], capture_output=True, text=True, check=True, cwd=REPO
+    )
+    n = sum(1 for e in json.loads(text).get("MaterialStackup", []) if str(e.get("Type", "")).lower() == "copper")
+    ids = ["F.Cu", *[f"In{i}.Cu" for i in range(1, n - 1)], "B.Cu"] if n >= 2 else None
+    py = to_dict(gbrjob.read_stackup(text, ids, lambda kind, side: layer_id(kind, side, None, None)))
+
+    def drop_nulls(d):  # the fields stackupFromJob leaves out are the model's null / empty defaults
+        if isinstance(d, dict):
+            return {k: drop_nulls(v) for k, v in d.items() if v is not None and not (k == "sublayers" and v == [])}
+        if isinstance(d, list):
+            return [drop_nulls(x) for x in d]
+        return d
+
+    return drop_nulls(json.loads(out.stdout)), drop_nulls(py)
+
+
+JOBS = sorted(FIXTURES.glob("*/fab/*.gbrjob")) + sorted(GENERATED.rglob("*.gbrjob"))
+
+
+@pytest.mark.skipif(_NODE is None, reason="node is not installed: the JS side needs it")
+@pytest.mark.parametrize("job", JOBS, ids=[f"{p.parent.parent.name}-{p.parent.name}" for p in JOBS])
+def test_js_stackup_from_job_is_the_same(job):
+    js, py = _js_and_py(job.read_text("utf-8"))
+    assert js == py
+
+
+@pytest.mark.skipif(_NODE is None, reason="node is not installed: the JS side needs it")
+def test_js_stackup_with_sublayers_and_strings():
+    js, py = _js_and_py(json.dumps(JOB))
+    assert js == py
