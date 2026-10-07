@@ -14,6 +14,13 @@ PR review) and gentoo (a PCB fab shop site). Framework-free ES modules, no build
   space, matching meshes to reference designators.
 - **`boarddd/scene`**: `createViewer`: renderer, camera, controls, KiCad-like lighting, render on
   demand, view cube, view presets, capture.
+- **`boarddd/model`**: the normalised board model `boarddd/board@1` (`board.json`): typings,
+  `validateBoard`, `footprintToBoard`. The schema is `schema/board.schema.json`; see
+  [docs/model.md](docs/model.md).
+
+The Python package in [`python/`](python/README.md) (same repository, same version tag) holds the
+server-side readers and owns the board model. Readers are server-side (Python), renderers are
+browser-side (JS); see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Status: phase 1.
 
@@ -193,8 +200,14 @@ coordinates), z up out of the top copper, board bottom face at z = 0 and top fac
   a blue STEP board reads blue from top and bottom; no frames while idle; view cube clicks; dispose;
   `boarddd/gerber` pixel tests (`gerber-board-diff`, `gerber-drill-empty-tools`, ported from the fork).
   `PW_PORT` changes the server port (several checkouts at once).
+- `boarddd/model`: `validateBoard` against the shared cases in `fixtures/model/` (pytest runs the same
+  file), and the royalblue54L_feather golden `board.json` against boarddd's own `.kicad_mod` parser and
+  the drill files.
+- Python: `cd python && pip install -e ".[dev]" && pytest` (model, validator, golden board), `ruff`,
+  `python -m boarddd.model --check` (generated schema/typings up to date).
 - `npm run typecheck`: the `.d.ts` files, plus `test/types/` (type-level use of `boarddd/gerber`).
-- Fixtures: `test/fixtures/` (see the READMEs there for sources); `examples/data/` is KiCad demo data
+- Fixtures: `fixtures/` is shared golden data for node, Playwright and pytest (licences in
+  `fixtures/LICENSES.md`); `test/fixtures/` holds JS-only inputs (see the READMEs there for sources); `examples/data/` is KiCad demo data
   (KiCad's `demos/royalblue54L_feather`), exported with `scripts/export-demo.sh`.
 
 ## Development

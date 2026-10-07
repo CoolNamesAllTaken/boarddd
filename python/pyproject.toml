@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "boarddd"
+version = "0.2.0"
+description = "PCB board and part ingestion (server side) for boarddd: the normalised board model and format readers."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = []  # core is stdlib only; readers that need more get extras (see the plan: shapely, xlsx, step, png)
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff==0.14.0", "jsonschema>=4.23"]
+
+[project.urls]
+Repository = "https://github.com/CoolNamesAllTaken/boarddd"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501"]  # the formatter wraps code; long strings (field docs) stay on one line
+
+[tool.ruff.format]
+
+[tool.ruff.lint.isort]
+known-first-party = ["boarddd"]
+known-local-folder = ["conftest"]

@@ -1,0 +1,23 @@
+{
+ "schema": "boarddd/board@1",
+ "name": "minimal",
+ "units": "mm",
+ "frame": "board",
+ "source": {"kind": "gerber", "files": [{"path": "minimal-F_Cu.gbr", "role": "copper", "side": "top"}, {"path": "minimal.drl", "role": "drill"}]},
+ "outline": {"board": [[0, 0], [30, 0], [30, 20], [0, 20]], "cutouts": [[[10, 5], [10, 8], [14, 8], [14, 5]]]},
+ "stackup": {"thickness": 1.6, "copper_layers": 2, "finish": "ENIG", "mask_color": {"top": "Green", "bottom": "Green"},
+             "layers": [{"name": "F.Cu", "kind": "copper", "side": "top", "thickness": 0.035, "layer": "F.Cu"},
+                        {"name": "core", "kind": "dielectric", "side": "inner", "thickness": 1.53, "material": "FR4"},
+                        {"name": "B.Cu", "kind": "copper", "side": "bottom", "thickness": 0.035}]},
+ "layers": [{"id": "F.Cu", "role": "copper", "side": "top", "order": 1, "files": ["minimal-F_Cu.gbr"]},
+            {"id": "PTH", "role": "drill", "side": "none", "order": 10, "files": ["minimal.drl"], "format": "excellon", "plated": true}],
+ "drills": [{"x": 2, "y": 2, "diameter": 1.0, "plated": true, "tool": "T1", "layer": "PTH"},
+            {"x": 5, "y": 2, "diameter": 0.8, "plated": true, "x2": 7, "y2": 2, "layer": "PTH"}],
+ "footprints": {"Resistor_SMD:R_0603_1608Metric": {"name": "Resistor_SMD:R_0603_1608Metric", "attr": ["smd"], "pads": [
+   {"number": "1", "type": "smd", "shape": "roundrect", "at": [-0.825, 0, 0], "size": [0.8, 0.95], "layers": ["F.Cu", "F.Paste", "F.Mask"], "roundrect_rratio": 0.25},
+   {"number": "2", "type": "smd", "shape": "roundrect", "at": [0.825, 0, 0], "size": [0.8, 0.95], "layers": ["F.Cu", "F.Paste", "F.Mask"], "roundrect_rratio": 0.25}]}},
+ "components": [{"ref": "R1", "side": "top", "x": 20, "y": 10, "rotation": 90, "value": "10k", "footprint": "Resistor_SMD:R_0603_1608Metric",
+                 "mount": "smd", "mpn": [{"manufacturer": "Yageo", "mpn": "RC0603FR-0710KL"}],
+                 "models": [{"path": "${KICAD9_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_0603_1608Metric.step"}]},
+                {"ref": "R2", "side": "bottom", "x": 20, "y": 14, "rotation": 0, "populate": false, "footprint": "Resistor_SMD:R_0603_1608Metric"}]
+}
