@@ -14,7 +14,7 @@ PR review) and gentoo (a PCB fab shop site). Framework-free ES modules, no build
 - **`boarddd/scene`**: `createViewer`: renderer, camera, controls, KiCad-like lighting, render on
   demand, view cube, view presets, capture.
 
-Status: phase 1. `geom`, `board`, `footprint` are in; `models`, `scene` are landing.
+Status: phase 1.
 
 ## API
 
@@ -67,6 +67,57 @@ const m = new THREE.Matrix4().fromArray(built.modelMatrix(fp.models[0]));   // w
 (KiCad 6 to 10, and the old `module` form). Pad objects are also kipr's `geom.json` pads.
 Text is not drawn.
 
+### `boarddd/models`
+
+```js
+import { loadGLB, loadSTEP, prepareModel } from 'boarddd/models';
+
+// a kicad-cli GLB: oriented (z up, mm), board bodies told apart, components named
+const s = prepareModel(await loadGLB('board.glb'), components /* [{ref, x, y, side}], KiCad mm (y down) */,
+                       { boardSize: [w, h], boardOrigin: [x0, y0] /* optional */ });
+viewer.add(s.root);
+s.comps.get('U1');            // {objects, meshes, box, bottom}
+s.parts.substrate;            // also mask, copper, silk: hide them under a Gerber-built board
+s.report;                     // {method: 'name'|'position'|'mixed', matched, ambiguous, unmatched, up, scale, ...}
+
+// STEP through occt-import-js (LGPL-2.1, not bundled: pass its URLs; it runs in a Worker)
+const part = await loadSTEP('part.step', { occt: { js: '.../occt-import-js.js', wasm: '.../occt-import-js.wasm' } });
+```
+
+- Matching: names first (`R5`, `R5_1`, `R5 (2)`; never `R11` → `R1`), then positions: the export origin
+  is fitted (from the named nodes, else a Hough vote), and a node goes to a part only if it is clearly
+  nearer that part than any other node and than any other part; mutual-nearest pairs settle the rest.
+  A part with `assembly: true` and a `box` claims the solids inside it (a module).
+- Units and up axis are measured (thinnest axis is up; the size that fits `boardSize`, else metres
+  below 2 units) unless `units` / `up` are given. The substrate's bottom is seated on z = 0.
+- STEP colours are used the way KiCad's viewer uses them (occt returns linear RGB; boarddd re-encodes
+  to the file's values), with a polygon offset against coplanar footprint copper.
+- Meshes carry `userData.group` (`model`, `board`, `mask`, `copper`, `silk`) and `userData.ref`.
+- Classic-script bundles: `import.meta.url` is gone, so pass `workerUrl` (e.g. a blob URL of
+  `src/models/step_worker.js`) or `occtFactory` to run occt on the main thread.
+- Pure helpers (`mapNodesToRefs`, `matchByPosition`, `splitBoardBodies`, `measureBoard`, `detectUp`,
+  `detectScale`, `stepColorToLinear`, ...) run under node.
+
+### `boarddd/scene`
+
+```js
+import { createViewer } from 'boarddd/scene';
+const v = createViewer(el, { controls: 'trackball' /* or 'orbit' */, theme: 'light', onPick: (hit) => {} });
+v.add(board.group, s.root);   // board frame, z up
+v.setView('top');             // bottom, front (side), back, left, right, iso, isoBottom; fits the content
+v.fit();                      // refit from the current direction
+v.setTheme('dark');
+const png = v.capture({ width: 1200, height: 800, transparent: true });
+v.requestRender();            // after changing objects yourself
+v.dispose();                  // frees GL (content included) and removes the canvas
+```
+
+- Renders on demand: no animation loop; frames are drawn while the controls move and then stop.
+- KiCad-like look: neutral tone mapping, a generated room environment (no network), ambient + key +
+  camera headlight, light/dark gradient backgrounds. Near/far are fitted to the content every frame.
+- The view cube (top right) shows the orientation; click a face to look from it. Bottom is mirrored
+  left-right, like KiCad. Importmaps must map `three/addons/` too.
+
 ## Peers
 
 `three` is a peer dependency, imported by the bare specifier `"three"`: map it with an importmap,
@@ -77,6 +128,7 @@ a classic script (e.g. esbuild IIFE) works.
 ```html
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/",
                "boarddd/": "https://cdn.jsdelivr.net/gh/CoolNamesAllTaken/boarddd@main/src/" } }
 </script>
 ```
@@ -92,7 +144,9 @@ coordinates), z up out of the top copper, board bottom face at z = 0 and top fac
 - `npm test`: node tests: geometry (stadium slots, hole budget, every KiCad pad shape against pcbnew's
   own polygons, kipr's pad-placement golden data), the board solid, the footprint reader/builder.
 - `npm run test:browser`: headless Chromium (SwiftShader WebGL2): slotted holes must show through as
-  stadiums in a straight-down render of a footprint and of a Gerber-built board; copper diff colours.
+  stadiums in a straight-down render of a footprint and of a Gerber-built board; copper diff colours;
+  a blue STEP board reads blue from top and bottom; no frames while idle; view cube clicks; dispose.
+  `PW_PORT` changes the server port (several checkouts at once).
 - Fixtures: `test/fixtures/` (see the READMEs there for sources); `examples/data/` is KiCad demo data
   (KiCad's `demos/royalblue54L_feather`), exported with `scripts/export-demo.sh`.
 - `vendor/wasm-gerber-renderer/` is a dev/test copy of the fork (`scripts/sync-gerber-renderer.sh`), not
