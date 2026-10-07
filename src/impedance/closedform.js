@@ -13,6 +13,16 @@ const { PI, E, log, sqrt, exp, sin, sinh, cosh, tanh } = Math;
 /** Impedance of free space, Ω (CODATA 2018). */
 export const ETA0 = 376.730313668;
 
+// boarddd's fitted constants (marked "boarddd" below; docs/impedance.md). fixtures/impedance/fit_corrections.py
+// refits them on fixtures/impedance/field-sweep.json (boarddd's own field solver); the Python twin has the same table.
+const FIT = {
+  mask: { k: 2.66, a: 0.316, p: 0.848, b: 0.606, kappa: 0.076 },
+  coplanar: { corner: 0.1, backing: 0.05 },
+  coupledMicrostrip: { even: 1, odd: 0.8 },
+  coupledStripline: { decay: 2.8 },
+  offset: { lo: 0.2, span: 30 },
+};
+
 // ── elliptic integrals ──────────────────────────────────────────────────────────────────────────────────────
 
 /** Arithmetic-geometric mean. */
@@ -131,8 +141,9 @@ export function coatedMicrostrip(p) {
   const u = p.w / p.h, T = (p.t ?? 0) / p.h, C = p.c / p.h;
   const bare = microstripCore(u, T, p.er);
   const q = (bare.eps_eff - 1) / (p.er - 1 || 1);
-  const F = 1 - exp(-2.66 * u ** -0.316 * C ** 0.848 * Math.max(0, 1 - 0.606 * T));
-  const eps_eff = bare.eps_eff + ((1 - q) * F * (p.erc - 1)) / (1 + 0.076 * (p.erc - 1));
+  const m = FIT.mask;
+  const F = 1 - exp(-m.k * u ** -m.a * C ** m.p * Math.max(0, 1 - m.b * T));
+  const eps_eff = bare.eps_eff + ((1 - q) * F * (p.erc - 1)) / (1 + m.kappa * (p.erc - 1));
   const flags = [];
   microstripFlags(flags, u, T, p.er);
   const src = 'boarddd mask model';
@@ -201,7 +212,7 @@ function striplineAir(w, h1, h2, t) {
   const a = h1 + t / 2, c = h2 + t / 2;
   const zw = ETA0 / (ETA0 / zs + (w / h1 + w / h2 - (4 * w) / (b - t)) + 2 * (offsetFringe(a, c) - offsetFringe(b / 2, b / 2)));
   const zn = zs + (ETA0 / (2 * PI)) * log(sin((PI * a) / b));
-  const q = Math.min(1, Math.max(0, log(w / Math.min(a, c) / 0.2) / log(30)));
+  const q = Math.min(1, Math.max(0, log(w / Math.min(a, c) / FIT.offset.lo) / log(FIT.offset.span)));
   const f = q * q * (3 - 2 * q);
   return zn > 0 ? zn * (1 - f) + zw * f : zw;
 }
@@ -255,7 +266,7 @@ function coplanar(p, grounded) {
   const { w, gap: g, h, er } = p, t = p.t ?? 0;
   const k0 = w / (w + 2 * g), k0p = (2 * sqrt(g * (w + g))) / (w + 2 * g);
   const r0 = ellipticRatio(k0, k0p);                     // K(k0)/K(k0')
-  const dt = t > 0 ? t / g + 0.1 * sqrt(t / w) + (grounded ? 0.05 * sqrt(t / h) * (g / h) : 0) : 0;
+  const dt = t > 0 ? t / g + FIT.coplanar.corner * sqrt(t / w) + (grounded ? FIT.coplanar.backing * sqrt(t / h) * (g / h) : 0) : 0;
   const flags = [];
   const src = grounded ? 'Ghione-Naldi 1987' : 'Ghione-Naldi 1984';
   range(flags, 't/gap', t / g, 0, 0.7, 'boarddd coplanar thickness');
@@ -360,7 +371,7 @@ export function coupledMicrostrip(p) {
     const [c0, a0] = caps(z01(u) / sqrt(epsEff0(u, er)), epsEff0(u, er));
     const st = microstripCore(u, T, er);
     const [ct, at] = caps(st.Z0, st.eps_eff);
-    const pe = (1 + g) * exp(-g), po = (1 + g) * exp(-0.8 * g), plate = (2 * T) / g;
+    const pe = (1 + g) * exp(-FIT.coupledMicrostrip.even * g), po = (1 + g) * exp(-FIT.coupledMicrostrip.odd * g), plate = (2 * T) / g;
     const mode = (Z, ee, dC, dA) => {
       const [c, a] = caps(Z, ee);
       return [ETA0 / sqrt((c + dC) * (a + dA)), (c + dC) / (a + dA)];
@@ -405,7 +416,7 @@ function symCoupledAir(w, s, b, t) {
   if (t <= 0) return [zoe0, zoo0];
   const dCs = ETA0 / symStriplineAir(w, b, t) - ETA0 / cohnStripline0(w, b);
   const e = (dCs - ((4 * w) / (b - t) - (4 * w) / b)) / 2;
-  const x = s / (b - t), psi = (1 + 2 * x) * exp(-2.8 * x);
+  const x = s / (b - t), psi = (1 + 2 * x) * exp(-FIT.coupledStripline.decay * x);
   return [ETA0 / (ETA0 / zoe0 + dCs - psi * e), ETA0 / (ETA0 / zoo0 + dCs + (psi * 2 * t) / s)];
 }
 

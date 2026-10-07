@@ -20,6 +20,16 @@ from math import cosh, exp, log, pi, sin, sinh, sqrt, tanh
 ETA0 = 376.730313668
 """Impedance of free space, Ω (CODATA 2018)."""
 
+# boarddd's fitted constants (marked "boarddd" below; docs/impedance.md). fixtures/impedance/fit_corrections.py
+# refits them on fixtures/impedance/field-sweep.json (boarddd's own field solver); closedform.js has the same table.
+_FIT = {
+    "mask": {"k": 2.66, "a": 0.316, "p": 0.848, "b": 0.606, "kappa": 0.076},
+    "coplanar": {"corner": 0.1, "backing": 0.05},
+    "coupledMicrostrip": {"even": 1, "odd": 0.8},
+    "coupledStripline": {"decay": 2.8},
+    "offset": {"lo": 0.2, "span": 30},
+}
+
 
 @dataclass(frozen=True)
 class Flag:
@@ -211,8 +221,9 @@ def coated_microstrip(*, w: float, h: float, er: float, c: float, erc: float, t:
     u, T, C = w / h, t / h, c / h
     _, ee_bare, z_air = _microstrip_core(u, T, er)
     q = (ee_bare - 1) / ((er - 1) or 1)
-    F = 1 - exp(-2.66 * u**-0.316 * C**0.848 * max(0.0, 1 - 0.606 * T))
-    eps_eff = ee_bare + ((1 - q) * F * (erc - 1)) / (1 + 0.076 * (erc - 1))
+    m = _FIT["mask"]
+    F = 1 - exp(-m["k"] * u ** -m["a"] * C ** m["p"] * max(0.0, 1 - m["b"] * T))
+    eps_eff = ee_bare + ((1 - q) * F * (erc - 1)) / (1 + m["kappa"] * (erc - 1))
     flags: list[Flag] = []
     _microstrip_flags(flags, u, T, er)
     src = "boarddd mask model"
@@ -286,7 +297,7 @@ def _stripline_air(w: float, h1: float, h2: float, t: float) -> float:
         ETA0 / zs + (w / h1 + w / h2 - (4 * w) / (b - t)) + 2 * (_offset_fringe(a, c) - _offset_fringe(b / 2, b / 2))
     )
     zn = zs + (ETA0 / (2 * pi)) * log(sin((pi * a) / b))
-    q = min(1.0, max(0.0, log(w / min(a, c) / 0.2) / log(30)))
+    q = min(1.0, max(0.0, log(w / min(a, c) / _FIT["offset"]["lo"]) / log(_FIT["offset"]["span"])))
     f = q * q * (3 - 2 * q)
     return zn * (1 - f) + zw * f if zn > 0 else zw
 
@@ -339,7 +350,8 @@ def _coplanar(w: float, gap: float, h: float, er: float, t: float, grounded: boo
     g = gap
     k0, k0p = w / (w + 2 * g), (2 * sqrt(g * (w + g))) / (w + 2 * g)
     r0 = elliptic_ratio(k0, k0p)  # K(k0)/K(k0')
-    dt = t / g + 0.1 * sqrt(t / w) + (0.05 * sqrt(t / h) * (g / h) if grounded else 0) if t > 0 else 0
+    cp = _FIT["coplanar"]
+    dt = t / g + cp["corner"] * sqrt(t / w) + (cp["backing"] * sqrt(t / h) * (g / h) if grounded else 0) if t > 0 else 0
     flags: list[Flag] = []
     src = "Ghione-Naldi 1987" if grounded else "Ghione-Naldi 1984"
     _range(flags, "t/gap", t / g, 0, 0.7, "boarddd coplanar thickness")
@@ -436,7 +448,8 @@ def coupled_microstrip(*, w: float, s: float, h: float, er: float, t: float = 0)
         c0, a0 = _caps(_z01(u) / sqrt(_eps_eff0(u, er)), _eps_eff0(u, er))
         zt, eet, _ = _microstrip_core(u, T, er)
         ct, at = _caps(zt, eet)
-        pe, po, plate = (1 + g) * exp(-g), (1 + g) * exp(-0.8 * g), (2 * T) / g
+        cm = _FIT["coupledMicrostrip"]
+        pe, po, plate = (1 + g) * exp(-cm["even"] * g), (1 + g) * exp(-cm["odd"] * g), (2 * T) / g
 
         def mode(Z: float, ee: float, dC: float, dA: float) -> tuple[float, float]:
             c, a = _caps(Z, ee)
@@ -485,7 +498,7 @@ def _sym_coupled_air(w: float, s: float, b: float, t: float) -> tuple[float, flo
     dcs = ETA0 / _sym_stripline_air(w, b, t) - ETA0 / _cohn_stripline0(w, b)
     e = (dcs - ((4 * w) / (b - t) - (4 * w) / b)) / 2
     x = s / (b - t)
-    psi = (1 + 2 * x) * exp(-2.8 * x)
+    psi = (1 + 2 * x) * exp(-_FIT["coupledStripline"]["decay"] * x)
     return ETA0 / (ETA0 / zoe0 + dcs - psi * e), ETA0 / (ETA0 / zoo0 + dcs + (psi * 2 * t) / s)
 
 

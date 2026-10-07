@@ -169,7 +169,7 @@ def test_accuracy_envelope_against_the_field_solver_sweep():
 @pytest.mark.parametrize("c", CASES["stackup_lines"], ids=lambda c: f"{c['stackup']}-{c['layer']}")
 def test_stackup_line_parity(c):
     line = z.line_from_stackup(CASES["stackups"][c["stackup"]], c["layer"], **c["py_opts"])
-    close(dataclasses.asdict(line), c["expect"], c["layer"])
+    close(line.to_dict(), c["expect"], c["layer"])
 
 
 @pytest.mark.parametrize("c", CASES["stackup_targets"], ids=lambda c: f"{c['stackup']}-{c['target']['target']}")

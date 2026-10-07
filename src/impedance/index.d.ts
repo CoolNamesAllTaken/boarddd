@@ -1,4 +1,5 @@
-// boarddd/impedance: tier-1 closed-form PCB transmission-line impedance; see docs/impedance.md.
+// boarddd/impedance: tier-1 closed-form PCB transmission-line impedance and the tier-2 field solver; see
+// docs/impedance.md.
 // Lengths in any one unit (boarddd uses mm); impedances in Ω.
 
 /** An input outside the range the formula was published or checked for. */
@@ -127,8 +128,19 @@ export interface LineFromStackupOptions {
   refBottom?: string;
   /** Model the solder mask on an outer single-ended microstrip (default true). */
   mask?: boolean;
+  /** 'field' also returns the real cross-section for the tier-2 field solver (default 'closedform'). */
+  solver?: 'closedform' | 'field';
 }
 
+/**
+ * A signal layer as a line for the field solver: the closed-form model and parameters where tier 1 has one (model
+ * null for differential coplanar and coplanar on inner layers), plus the real cross-section.
+ */
+export function lineFromStackup(
+  stackup: Pick<Stackup, 'layers'>,
+  layer: string,
+  opts: LineFromStackupOptions & { solver: 'field' },
+): { model: ModelId | null; structure: Structure; params: Record<string, number>; warnings: string[]; section: CrossSection };
 /** A signal layer of a boarddd/board@1 stackup as a closed-form line. */
 export function lineFromStackup(
   stackup: Pick<Stackup, 'layers'>,
@@ -152,9 +164,103 @@ export interface TargetEvaluation {
   warnings: string[];
 }
 
+/** A TargetEvaluation by the field solver (`solver: 'field'`). */
+export interface FieldTargetEvaluation extends Omit<TargetEvaluation, 'model' | 'result'> {
+  model: ModelId | null;
+  result: FieldResult & { model: ModelId | null };
+}
+
+/** Evaluate a net class's ImpedanceTarget with the tier-2 field solver (synthesis by secant steps from tier 1). */
+export function evaluateTarget(
+  stackup: Pick<Stackup, 'layers'>,
+  target: ImpedanceTarget,
+  opts: Omit<LineFromStackupOptions, 'width' | 'kind'> & { solver: 'field'; fieldOptions?: FieldOptions },
+): FieldTargetEvaluation[];
 /** Evaluate a net class's ImpedanceTarget on a stackup, one row per target layer. */
 export function evaluateTarget(
   stackup: Pick<Stackup, 'layers'>,
   target: ImpedanceTarget,
   opts?: Omit<LineFromStackupOptions, 'width' | 'kind'>,
 ): TargetEvaluation[];
+
+// ── tier 2: the field solver (fieldsolver.js) ──────────────────────────────────────────────────────────────
+
+/** A rectangle in the cross-section plane (mm, y up). A missing x0 or x1 extends it to the domain edge. */
+export interface SectionRect { x0?: number; x1?: number; y0: number; y1: number }
+export interface SectionConductor extends SectionRect {
+  /** Ground nets (`CrossSection.ground`, default 'gnd') are the reference; every other net is a signal. */
+  net: string;
+}
+export interface SectionDielectric extends SectionRect { er: number }
+
+/** A transmission-line cross-section: copper rectangles by net and dielectric rectangles (later ones win). */
+export interface CrossSection {
+  conductors: SectionConductor[];
+  dielectrics?: SectionDielectric[];
+  /** Nets held at 0 V (default ['gnd']). */
+  ground?: string[];
+  /** εr outside every dielectric (default 1, air). */
+  background?: number;
+}
+
+export interface FieldOptions {
+  /** Target relative error as estimated by the last grid refinement (default 0.01). */
+  tol?: number;
+  /** First grid level (default 0); each level divides the cell sizes by √2. */
+  level?: number;
+  /** Last grid level (default 4). */
+  maxLevel?: number;
+  /** Solve half the domain when the section is its own mirror image (default true). */
+  symmetry?: boolean;
+}
+
+export interface FieldGrid { nx: number; ny: number; nodes: number; unknowns: number; hc: number; growth: number }
+
+export interface FieldResult {
+  solver: 'field';
+  method: string;
+  /** Signal nets in order of first appearance (the rows of the matrices). */
+  signals: string[];
+  /** One signal. */
+  Z0?: number;
+  eps_eff?: number;
+  /** F/m, H/m and F/m (vacuum). */
+  C?: number;
+  L?: number;
+  C0?: number;
+  /** Two signals: differential and common mode (odd and even for a symmetric pair). */
+  Zdiff?: number;
+  Zcommon?: number;
+  Zodd?: number;
+  Zeven?: number;
+  eps_eff_odd?: number;
+  eps_eff_even?: number;
+  /** Maxwell capacitance matrices C (with dielectrics) and C0 (vacuum) in F/m, inductance L in H/m (finest grid). */
+  matrices: { C: number[][]; C0: number[][]; L: number[][] };
+  /** Relative error estimate per key (the size of the extrapolation from the finest grid). */
+  error: Record<string, number>;
+  /** The largest error estimate, %. */
+  error_pct: number;
+  symmetry: 'same' | 'swap' | 'none';
+  levels: ({ level: number; grid: FieldGrid } & Partial<Record<'Z0' | 'eps_eff' | 'C' | 'L' | 'C0' | 'Zdiff' | 'Zcommon' | 'Zodd' | 'Zeven' | 'eps_eff_odd' | 'eps_eff_even', number>>)[];
+  /** Wall time, ms. */
+  ms: number;
+}
+
+/** Solve a cross-section with the 2D quasi-static field solver. Throws RangeError on invalid sections. */
+export function solveCrossSection(section: CrossSection, opts?: FieldOptions): FieldResult;
+
+export type FieldModelId = Exclude<ModelId, `ipc2141_${string}`> | 'coupled_cpw' | 'coupled_cpwg';
+
+/**
+ * The cross-section of a tier-1 model's parameters. Outer structures also take a conformal solder mask `c`,
+ * `erc`; coplanar ones `fence` (via-fence distance from the gap, cpwg) and `gnd` (coplanar ground width).
+ */
+export function sectionFor(model: FieldModelId, params: Record<string, number>): CrossSection;
+
+/** A tier-1 model (or a coplanar pair) solved by the field solver. */
+export function fieldCalculate(
+  model: FieldModelId,
+  params: Record<string, number>,
+  opts?: FieldOptions,
+): FieldResult & { model: FieldModelId; flags: [] };
