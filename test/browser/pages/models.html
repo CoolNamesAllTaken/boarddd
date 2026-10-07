@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>boarddd models test</title>
+<style>html, body { margin: 0 } #v { width: 960px; height: 600px }</style>
+<script src="/test/browser/pages/importmap.js"></script>
+<div id="v"></div>
+<script type="module">
+  // KiCad demo data: royalblue54L_feather (examples/data), GLB from kicad-cli.
+  import { createViewer } from '/src/scene/index.js';
+  import { loadGLB, prepareModel } from '/src/models/index.js';
+  const q = new URLSearchParams(location.search);
+  window.errors = [];
+  try {
+    const { components } = await (await fetch('/test/fixtures/royalblue54L_components.json')).json();
+    const v = createViewer(document.getElementById('v'), { theme: q.get('theme') || 'light' });
+    const s = prepareModel(await loadGLB('/examples/data/royalblue54L_feather/board.glb'), components);
+    v.add(s.root);
+    v.setView(q.get('view') || 'iso');
+    window.v = v;
+    window.report = s.report;
+  } catch (e) { window.errors.push(String(e.stack || e)); }
+  window.ready = true;
+</script>
