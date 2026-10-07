@@ -243,6 +243,12 @@ export type StageOptions = {
   paddingPx?: number;
   /** false: a picture, no pan / zoom / pointer events (they reach what is under the stage). Default true. */
   interactive?: boolean;
+  /**
+   * Render at the screen's own resolution (CSS px per mm x dpr, not sqrt(2) steps), each tile on the
+   * device pixel grid: at rest a tile pixel is a screen pixel, as crisp as drawing straight to the
+   * screen. Default false.
+   */
+  pixelSnap?: boolean;
   region?: Region | null;
   /** Re-render this long after the view stops moving (default 180 ms). */
   settleMs?: number;
