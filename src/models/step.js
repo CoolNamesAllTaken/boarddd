@@ -155,7 +155,8 @@ export function stepMaterial(rgb, { polygonOffset = true } = {}) {
 
 function meshFor(m, materialFor) {
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(m.position, 3));
+  // A copy: centring translates it, and readStep()'s arrays may be used again (a cached tessellation).
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(m.position), 3));
   if (m.normal && m.normal.length === m.position.length) g.setAttribute('normal', new THREE.BufferAttribute(m.normal, 3));
   g.setIndex(new THREE.BufferAttribute(m.index, 1));
   if (!g.attributes.normal) g.computeVertexNormals();

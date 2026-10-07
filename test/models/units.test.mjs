@@ -27,3 +27,23 @@ test('stepColorToLinear re-encodes occt linear RGB to the file values (RP2040-Ze
   out.forEach((v, i) => assert.ok(Math.abs(v - want[i]) < 0.002, `${v} vs ${want[i]}`));
   assert.equal(stepColorToLinear(null), null);
 });
+
+test('stepToObject leaves readStep data alone: a second object from the same (cached) data lands in the same place', async () => {
+  const THREE = await import('three');
+  const { stepToObject } = await import('../../src/models/step.js');
+  const data = {
+    root: { name: 'part', meshes: [0], children: [] },
+    meshes: [{ name: 'body', color: [0.1, 0.2, 0.4], position: new Float32Array([10, 0, 0, 12, 0, 0, 10, 2, 1]), normal: null,
+      index: new Uint32Array([0, 1, 2]), faces: new Int32Array(0), faceColors: [] }],
+    triangles: 1,
+  };
+  const before = Array.from(data.meshes[0].position);
+  const boxes = [stepToObject(data), stepToObject(data)].map((o) => new THREE.Box3().setFromObject(o));
+  assert.deepEqual(Array.from(data.meshes[0].position), before);
+  for (const b of boxes) {
+    assert.deepEqual(b.min.toArray(), [10, 0, 0]);
+    assert.deepEqual(b.max.toArray(), [12, 2, 1]);
+  }
+  // the part's node sits at its box middle (for matching), as before
+  assert.deepEqual(stepToObject(data).children[0].position.toArray(), [11, 1, 0.5]);
+});
