@@ -20,6 +20,9 @@ board = read_package("fab/")          # a fab package (folder or .zip) -> Board;
 
 from boarddd.io.kicad import read_kicad_pcb
 board = read_kicad_pcb("board.kicad_pcb")   # KiCad 5-10, no pcbnew; the .kicad_pro next to it adds net classes
+
+from boarddd.impedance import microstrip, synthesize
+microstrip(w=0.36, h=0.2104, t=0.035, er=4.4).Z0          # 50.92 Ω; see docs/impedance.md
 ```
 
 Readers: `boarddd.io` (archive, classify, gerber, pads, excellon, outline, gbrjob, pos, bom, package),

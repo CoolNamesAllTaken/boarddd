@@ -20,3 +20,6 @@
   from (77.47, 135.89) to (80.47, 133.89) mm, the first two F.Cu and four B.Cu track segments deleted, the
   F.Cu track (141.986, 87.63)-(145.1, 90.744) widened 0.8 to 1.5 mm. Edge_Cuts and B_Silkscreen differ only
   in timestamps.
+- `pic_programmer_sch/`: the root schematic sheet of KiCad's `demos/pic_programmer` (**KiCad demo data**)
+  exported with kicad-cli 10.0.6, cropped to sheet mm 120,5..200,60 and minified; `head.svg` has R7's
+  value changed 10K → 4.7K. Rebuilt by `make.sh` (`crop_svg.py`).

@@ -111,7 +111,7 @@ test('untar reads git archive output (pax headers, long names)', () => {
 test('subpaths come from the exports map and pull in what they import', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const dirs = exportDirs(pkg);
-  assert.deepEqual([...dirs.keys()], ['geom', 'board', 'footprint', 'models', 'scene', 'gerber', 'model']);
+  assert.deepEqual([...dirs.keys()], ['geom', 'board', 'footprint', 'models', 'scene', 'gerber', 'view2d', 'model', 'impedance']);
   assert.equal(dirs.get('scene'), 'src/scene');
   // a future export with assets: "./gerber": "./src/gerber/index.js" -> the whole src/gerber dir
   assert.equal(exportDirs({ exports: { './gerber': { types: './src/gerber/index.d.ts', default: './src/gerber/index.js' } } }).get('gerber'), 'src/gerber');
@@ -122,6 +122,8 @@ test('subpaths come from the exports map and pull in what they import', () => {
   assert.deepEqual(closeSubpaths(shipped, dirs, ['scene']), { subpaths: ['scene'], added: [], extra: [] });
   assert.deepEqual(closeSubpaths(shipped, dirs, ['geom']).subpaths, ['geom']);
   assert.deepEqual(closeSubpaths(shipped, dirs, ['model']), { subpaths: ['model'], added: [], extra: [] });
+  assert.deepEqual(closeSubpaths(shipped, dirs, ['view2d']),
+    { subpaths: ['gerber', 'view2d'], added: ['gerber'], extra: ['third_party/wasm-gerber-renderer'] });
 });
 
 test('arguments', () => {
@@ -141,7 +143,7 @@ test('kipr layout: boarddd, three and occt side by side; imports resolve in node
   const args = ['--ref', 'v9.9.9', '--out', `${v}/boarddd`, '--three', THREE_TGZ, '--three-dir', `${v}/three`, '--occt', OCCT_TGZ, '--occt-dir', `${v}/occt-import-js`];
   const r = await vendor(...args);
   assert.equal(r.code, 0);
-  assert.match(r.out, new RegExp(`boarddd ${V} v9\\.9\\.9 \\[geom board footprint models scene gerber model\\] -> .*: \\d+ added`));
+  assert.match(r.out, new RegExp(`boarddd ${V} v9\\.9\\.9 \\[geom board footprint models scene gerber view2d model impedance\\] -> .*: \\d+ added`));
 
   assert.deepEqual(files(`${v}/three`), ['LICENSE', 'VENDORED.json', 'addons/controls/OrbitControls.js', 'addons/controls/TrackballControls.js',
     'addons/environments/RoomEnvironment.js', 'addons/loaders/GLTFLoader.js', 'addons/utils/BufferGeometryUtils.js',
@@ -158,7 +160,7 @@ test('kipr layout: boarddd, three and occt side by side; imports resolve in node
   const commit = fs.readFileSync(`${v}/boarddd/COMMIT`, 'utf8').split('\n');
   assert.equal(commit[0], TAGGED);
   assert.equal(commit[1], `boarddd ${PKG.version} (tag v9.9.9)`);
-  assert.equal(commit[2], 'subpaths: geom board footprint models scene gerber model');
+  assert.equal(commit[2], 'subpaths: geom board footprint models scene gerber view2d model impedance');
   assert.equal(commit[3], 'with: third_party/wasm-gerber-renderer');
   assert.equal(commit[4], 'imports: three rewritten to ../three');
   assert.match(commit[5], new RegExp(`^three: ${THREE_VERSION.replace(/\./g, '\\.')} sha512-[A-Za-z0-9+/]+=* -> \\.\\./three$`));
@@ -172,7 +174,7 @@ test('kipr layout: boarddd, three and occt side by side; imports resolve in node
   fs.writeFileSync(probe, `
     const three = await import('./three/three.module.js');
     const out = {};
-    for (const sp of ['geom', 'board', 'footprint', 'models', 'scene', 'gerber', 'model']) out[sp] = Object.keys(await import('./boarddd/src/' + sp + '/index.js')).length;
+    for (const sp of ['geom', 'board', 'footprint', 'models', 'scene', 'gerber', 'view2d', 'model', 'impedance']) out[sp] = Object.keys(await import('./boarddd/src/' + sp + '/index.js')).length;
     const { buildBoard } = await import('./boarddd/src/board/index.js');
     const board = buildBoard({ outline: { board: [[0, 0], [10, 0], [10, 5], [0, 5]] } });
     const obj = board instanceof three.Object3D ? board : board.group;
@@ -181,7 +183,7 @@ test('kipr layout: boarddd, three and occt side by side; imports resolve in node
     console.log(JSON.stringify(out));`);
   const res = JSON.parse(sh(process.execPath, [probe], v));
   fs.rmSync(probe);
-  for (const sp of ['geom', 'board', 'footprint', 'models', 'scene', 'gerber', 'model']) assert.ok(res[sp] > 0, sp);
+  for (const sp of ['geom', 'board', 'footprint', 'models', 'scene', 'gerber', 'view2d', 'model', 'impedance']) assert.ok(res[sp] > 0, sp);
   assert.equal(res.sameThree, true, 'boarddd builds objects of the vendored three');
   assert.equal(res.revision, THREE_VERSION.split('.')[1]);
 
@@ -298,7 +300,7 @@ test('the working tree: refused when dirty, recorded as dirty with --allow-dirty
 });
 
 test('unknown subpaths and other bare imports are errors', async () => {
-  await assert.rejects(vendor('--out', fresh(), '--subpaths', 'geom,gerbr', '--no-three'), new RegExp(`unknown subpath gerbr; boarddd ${V} exports geom, board, footprint, models, scene, gerber, model`));
+  await assert.rejects(vendor('--out', fresh(), '--subpaths', 'geom,gerbr', '--no-three'), new RegExp(`unknown subpath gerbr; boarddd ${V} exports geom, board, footprint, models, scene, gerber, view2d, model`));
   const other = path.join(TMP, 'other');
   fs.cpSync(SRC, other, { recursive: true });
   fs.appendFileSync(path.join(other, 'src/geom/loops.js'), "\nexport { x } from 'left-pad';\n");

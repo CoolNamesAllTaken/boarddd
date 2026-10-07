@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>boarddd view2d demo</title>
+<style>
+  :root { color-scheme: light dark; --bg: #e4e6ec; --fg: #1b1f24; --chip: #ffffff; --on: #2f6fde; --pane: #1c1f24; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #15181d; --fg: #e6e8ec; --chip: #2a2f38; --on: #4c8dff; } }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; }
+  #bar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 8px 10px; }
+  #bar .group { display: flex; gap: 2px; }
+  #bar button, #bar select { background: var(--chip); color: inherit; border: 0; border-radius: 5px; padding: 5px 9px; cursor: pointer; font: inherit; }
+  #bar button[aria-pressed="true"] { background: var(--on); color: #fff; }
+  [hidden] { display: none !important; }
+  #bar label { display: flex; gap: 4px; align-items: center; }
+  #stage { flex: 1; min-height: 0; margin: 0 10px; }
+  #status { display: flex; gap: 16px; padding: 6px 10px; opacity: .8; font-variant-numeric: tabular-nums; min-height: 1.4em; }
+  .bd2-world .change { fill: none; stroke: #ffb000; stroke-width: 1.5; stroke-dasharray: 4 3; }
+  .bd2-screen .tick circle { fill: none; stroke: #ff3fb4; stroke-width: 1.5; }
+  .bd2-screen .tick line { stroke: #ff3fb4; stroke-width: 1.5; }
+  .bd2-screen .picked { fill: none; stroke: #00e5ff; stroke-width: 2; }
+</style>
+<div id="bar">
+  <select id="board" title="Board">
+    <option value="pic">pic_programmer (base vs head)</option>
+    <option value="rb">royalblue54L_feather</option>
+    <option value="sch">pic_programmer schematic sheet (base vs head)</option>
+  </select>
+  <div class="group" id="views"></div>
+  <select id="layer" title="One layer"></select>
+  <div class="group" id="modes"></div>
+  <label id="opl" hidden>head <input type="range" id="opacity" min="0" max="1" step="0.01"></label>
+  <button id="measure" aria-pressed="false" title="Measure (click two points)">Measure</button>
+  <button id="ticks" aria-pressed="true" title="Placement ticks / change boxes">Marks</button>
+  <button id="fit" title="Fit (or double-click)">Fit</button>
+</div>
+<div id="stage"></div>
+<div id="status"><span id="xy"></span><span id="meas"></span><span id="pick"></span><span id="note"></span></div>
+<script src="./importmap.js"></script>
+<script type="module" src="./view2d.js"></script>
+</html>
