@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>boarddd scene test</title>
+<style>html, body { margin: 0 } #v { width: 640px; height: 480px }</style>
+<script src="/test/browser/pages/importmap.js"></script>
+<div id="v"></div>
+<script type="module">
+  import * as THREE from 'three';
+  import { createViewer } from '/src/scene/index.js';
+  import { loadSTEP } from '/src/models/index.js';
+
+  const q = new URLSearchParams(location.search);
+  // Count every animation frame the page asks for, to prove the viewer idles.
+  const raf = window.requestAnimationFrame.bind(window);
+  window.rafCalls = 0;
+  window.requestAnimationFrame = (f) => { window.rafCalls++; return raf(f); };
+  window.errors = [];
+  try {
+    const v = createViewer(document.getElementById('v'), { controls: q.get('controls') || 'trackball', theme: q.get('theme') || 'light' });
+    window.v = v;
+    window.THREE = THREE;
+    if (q.get('model') === 'step') {
+      const occt = { js: '/node_modules/occt-import-js/dist/occt-import-js.js', wasm: '/node_modules/occt-import-js/dist/occt-import-js.wasm' };
+      const group = await loadSTEP('/test/fixtures/blue_board.step', { occt });
+      v.add(group);
+    } else {
+      // A blue slab (board-sized) and a small part on it.
+      const board = new THREE.Mesh(new THREE.BoxGeometry(50, 40, 1.6), new THREE.MeshStandardMaterial({ color: new THREE.Color(0.09, 0.224, 0.42), roughness: 0.6, metalness: 0.1 }));
+      board.position.set(25, 20, 0.8);
+      const part = new THREE.Mesh(new THREE.BoxGeometry(6, 4, 2), new THREE.MeshStandardMaterial({ color: 0x222222 }));
+      part.position.set(10, 10, 2.6);
+      part.userData.ref = 'U1';
+      v.add(board, part);
+    }
+    v.setView('iso');
+    window.ready = true;
+  } catch (e) {
+    window.errors.push(String(e.stack || e));
+    window.ready = true;
+  }
+</script>

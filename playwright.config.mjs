@@ -2,7 +2,7 @@
 // Locally on claud: `source /workspace/projects/kipr-tools/bin/pw-env` first (libraries + PW_CHROMIUM_ARGS).
 import { defineConfig } from '@playwright/test';
 
-const PORT = 8417;
+const PORT = Number(process.env.PW_PORT || 8417);   // PW_PORT: run several checkouts side by side
 const args = (process.env.PW_CHROMIUM_ARGS || '--use-angle=swiftshader --enable-unsafe-swiftshader --ignore-gpu-blocklist')
   .split(' ').filter(Boolean);
 
