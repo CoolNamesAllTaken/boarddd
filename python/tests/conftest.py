@@ -31,3 +31,18 @@ def apply_patch(doc, patch):
 @pytest.fixture(scope="session")
 def golden():
     return load("royalblue54L_feather/board.json")
+
+
+TEST_FIXTURES = REPO / "test" / "fixtures"  # JS-side inputs (pic_programmer, slots-board...)
+GENERATED = FIXTURES / "generated"  # data generated for the reader tests (see its make scripts)
+RB_FAB = FIXTURES / "royalblue54L_feather" / "fab"
+
+
+@pytest.fixture
+def sample():
+    """Bytes of a repository file by path relative to the repo root ('fixtures/...', 'test/fixtures/...')."""
+
+    def read(rel: str) -> bytes:
+        return (REPO / rel).read_bytes()
+
+    return read
