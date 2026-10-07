@@ -105,7 +105,7 @@ export function createViewer(el, opts = {}) {
 
   const cube = viewCube ? new ViewCube(theme) : null;
   const raycaster = new THREE.Raycaster();
-  const listeners = { render: new Set(), view: new Set() };
+  const listeners = { render: new Set(), view: new Set(), cube: new Set() };
   const stats = { frames: 0, requests: 0 };
   let width = 1, height = 1;
   let frame = 0, dirty = true, disposed = false;
@@ -206,7 +206,10 @@ export function createViewer(el, opts = {}) {
     if (cubeDown) {
       cubeDown = false;
       const face = cube.faceAt(p.x, p.y, width, height);
-      if (face) api.setView(face.toLowerCase(), { fit: false });
+      if (face) {
+        api.setView(face.toLowerCase(), { fit: false });
+        for (const f of listeners.cube) f(face.toLowerCase());
+      }
       return;
     }
     if (onPick) onPick(api.pick(e.clientX, e.clientY));
@@ -298,6 +301,17 @@ export function createViewer(el, opts = {}) {
       return { object: hit.object, ref, point: hit.point.toArray() };
     },
 
+    /**
+     * The view cube under a client point: a face name ('top', ...), '' for the cube's corner but not
+     * the cube, null elsewhere (or without a cube). For hosts that must not treat it as the scene.
+     */
+    cubeAt(clientX, clientY) {
+      if (!cube) return null;
+      const p = local({ clientX, clientY });
+      const face = cube.faceAt(p.x, p.y, width, height);
+      return face ? face.toLowerCase() : face;
+    },
+
     /** Canvas point (CSS px) of a view cube face's middle, or null. */
     cubeFacePoint(face) {
       if (!cube) return null;
@@ -332,7 +346,7 @@ export function createViewer(el, opts = {}) {
 
     resize,
 
-    /** 'render' (after each frame) or 'view' (camera moved); returns an unsubscribe function. */
+    /** 'render' (after each frame), 'view' (camera moved) or 'cube' (a cube face was clicked; fn(face)); returns an unsubscribe function. */
     on(event, fn) { listeners[event].add(fn); return () => listeners[event].delete(fn); },
 
     /** Stop drawing, free every GL resource (content included unless content: false) and remove the canvas. */

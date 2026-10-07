@@ -178,14 +178,21 @@ export function matchByPosition(nodes, targets, tol = MATCH_MM) {
   return { matched, ambiguous, unmatched, taken };
 }
 
-/** A KiCad-frame box [x0, y0, x1, y1] -> board-frame {minX, minY, maxX, maxY}, shifted by T. */
-function boardBox(box, offset) {
-  const [ax, ay] = kicadToBoard(box[0], box[1]);
-  const [bx, by] = kicadToBoard(box[2], box[3]);
-  return {
+/**
+ * A module box -> board-frame {minX, minY, maxX, maxY, minZ?, maxZ?}, shifted by T. [x0, y0, x1, y1] or
+ * [x0, y0, z0, x1, y1, z1] (z is then checked too); KiCad frame (y down) unless `flip` is false.
+ */
+function boardBox(box, offset, flip = true) {
+  const three = box.length >= 6;
+  const [x0, y0, x1, y1] = three ? [box[0], box[1], box[3], box[4]] : box;
+  const [ax, ay] = flip ? kicadToBoard(x0, y0) : [x0, y0];
+  const [bx, by] = flip ? kicadToBoard(x1, y1) : [x1, y1];
+  const b = {
     minX: Math.min(ax, bx) + offset.x, maxX: Math.max(ax, bx) + offset.x,
     minY: Math.min(ay, by) + offset.y, maxY: Math.max(ay, by) + offset.y,
   };
+  if (three) { b.minZ = Math.min(box[2], box[5]); b.maxZ = Math.max(box[2], box[5]); }
+  return b;
 }
 
 /**
@@ -195,10 +202,21 @@ function boardBox(box, offset) {
  * components: [{ref, x, y, assembly?, box?}] KiCad mm (y down). An `assembly` (a module that
  *             arrives as many anonymous solids) with a `box` [x0, y0, x1, y1] claims every
  *             unclaimed node whose middle is inside it, after everything else (gentoo claimModule).
+ * opts:       tol; fallbackOffset (used when nothing fits one);
+ *             frame 'kicad' (default) or 'board': components (and module boxes) already in the nodes'
+ *               frame, no y flip -- e.g. placements measured in the model's own coordinates;
+ *             offset: a known T, used as is (no fitting);
+ *             byName (true): match node names to designators first;
+ *             joinExtras (true): an unclaimed node near a matched placement joins it (step 5).
+ *             A module box may be [x0, y0, z0, x1, y1, z1] (node `cz` is then checked against z).
  * Returns {byRef: Map ref -> [node index], offset: {x, y}, method: 'name'|'position'|'mixed'|'none',
  *          byName, byPosition, ambiguous: [ref], unmatched: [ref], leftover: [node index]}.
  */
-export function mapNodesToRefs(nodes, components, { tol = MATCH_MM, fallbackOffset = null } = {}) {
+export function mapNodesToRefs(nodes, components, {
+  tol = MATCH_MM, fallbackOffset = null, frame = 'kicad', offset: given = null, byName: useNames = true, joinExtras = true,
+} = {}) {
+  const flip = frame !== 'board';
+  const toFrame = (c) => (flip ? toBoardFrame(c) : { x: Number(c.x) || 0, y: Number(c.y) || 0 });
   const refs = new Set(components.map((c) => c.ref));
   const byRef = new Map();
   const claimed = new Set();
@@ -209,20 +227,22 @@ export function mapNodesToRefs(nodes, components, { tol = MATCH_MM, fallbackOffs
   };
 
   // 1. Names.
-  nodes.forEach((n, i) => {
-    const ref = refFromName(n.name, refs);
-    if (ref) claim(ref, i);
-  });
+  if (useNames) {
+    nodes.forEach((n, i) => {
+      const ref = refFromName(n.name, refs);
+      if (ref) claim(ref, i);
+    });
+  }
   const byName = byRef.size;
 
   // 2. The translation between the frames: from the named nodes, else a Hough vote.
-  let offset = null;
-  if (byName) {
+  let offset = given ? { x: given.x, y: given.y } : null;
+  if (!offset && byName) {
     const dx = [], dy = [];
     for (const c of components) {
       const idx = byRef.get(c.ref);
       if (!idx) continue;
-      const a = toBoardFrame(c);
+      const a = toFrame(c);
       const n = idx.map((i) => nodes[i]).reduce((p, q) => (Math.hypot(q.x - a.x, q.y - a.y) < Math.hypot(p.x - a.x, p.y - a.y) ? q : p));
       dx.push(n.x - a.x); dy.push(n.y - a.y);
     }
@@ -234,7 +254,7 @@ export function mapNodesToRefs(nodes, components, { tol = MATCH_MM, fallbackOffs
   if (!offset && loose.length) {
     const rest = restNodes();
     if (rest.length) {
-      const t = houghTranslation(rest.map(({ n }) => n), loose.map(toBoardFrame));
+      const t = houghTranslation(rest.map(({ n }) => n), loose.map(toFrame));
       // A vote carried by one or two pairs is noise.
       if (t && t.support >= Math.min(3, loose.length, rest.length)) offset = { x: t.x, y: t.y };
     }
@@ -246,7 +266,7 @@ export function mapNodesToRefs(nodes, components, { tol = MATCH_MM, fallbackOffs
   if (loose.length) {
     const rest = restNodes();
     const targets = loose.map((c) => {
-      const a = toBoardFrame(c);
+      const a = toFrame(c);
       return { ref: c.ref, aim: { x: a.x + offset.x, y: a.y + offset.y } };
     });
     const r = matchByPosition(rest.map(({ n }) => n), targets, tol);
@@ -257,9 +277,10 @@ export function mapNodesToRefs(nodes, components, { tol = MATCH_MM, fallbackOffs
 
   // 4. Modules take the unclaimed solids inside their box.
   for (const c of modules) {
-    const b = boardBox(c.box, offset);
+    const b = boardBox(c.box, offset, flip);
     const m = MODULE_MARGIN_MM;
-    const inside = restNodes().filter(({ n }) => n.cx >= b.minX - m && n.cx <= b.maxX + m && n.cy >= b.minY - m && n.cy <= b.maxY + m);
+    const inside = restNodes().filter(({ n }) => n.cx >= b.minX - m && n.cx <= b.maxX + m && n.cy >= b.minY - m && n.cy <= b.maxY + m
+      && (b.minZ === undefined || !Number.isFinite(n.cz) || (n.cz >= b.minZ - m && n.cz <= b.maxZ + m)));
     if (!inside.length) { unmatched.push(c.ref); continue; }
     for (const { i } of inside) claim(c.ref, i);
     byPosition++;
@@ -267,8 +288,8 @@ export function mapNodesToRefs(nodes, components, { tol = MATCH_MM, fallbackOffs
 
   // 5. Extra pieces (body + pins as sibling nodes, several models on one footprint): an
   //    unclaimed node on a matched placement, nearer it than any other, joins it.
-  const placed = components.filter((c) => byRef.has(c.ref) && !c.assembly).map((c) => {
-    const a = toBoardFrame(c);
+  const placed = !joinExtras ? [] : components.filter((c) => byRef.has(c.ref) && !c.assembly).map((c) => {
+    const a = toFrame(c);
     return { ref: c.ref, x: a.x + offset.x, y: a.y + offset.y };
   });
   const leftover = [];

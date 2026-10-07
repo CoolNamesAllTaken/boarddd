@@ -88,11 +88,18 @@ const part = await loadSTEP('part.step', { occt: { js: '.../occt-import-js.js', 
   is fitted (from the named nodes, else a Hough vote), and a node goes to a part only if it is clearly
   nearer that part than any other node and than any other part; mutual-nearest pairs settle the rest.
   A part with `assembly: true` and a `box` claims the solids inside it (a module).
+- Placements already in the model's own frame (y up, e.g. measured by a server from the same STEP):
+  `mapNodesToRefs(nodes, comps, { frame: 'board', offset: {x: 0, y: 0}, byName: false, joinExtras: false })`
+  skips the flip, the origin fit, name matching and extra-piece joining; module `box` may be 3D
+  `[x0, y0, z0, x1, y1, z1]` (nodes carry `cz`).
 - Units and up axis are measured (thinnest axis is up; the size that fits `boardSize`, else metres
   below 2 units) unless `units` / `up` are given. The substrate's bottom is seated on z = 0.
 - STEP colours are used the way KiCad's viewer uses them (occt returns linear RGB; boarddd re-encodes
   to the file's values), with a polygon offset against coplanar footprint copper.
 - Meshes carry `userData.group` (`model`, `board`, `mask`, `copper`, `silk`) and `userData.ref`.
+- `readStep(src, { fallback: false })` rejects (`err.workerCrashed`) instead of retrying on the main thread
+  when the Worker dies; `stepToObject(data, { center: false })` keeps occt's absolute vertices with each
+  group at the origin. STEP materials are shared per colour: clone before changing one mesh's.
 - Classic-script bundles: `import.meta.url` is gone, so pass `workerUrl` (e.g. a blob URL of
   `src/models/step_worker.js`) or `occtFactory` to run occt on the main thread.
 - Pure helpers (`mapNodesToRefs`, `matchByPosition`, `splitBoardBodies`, `measureBoard`, `detectUp`,
@@ -115,7 +122,9 @@ v.dispose();                  // frees GL (content included) and removes the can
 - Renders on demand: no animation loop; frames are drawn while the controls move and then stop.
 - KiCad-like look: neutral tone mapping, a generated room environment (no network), ambient + key +
   camera headlight, light/dark gradient backgrounds. Near/far are fitted to the content every frame.
-- The view cube (top right) shows the orientation; click a face to look from it. Bottom is mirrored
+- The view cube (top right) shows the orientation; click a face to look from it (`on('cube', face => ...)`
+  hears which); `cubeAt(clientX, clientY)` says whether a point is on the cube (for hosts with their own
+  pointer handling). Bottom is mirrored
   left-right, like KiCad. Importmaps must map `three/addons/` too.
 
 ## Peers
