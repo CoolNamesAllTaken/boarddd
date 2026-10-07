@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="400" height="240" role="img" aria-label="SW_SPST_Same-Sky_TS32_with-boss">
+<style>
+.fp-bg{fill:var(--fp-bg,transparent)}
+.fp-pad{fill:var(--fp-pad,#c8a14a);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-paste{fill:none;stroke:var(--fp-paste,#7a7a7a);stroke-width:1px;stroke-dasharray:3 2;vector-effect:non-scaling-stroke}
+.fp-drill{fill:var(--fp-bg,#fff);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-court{fill:none;stroke:var(--fp-courtyard,#d040d0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-body{fill:none;stroke:var(--fp-body,#6080a0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-pin1{fill:var(--fp-pin1,#e03030)}
+.fp-origin{stroke:var(--fp-origin,#2a8a2a);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-dim{stroke:var(--fp-dim,#3070c0);fill:none;stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-text{fill:var(--fp-text,#222);font:600 11px system-ui,sans-serif;text-anchor:middle;dominant-baseline:central}
+.fp-dimtext{fill:var(--fp-dim,#3070c0);font:11px system-ui,sans-serif;text-anchor:middle}
+.fp-old{fill:none;stroke:var(--fp-old,#d04040);stroke-width:2px;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.fp-new{fill:var(--fp-new,#3a8ad0);fill-opacity:.35;stroke:var(--fp-new,#3a8ad0);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-same{fill:var(--fp-pad,#c8a14a);fill-opacity:.55;stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-changed{fill:none;stroke:var(--fp-changed,#e09000);stroke-width:3px;vector-effect:non-scaling-stroke}
+.fp-legend{fill:var(--fp-text,#222);font:11px system-ui,sans-serif}
+</style>
+<rect class="fp-bg" width="400" height="240"/>
+<g transform="translate(200 111.1333) scale(38.2222 -38.2222)">
+<polyline class="fp-court" points="-4.5,-2.175 -4.5,2.175"/>
+<polyline class="fp-court" points="4.5,2.175 -4.5,2.175"/>
+<polyline class="fp-court" points="4.5,-2.175 -4.5,-2.175"/>
+<polyline class="fp-court" points="4.5,-2.175 4.5,2.175"/>
+<polyline class="fp-body" points="-3.5,1.3 3.5,1.3"/>
+<polyline class="fp-body" points="-3.5,-1.5 -3.5,1"/>
+<polyline class="fp-body" points="-1.45,1 -1.45,2"/>
+<polyline class="fp-body" points="1.45,2 -1.45,2"/>
+<polyline class="fp-body" points="1.45,1 1.45,2"/>
+<polyline class="fp-body" points="3.5,1 -3.5,1"/>
+<polyline class="fp-body" points="3.5,-1.5 -3.5,-1.5"/>
+<polyline class="fp-body" points="3.5,-1.5 3.5,1"/>
+<rect class="fp-pad" x="1.65" y="-1.9" width="0.9" height="1.2" rx="0.135" transform="rotate(180 2.1 -1.3)"/>
+<rect class="fp-paste" x="1.65" y="-1.9" width="0.9" height="1.2" rx="0.135" transform="rotate(180 2.1 -1.3)"/>
+<rect class="fp-pad" x="-2.55" y="-1.9" width="0.9" height="1.2" rx="0.135" transform="rotate(180 -2.1 -1.3)"/>
+<rect class="fp-paste" x="-2.55" y="-1.9" width="0.9" height="1.2" rx="0.135" transform="rotate(180 -2.1 -1.3)"/>
+<polygon class="fp-pad" points="-4.2005,1.1 -4.2005,-0.2 -4.2005,-0.2001 -4.2004,-0.2003 -4.2003,-0.2004 -4.2002,-0.2005 -4.2,-0.2005 -3.4,-0.2005 -3.3999,-0.2005 -3.3998,-0.2005 -3.3997,-0.2004 -3.3996,-0.2003 -3.3995,-0.2001 -3.3995,-0.2 -3.3995,0.4995 -2.7,0.4995 -2.6999,0.4995 -2.6997,0.4996 -2.6996,0.4997 -2.6995,0.4998 -2.6995,0.5 -2.6995,1.1 -2.6995,1.1001 -2.6996,1.1003 -2.6997,1.1004 -2.6998,1.1005 -2.7,1.1005 -4.2,1.1005 -4.2002,1.1005 -4.2004,1.1004 -4.2005,1.1002"/>
+<polygon class="fp-paste" points="-4.2005,1.1 -4.2005,-0.2 -4.2005,-0.2001 -4.2004,-0.2003 -4.2003,-0.2004 -4.2002,-0.2005 -4.2,-0.2005 -3.4,-0.2005 -3.3999,-0.2005 -3.3998,-0.2005 -3.3997,-0.2004 -3.3996,-0.2003 -3.3995,-0.2001 -3.3995,-0.2 -3.3995,0.4995 -2.7,0.4995 -2.6999,0.4995 -2.6997,0.4996 -2.6996,0.4997 -2.6995,0.4998 -2.6995,0.5 -2.6995,1.1 -2.6995,1.1001 -2.6996,1.1003 -2.6997,1.1004 -2.6998,1.1005 -2.7,1.1005 -4.2,1.1005 -4.2002,1.1005 -4.2004,1.1004 -4.2005,1.1002"/>
+<polygon class="fp-pad" points="4.2,1.1005 2.7,1.1005 2.6998,1.1005 2.6997,1.1004 2.6996,1.1003 2.6995,1.1001 2.6995,1.1 2.6995,0.5 2.6995,0.4998 2.6996,0.4997 2.6997,0.4996 2.6999,0.4995 2.7,0.4995 3.3995,0.4995 3.3995,-0.2 3.3995,-0.2001 3.3996,-0.2003 3.3997,-0.2004 3.3998,-0.2005 3.3999,-0.2005 3.4,-0.2005 4.2,-0.2005 4.2002,-0.2005 4.2003,-0.2004 4.2004,-0.2003 4.2005,-0.2001 4.2005,-0.2 4.2005,1.1 4.2005,1.1002 4.2004,1.1004 4.2002,1.1005"/>
+<polygon class="fp-paste" points="4.2,1.1005 2.7,1.1005 2.6998,1.1005 2.6997,1.1004 2.6996,1.1003 2.6995,1.1001 2.6995,1.1 2.6995,0.5 2.6995,0.4998 2.6996,0.4997 2.6997,0.4996 2.6999,0.4995 2.7,0.4995 3.3995,0.4995 3.3995,-0.2 3.3995,-0.2001 3.3996,-0.2003 3.3997,-0.2004 3.3998,-0.2005 3.3999,-0.2005 3.4,-0.2005 4.2,-0.2005 4.2002,-0.2005 4.2003,-0.2004 4.2004,-0.2003 4.2005,-0.2001 4.2005,-0.2 4.2005,1.1 4.2005,1.1002 4.2004,1.1004 4.2002,1.1005"/>
+<path class="fp-origin" d="M-0.2093 0H0.2093M0 -0.2093V0.2093"/>
+</g>
+<text class="fp-text" x="280.2667" y="160.8222" style="font-size:11px">1</text>
+<text class="fp-text" x="119.7333" y="160.8222" style="font-size:11px">2</text>
+<text class="fp-text" x="47.1111" y="76.7333" style="font-size:11px">SH</text>
+<text class="fp-text" x="352.8889" y="76.7333" style="font-size:11px">SH</text>
+<path class="fp-dim" d="M280.2667 146.8222H119.7333M280.2667 142.8222v8M119.7333 142.8222v8"/>
+<text class="fp-dimtext" x="200" y="141.8222">4.2 mm</text>
+<text class="fp-legend" x="8" y="234">SW_SPST_Same-Sky_TS32_with-boss</text>
+</svg>

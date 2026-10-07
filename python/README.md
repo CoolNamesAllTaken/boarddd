@@ -34,6 +34,10 @@ Readers: `boarddd.io` (archive, classify, gerber, pads, excellon, outline, gbrjo
 `boarddd.step.split` splits a board STEP into measured, fingerprinted components with per-part STEP/GLB, and
 `python -m boarddd.step.cli split board.step --pos pos.csv --out DIR`. See [docs/step.md](../docs/step.md).
 
+`boarddd.render` draws SVG: KiCad footprints and symbols (kipr's renderer, byte for byte), review drawings and
+diffs of footprints, and a board from its model (one side, as a thumbnail or a review board map);
+`pip install "boarddd[render] @ …"` adds PNG (cairosvg, pillow) and pixel diffs. See [docs/render.md](../docs/render.md).
+
 Development (Python 3.11+):
 
 ```bash

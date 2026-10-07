@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 378" width="400" height="378" role="img" aria-label="USB_C_Receptacle_HRO_TYPE-C-31-M-12">
+<style>
+.fp-bg{fill:var(--fp-bg,transparent)}
+.fp-pad{fill:var(--fp-pad,#c8a14a);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-paste{fill:none;stroke:var(--fp-paste,#7a7a7a);stroke-width:1px;stroke-dasharray:3 2;vector-effect:non-scaling-stroke}
+.fp-drill{fill:var(--fp-bg,#fff);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-court{fill:none;stroke:var(--fp-courtyard,#d040d0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-body{fill:none;stroke:var(--fp-body,#6080a0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-pin1{fill:var(--fp-pin1,#e03030)}
+.fp-origin{stroke:var(--fp-origin,#2a8a2a);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-dim{stroke:var(--fp-dim,#3070c0);fill:none;stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-text{fill:var(--fp-text,#222);font:600 11px system-ui,sans-serif;text-anchor:middle;dominant-baseline:central}
+.fp-dimtext{fill:var(--fp-dim,#3070c0);font:11px system-ui,sans-serif;text-anchor:middle}
+.fp-old{fill:none;stroke:var(--fp-old,#d04040);stroke-width:2px;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.fp-new{fill:var(--fp-new,#3a8ad0);fill-opacity:.35;stroke:var(--fp-new,#3a8ad0);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-same{fill:var(--fp-pad,#c8a14a);fill-opacity:.55;stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-changed{fill:none;stroke:var(--fp-changed,#e09000);stroke-width:3px;vector-effect:non-scaling-stroke}
+.fp-legend{fill:var(--fp-text,#222);font:11px system-ui,sans-serif}
+</style>
+<rect class="fp-bg" width="400" height="378"/>
+<g transform="translate(200 198.3835) scale(32.3308 -32.3308)">
+<polyline class="fp-court" points="-5.32,5.27 -5.32,-4.15"/>
+<polyline class="fp-court" points="-5.32,5.27 5.32,5.27"/>
+<polyline class="fp-court" points="-5.32,-4.15 5.32,-4.15"/>
+<polyline class="fp-court" points="5.32,5.27 5.32,-4.15"/>
+<polyline class="fp-body" points="-4.47,3.65 -4.47,-3.65"/>
+<polyline class="fp-body" points="-4.47,3.65 4.47,3.65"/>
+<polyline class="fp-body" points="-4.47,-3.65 4.47,-3.65"/>
+<polyline class="fp-body" points="4.47,3.65 4.47,-3.65"/>
+<rect class="fp-pad" x="-3.55" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-paste" x="-3.55" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-pad" x="-2.75" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-paste" x="-2.75" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-pad" x="-1.4" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-paste" x="-1.4" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-pad" x="-0.4" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-paste" x="-0.4" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-pad" x="0.1" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-paste" x="0.1" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-pad" x="1.1" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-paste" x="1.1" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-pad" x="2.15" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-paste" x="2.15" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-pad" x="2.95" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-paste" x="2.95" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-pad" x="2.95" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-paste" x="2.95" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-pad" x="2.15" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-paste" x="2.15" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-pad" x="1.6" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-paste" x="1.6" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-pad" x="0.6" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-paste" x="0.6" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-pad" x="-0.9" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-paste" x="-0.9" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-pad" x="-1.9" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-paste" x="-1.9" y="3.32" width="0.3" height="1.45" rx="0.075"/>
+<rect class="fp-pad" x="-2.75" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-paste" x="-2.75" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-pad" x="-3.55" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-paste" x="-3.55" y="3.32" width="0.6" height="1.45" rx="0.15"/>
+<rect class="fp-pad" x="-4.82" y="2.08" width="1" height="2.1" rx="0.5"/>
+<ellipse class="fp-drill" cx="-4.32" cy="3.13" rx="0.3" ry="0.85"/>
+<rect class="fp-pad" x="-4.82" y="-1.85" width="1" height="1.6" rx="0.5"/>
+<ellipse class="fp-drill" cx="-4.32" cy="-1.05" rx="0.3" ry="0.6"/>
+<rect class="fp-pad" x="3.82" y="2.08" width="1" height="2.1" rx="0.5"/>
+<ellipse class="fp-drill" cx="4.32" cy="3.13" rx="0.3" ry="0.85"/>
+<rect class="fp-pad" x="3.82" y="-1.85" width="1" height="1.6" rx="0.5"/>
+<ellipse class="fp-drill" cx="4.32" cy="-1.05" rx="0.3" ry="0.6"/>
+<path class="fp-origin" d="M-0.2474 0H0.2474M0 -0.2474V0.2474"/>
+</g>
+<text class="fp-text" x="94.9248" y="67.6053" style="font-size:8px">A1</text>
+<text class="fp-text" x="120.7895" y="67.6053" style="font-size:8px">A4</text>
+<text class="fp-text" x="159.5865" y="67.6053" style="font-size:8px">A5</text>
+<text class="fp-text" x="191.9173" y="67.6053" style="font-size:8px">A6</text>
+<text class="fp-text" x="208.0827" y="67.6053" style="font-size:8px">A7</text>
+<text class="fp-text" x="240.4135" y="67.6053" style="font-size:8px">A8</text>
+<text class="fp-text" x="279.2105" y="67.6053" style="font-size:8px">A9</text>
+<text class="fp-text" x="305.0752" y="67.6053" style="font-size:8px">A12</text>
+<text class="fp-text" x="305.0752" y="67.6053" style="font-size:8px">B1</text>
+<text class="fp-text" x="279.2105" y="67.6053" style="font-size:8px">B4</text>
+<text class="fp-text" x="256.5789" y="67.6053" style="font-size:8px">B5</text>
+<text class="fp-text" x="224.2481" y="67.6053" style="font-size:8px">B6</text>
+<text class="fp-text" x="175.7519" y="67.6053" style="font-size:8px">B7</text>
+<text class="fp-text" x="143.4211" y="67.6053" style="font-size:8px">B8</text>
+<text class="fp-text" x="120.7895" y="67.6053" style="font-size:8px">B9</text>
+<text class="fp-text" x="94.9248" y="67.6053" style="font-size:8px">B12</text>
+<text class="fp-text" x="60.3308" y="97.188" style="font-size:8px">SH</text>
+<text class="fp-text" x="60.3308" y="232.3308" style="font-size:8px">SH</text>
+<text class="fp-text" x="339.6692" y="97.188" style="font-size:8px">SH</text>
+<text class="fp-text" x="339.6692" y="232.3308" style="font-size:8px">SH</text>
+<path class="fp-dim" d="M159.5865 53.6053H175.7519M159.5865 49.6053v8M175.7519 49.6053v8"/>
+<text class="fp-dimtext" x="167.6692" y="48.6053">0.5 mm</text>
+<text class="fp-legend" x="8" y="372">USB_C_Receptacle_HRO_TYPE-C-31-M-12</text>
+</svg>

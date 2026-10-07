@@ -17,6 +17,8 @@ xlsx = ["openpyxl>=3.1", "xlrd>=2.0"]  # io.bom: .xlsx/.xls BOMs (CSV needs noth
 # boarddd.step's OpenCascade engine (split, measure, fingerprint, GLB, line drawings). cadquery-ocp is LGPL-2.1
 # and about 440 MB installed; it is never vendored (docs/step.md). Needs libGL.so.1 at runtime.
 step = ["cadquery-ocp>=7.8,<9", "numpy>=1.24", "shapely>=2.0"]
+# boarddd.render.png: SVG -> PNG (cairosvg needs the system cairo library, libcairo2) and the review pixel diff.
+render = ["cairosvg>=2.7", "pillow>=10", "numpy>=1.24"]
 
 [project.urls]
 Repository = "https://github.com/CoolNamesAllTaken/boarddd"

@@ -32,3 +32,11 @@ The `[step]` extra's own fixtures live next to its tests: `python/tests/step/fix
 `tiny-pos.csv` (magpie's synthetic board, `make_board.py`, of KiCad stock footprints and 3D models) and
 `fixtures_occ/library/*.step` (three KiCad stock 3D models, unmodified): KiCad's libraries are CC-BY-SA 4.0
 with the KiCad libraries exception; the script is MIT.
+
+The renderers' fixtures live in `python/tests/render/fixtures/`: `kicad-libs/` (six parts of
+[PantsForBirds/kicad-libs](https://github.com/PantsForBirds/kicad-libs), copied from kipr's library-review fixtures,
+MIT, `LICENSE.txt`); `KiCad_Stock_Excerpt.kicad_sym` (eleven symbols of KiCad's stock libraries, verbatim, CC-BY-SA
+4.0 with the KiCad libraries exception; `make_stock_symbols.py`); `kipr/golden.json` (kipr's own renders of those
+inputs, MIT, `kipr/make_golden.py`); `magpie/*.svg` (magpie's review drawings of the same public footprints,
+`magpie/make_golden.py`); `kicad/royalblue54L-F_Mask.svg` (KiCad's plot of royalblue's F.Mask, CERN-OHL-P v2,
+`kicad/make.sh`). The scripts are MIT.
