@@ -35,6 +35,9 @@ const TOOL_SELECT = /^T(\d+)\s*$/i;
  * An Excellon file without zero-diameter tools and their hits. KiCad 10 writes `T1C0.000` for vias with no
  * drill (seen in its royalblue54L_feather demo), and the renderer's wasm rejects the whole file ("Drill
  * tool diameter must be positive"), which would cost the board its faces. Other text passes unchanged.
+ * TODO: drop this copy once our wasm-gerber-renderer fork's PR #4 (CoolNamesAllTaken/wasm-gerber-viewer,
+ * a canonical dropEmptyTools/withoutEmptyTools in drills.js) is merged and vendor/ is re-synced; use the
+ * injected `gerber.withoutEmptyTools` when present.
  */
 export function withoutEmptyTools(text) {
   const lines = String(text).split(/\r?\n/);
@@ -69,7 +72,7 @@ export function withoutEmptyTools(text) {
  */
 export function readFabFiles(gerber, files, board = {}) {
   const list = files.map((f) => {
-    const text = /\.(drl|xln|exc|drd|txt)$/i.test(f.name) || /^M48\b/m.test(f.text.slice(0, 400)) ? withoutEmptyTools(f.text) : f.text;
+    const text = /\.(drl|xln|exc|drd|txt)$/i.test(f.name) || /^M48\b/m.test(f.text.slice(0, 400)) ? (gerber.withoutEmptyTools || withoutEmptyTools)(f.text) : f.text;
     return { name: f.name, source: text, content: text, plated: f.plated };
   });
   const grouped = gerber.groupBoardLayers(list);
