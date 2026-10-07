@@ -51,7 +51,7 @@ async function app(): Promise<string> {
   const board = layers([{ source: files[0].source, color: [0.05, 0.32, 0.16], inverted: true }], { outline: { board: rings[0], cutouts: [] }, substrate: "#c9b27c", holes });
   const copies: Placement[] = [{ x: 0, y: 0 }, { x: 20, y: 10, rotation: 180 }];
   const picture = createStage(host, { renderer: () => renderer, interactive: false, pixelSnap: true, paddingPx: 16, padding: 0 });
-  picture.setScene([{ layers: [{ content: repeat(board, copies, bounds), opacity: 0.8 }] }]);
+  picture.setScene([{ layers: [{ content: layers([{ source: files[0].source }], { rect: bounds }) }, { content: repeat(board, copies, bounds), opacity: 0.8 }] }]);
   await stage.ready();
   return `${mode} ${new URLSearchParams(formatViewState(cmp.getState()))}`;
 }
