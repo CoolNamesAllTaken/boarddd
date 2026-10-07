@@ -208,12 +208,12 @@ def _best(pairs) -> tuple[dict, float, list[tuple[str, float]]]:
     return min(candidates, key=lambda found: found[1])
 
 
-def _trimmed(pairs):
+def _trimmed(pairs, floor_mm: float = GOOD_MM):
     """
     The best fit with the components it should not be fitted through set aside.
 
     Fit, find the components sitting OUTLIER_RATIO times further off than the typical one
-    (and further than GOOD_MM), refit without them, and look again -- a big outlier hides a
+    (and further than `floor_mm`, GOOD_MM unless the caller knows better), refit without them, and look again -- a big outlier hides a
     smaller one behind the shift it causes. Stops when nothing stands out, when TRIM_SHARE of
     the components would be gone, or when fewer than ENOUGH_POINTS would remain.
 
@@ -228,7 +228,7 @@ def _trimmed(pairs):
         errors = _errors(kept, transform)
         ordered = sorted(error for _ref, error in errors)
         median = ordered[len(ordered) // 2]
-        limit = max(GOOD_MM, OUTLIER_RATIO * median)
+        limit = max(floor_mm, OUTLIER_RATIO * median)
         out = sorted(((ref, error) for ref, error in errors if error > limit), key=lambda pair: -pair[1])
         room = min(allowance - len(aside), len(kept) - ENOUGH_POINTS)
         out = out[: max(room, 0)]
@@ -377,13 +377,18 @@ def _spread(pairs) -> float:
     return max(max(xs) - min(xs), max(ys) - min(ys))
 
 
-def register(step_points: dict, placement_points: dict) -> Registration:
+def register(step_points: dict, placement_points: dict, *, outlier_floor_mm: float = GOOD_MM) -> Registration:
     """
     Solve for the transform carrying the model's frame onto the board's.
 
     Both arguments are `{reference: (x, y, side)}`; side may be `''` where the STEP does not
     say. Designators are matched case-insensitively, since one file may shout and the other
     may not.
+
+    `outlier_floor_mm`: how far off a component has to be before the fit by name may set it
+    aside. GOOD_MM suits a model from elsewhere; a STEP and pos file from one export agree to
+    the micron, and `boarddd.step.split` passes 0.01 mm so a part modeled 0.5 mm from its
+    anchor does not pull the rest.
     """
     step_keyed = {ref.strip().upper(): value for ref, value in step_points.items() if ref.strip()}
     placement_keyed = {ref.strip().upper(): value for ref, value in placement_points.items() if ref.strip()}
@@ -411,7 +416,7 @@ def register(step_points: dict, placement_points: dict) -> Registration:
 
     fitted = None
     if shared:
-        transform, residual, worst, elsewhere = _trimmed(pairs)
+        transform, residual, worst, elsewhere = _trimmed(pairs, outlier_floor_mm)
         fitted = (transform, residual, worst, elsewhere)
         if residual <= GOOD_MM:
             return _report(

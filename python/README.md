@@ -30,6 +30,10 @@ Readers: `boarddd.io` (archive, classify, gerber, pads, excellon, outline, gbrjo
 `boarddd.step` (text, slim, modelfile, registration), stdlib only; `pip install "boarddd[xlsx] @ …"` for
 `.xlsx`/`.xls` BOMs. See [docs/readers.md](../docs/readers.md).
 
+`pip install "boarddd[step] @ …"` adds the OpenCascade STEP engine (cadquery-ocp, LGPL, ~440 MB, never vendored):
+`boarddd.step.split` splits a board STEP into measured, fingerprinted components with per-part STEP/GLB, and
+`python -m boarddd.step.cli split board.step --pos pos.csv --out DIR`. See [docs/step.md](../docs/step.md).
+
 Development (Python 3.11+):
 
 ```bash

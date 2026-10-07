@@ -14,6 +14,9 @@ dependencies = []  # core is stdlib only; readers that need more get extras (see
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff==0.14.0", "jsonschema>=4.23", "scipy>=1.11", "scikit-rf>=1.0"]  # scipy, scikit-rf: impedance cross-checks
 xlsx = ["openpyxl>=3.1", "xlrd>=2.0"]  # io.bom: .xlsx/.xls BOMs (CSV needs nothing)
+# boarddd.step's OpenCascade engine (split, measure, fingerprint, GLB, line drawings). cadquery-ocp is LGPL-2.1
+# and about 440 MB installed; it is never vendored (docs/step.md). Needs libGL.so.1 at runtime.
+step = ["cadquery-ocp>=7.8,<9", "numpy>=1.24", "shapely>=2.0"]
 
 [project.urls]
 Repository = "https://github.com/CoolNamesAllTaken/boarddd"
