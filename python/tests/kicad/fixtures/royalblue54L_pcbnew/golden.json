@@ -1,0 +1,9374 @@
+{
+"net_classes": {
+"+BATT": "Default",
+"/Connectors/ANALOG.A0": "Default",
+"/Connectors/ANALOG.A1": "Default",
+"/Connectors/ANALOG.A2": "Default",
+"/Connectors/ANALOG.A3": "Default",
+"/Connectors/ANALOG.A4": "Default",
+"/Connectors/ANALOG.A5": "Default",
+"/Connectors/DIG.D10": "Default",
+"/Connectors/DIG.D11": "Default",
+"/Connectors/DIG.D12": "Default",
+"/Connectors/DIG.D13": "Default",
+"/Connectors/DIG.D5": "Default",
+"/Connectors/DIG.D6": "Default",
+"/Connectors/DIG.D9": "Default",
+"/Connectors/ENABLE": "Default",
+"/Connectors/I2C.SCL": "Default",
+"/Connectors/I2C.SDA": "Default",
+"/Connectors/SHPHLD": "Default",
+"/Connectors/SPI.MISO": "Default",
+"/Connectors/SPI.MOSI": "Default",
+"/Connectors/SPI.SCK": "Default",
+"/Connectors/UART.RX": "Default",
+"/Connectors/UART.TX": "Default",
+"/Debugger/D+": "USB_DIFF",
+"/Debugger/D-": "USB_DIFF",
+"/Debugger/SWD_TRG.SWDCLK": "Default",
+"/Debugger/SWD_TRG.SWDIO": "Default",
+"/Debugger/SWD_TRG.~{RESET}": "Default",
+"/Debugger/TRG_SWDCLK_NRF52": "Default",
+"/Debugger/TRG_SWDIO_NRF52": "Default",
+"/Debugger/TRG_~{RESET}_NRF52": "Default",
+"/Debugger/UART_RX_NRF52": "Default",
+"/Debugger/UART_TX_NRF52": "Default",
+"/Debugger/USB.CC1": "Default",
+"/Debugger/USB.CC2": "Default",
+"/Debugger/USB.VBUS": "Default",
+"/Debugger/nRF52_VDD": "Default",
+"/nPM1300/NPM1300.INT": "Default",
+"/nPM1300/NPM1300.SCL": "Default",
+"/nPM1300/NPM1300.SDA": "Default",
+"/nRF54L15/D2_FLASH": "Default",
+"/nRF54L15/D3_FLASH": "Default",
+"/nRF54L15/~{CS}_FLASH": "Default",
+"GND": "Default",
+"Net-(D1-A)": "Default",
+"Net-(D1-K)": "Default",
+"Net-(D3-BK)": "Default",
+"Net-(D3-GK)": "Default",
+"Net-(D3-RK)": "Default",
+"Net-(J6-Pin_2)": "Default",
+"Net-(J6-Pin_4)": "Default",
+"Net-(J8-SWCLK)": "Default",
+"Net-(J8-SWDIO)": "Default",
+"Net-(J8-~{RESET})": "Default",
+"Net-(JP1-A)": "Default",
+"Net-(U1-P1.00{slash}XL1)": "Default",
+"Net-(U1-P1.01{slash}XL2)": "Default",
+"Net-(U2-SW2)": "Default",
+"Net-(U2-VSET2)": "Default",
+"Net-(U5-DEC1)": "Default",
+"Net-(U5-DEC3)": "Default",
+"Net-(U5-DEC4)": "Default",
+"Net-(U5-DECUSB)": "Default",
+"Net-(U5-XC1)": "Default",
+"Net-(U5-XC2)": "Default",
+"VBUS": "Default",
+"VDD": "Default",
+"VSYS": "Default",
+"unconnected-(J1-Pin_3-Pad3)": "Default",
+"unconnected-(J3-SBU1-PadA8)": "Default",
+"unconnected-(J3-SBU2-PadB8)": "Default",
+"unconnected-(J6-Pin_1-Pad1)": "Default",
+"unconnected-(J6-Pin_3-Pad3)": "Default",
+"unconnected-(J6-Pin_5-Pad5)": "Default",
+"unconnected-(J8-SWO-Pad6)": "Default",
+"unconnected-(U2-GPIO2-Pad9)": "Default",
+"unconnected-(U2-GPIO3-Pad10)": "Default",
+"unconnected-(U2-GPIO4-Pad11)": "Default",
+"unconnected-(U2-SW1-Pad3)": "Default",
+"unconnected-(U3-IO1-Pad1)": "Default",
+"unconnected-(U5-ANT-Pad24)": "Default",
+"unconnected-(U5-DCC-Pad39)": "Default",
+"unconnected-(U5-DEC5{slash}NC-Pad21)": "Default",
+"unconnected-(U5-P0.00{slash}XL1-Pad2)": "Default",
+"unconnected-(U5-P0.01{slash}XL2-Pad3)": "Default",
+"unconnected-(U5-P0.03{slash}AIN1-Pad31)": "Default",
+"unconnected-(U5-P0.04{slash}AIN2-Pad4)": "Default",
+"unconnected-(U5-P0.05{slash}AIN3-Pad5)": "Default",
+"unconnected-(U5-P0.09{slash}NFC1-Pad22)": "Default",
+"unconnected-(U5-P0.10{slash}NFC2-Pad23)": "Default",
+"unconnected-(U5-P0.11-Pad7)": "Default",
+"unconnected-(U5-P0.15-Pad14)": "Default",
+"unconnected-(U5-P0.17-Pad15)": "Default",
+"unconnected-(U5-P0.20-Pad17)": "Default",
+"unconnected-(U5-P1.09-Pad6)": "Default"
+},
+"pads": [
+{
+"angle": 0.0,
+"at": [
+174.98,
+113.87
+],
+"copper_bbox": [
+173.73,
+112.62,
+176.23,
+115.12
+],
+"copper_center": [
+174.98,
+113.87
+],
+"hole": [
+2.5,
+2.5
+],
+"net": "",
+"number": "",
+"ref": "H4"
+},
+{
+"angle": 0.0,
+"at": [
+153.23,
+101.81
+],
+"copper_bbox": [
+152.95,
+101.5,
+153.51,
+102.12
+],
+"copper_center": [
+153.23,
+101.81
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "1",
+"ref": "C25"
+},
+{
+"angle": 0.0,
+"at": [
+154.19,
+101.81
+],
+"copper_bbox": [
+153.91,
+101.5,
+154.47,
+102.12
+],
+"copper_center": [
+154.19,
+101.81
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C25"
+},
+{
+"angle": 180.0,
+"at": [
+170.21,
+112.07
+],
+"copper_bbox": [
+169.94,
+111.75,
+170.48,
+112.39
+],
+"copper_center": [
+170.21,
+112.07
+],
+"hole": null,
+"net": "VDD",
+"number": "1",
+"ref": "R5"
+},
+{
+"angle": 180.0,
+"at": [
+169.19,
+112.07
+],
+"copper_bbox": [
+168.92,
+111.75,
+169.46,
+112.39
+],
+"copper_center": [
+169.19,
+112.07
+],
+"hole": null,
+"net": "/nPM1300/NPM1300.SCL",
+"number": "2",
+"ref": "R5"
+},
+{
+"angle": 180.0,
+"at": [
+137.88,
+101.308
+],
+"copper_bbox": [
+137.38,
+99.558,
+138.38,
+103.058
+],
+"copper_center": [
+137.88,
+101.308
+],
+"hole": null,
+"net": "+BATT",
+"number": "1",
+"ref": "J4"
+},
+{
+"angle": 180.0,
+"at": [
+135.88,
+101.308
+],
+"copper_bbox": [
+135.38,
+99.558,
+136.38,
+103.058
+],
+"copper_center": [
+135.88,
+101.308
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "J4"
+},
+{
+"angle": 180.0,
+"at": [
+140.23,
+95.558
+],
+"copper_bbox": [
+139.48,
+93.858,
+140.98,
+97.258
+],
+"copper_center": [
+140.23,
+95.558
+],
+"hole": null,
+"net": "GND",
+"number": "MP",
+"ref": "J4"
+},
+{
+"angle": 180.0,
+"at": [
+133.53,
+95.558
+],
+"copper_bbox": [
+132.78,
+93.858,
+134.28,
+97.258
+],
+"copper_center": [
+133.53,
+95.558
+],
+"hole": null,
+"net": "GND",
+"number": "MP",
+"ref": "J4"
+},
+{
+"angle": 270.0,
+"at": [
+168.92,
+100.93
+],
+"copper_bbox": [
+168.72,
+100.73,
+169.12,
+101.13
+],
+"copper_center": [
+168.92,
+100.93
+],
+"hole": null,
+"net": "GND",
+"number": "A1",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+167.12,
+100.93
+],
+"copper_bbox": [
+166.92,
+100.73,
+167.32,
+101.13
+],
+"copper_center": [
+167.12,
+100.93
+],
+"hole": null,
+"net": "/Connectors/UART.RX",
+"number": "A3",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.72,
+100.93
+],
+"copper_bbox": [
+161.52,
+100.73,
+161.92,
+101.13
+],
+"copper_center": [
+161.72,
+100.93
+],
+"hole": null,
+"net": "GND",
+"number": "A9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.47,
+100.93
+],
+"copper_bbox": [
+161.22,
+100.73,
+161.72,
+101.13
+],
+"copper_center": [
+161.47,
+100.93
+],
+"hole": null,
+"net": "GND",
+"number": "A9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+168.92,
+101.83
+],
+"copper_bbox": [
+168.72,
+101.63,
+169.12,
+102.03
+],
+"copper_center": [
+168.92,
+101.83
+],
+"hole": null,
+"net": "GND",
+"number": "B1",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+168.02,
+101.83
+],
+"copper_bbox": [
+167.82,
+101.63,
+168.22,
+102.03
+],
+"copper_center": [
+168.02,
+101.83
+],
+"hole": null,
+"net": "/Connectors/UART.TX",
+"number": "B2",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+167.12,
+101.83
+],
+"copper_bbox": [
+166.92,
+101.63,
+167.32,
+102.03
+],
+"copper_center": [
+167.12,
+101.83
+],
+"hole": null,
+"net": "/Connectors/I2C.SDA",
+"number": "B3",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+166.22,
+101.83
+],
+"copper_bbox": [
+166.02,
+101.63,
+166.42,
+102.03
+],
+"copper_center": [
+166.22,
+101.83
+],
+"hole": null,
+"net": "/Connectors/ANALOG.A4",
+"number": "B4",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+165.32,
+101.83
+],
+"copper_bbox": [
+165.12,
+101.63,
+165.52,
+102.03
+],
+"copper_center": [
+165.32,
+101.83
+],
+"hole": null,
+"net": "/Connectors/ANALOG.A5",
+"number": "B5",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+164.42,
+101.83
+],
+"copper_bbox": [
+164.22,
+101.63,
+164.62,
+102.03
+],
+"copper_center": [
+164.42,
+101.83
+],
+"hole": null,
+"net": "/Connectors/DIG.D5",
+"number": "B6",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+163.52,
+101.83
+],
+"copper_bbox": [
+163.32,
+101.63,
+163.72,
+102.03
+],
+"copper_center": [
+163.52,
+101.83
+],
+"hole": null,
+"net": "GND",
+"number": "B7",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+162.62,
+101.83
+],
+"copper_bbox": [
+162.42,
+101.63,
+162.82,
+102.03
+],
+"copper_center": [
+162.62,
+101.83
+],
+"hole": null,
+"net": "VDD",
+"number": "B8",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.72,
+101.83
+],
+"copper_bbox": [
+161.52,
+101.63,
+161.92,
+102.03
+],
+"copper_center": [
+161.72,
+101.83
+],
+"hole": null,
+"net": "GND",
+"number": "B9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.47,
+101.83
+],
+"copper_bbox": [
+161.22,
+101.63,
+161.72,
+102.03
+],
+"copper_center": [
+161.47,
+101.83
+],
+"hole": null,
+"net": "GND",
+"number": "B9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+162.62,
+102.73
+],
+"copper_bbox": [
+162.42,
+102.53,
+162.82,
+102.93
+],
+"copper_center": [
+162.62,
+102.73
+],
+"hole": null,
+"net": "VDD",
+"number": "C8",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.72,
+102.73
+],
+"copper_bbox": [
+161.52,
+102.53,
+161.92,
+102.93
+],
+"copper_center": [
+161.72,
+102.73
+],
+"hole": null,
+"net": "Net-(U1-P1.01{slash}XL2)",
+"number": "C9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.47,
+102.73
+],
+"copper_bbox": [
+161.22,
+102.53,
+161.72,
+102.93
+],
+"copper_center": [
+161.47,
+102.73
+],
+"hole": null,
+"net": "Net-(U1-P1.01{slash}XL2)",
+"number": "C9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+168.92,
+103.63
+],
+"copper_bbox": [
+168.72,
+103.43,
+169.12,
+103.83
+],
+"copper_center": [
+168.92,
+103.63
+],
+"hole": null,
+"net": "GND",
+"number": "D1",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+162.62,
+103.63
+],
+"copper_bbox": [
+162.42,
+103.43,
+162.82,
+103.83
+],
+"copper_center": [
+162.62,
+103.63
+],
+"hole": null,
+"net": "Net-(U1-P1.00{slash}XL1)",
+"number": "D8",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.72,
+103.63
+],
+"copper_bbox": [
+161.52,
+103.43,
+161.92,
+103.83
+],
+"copper_center": [
+161.72,
+103.63
+],
+"hole": null,
+"net": "Net-(J6-Pin_2)",
+"number": "D9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.47,
+103.63
+],
+"copper_bbox": [
+161.22,
+103.43,
+161.72,
+103.83
+],
+"copper_center": [
+161.47,
+103.63
+],
+"hole": null,
+"net": "Net-(J6-Pin_2)",
+"number": "D9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+168.92,
+104.53
+],
+"copper_bbox": [
+168.72,
+104.33,
+169.12,
+104.73
+],
+"copper_center": [
+168.92,
+104.53
+],
+"hole": null,
+"net": "GND",
+"number": "E1",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+162.62,
+104.53
+],
+"copper_bbox": [
+162.42,
+104.33,
+162.82,
+104.73
+],
+"copper_center": [
+162.62,
+104.53
+],
+"hole": null,
+"net": "Net-(J6-Pin_4)",
+"number": "E8",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.72,
+104.53
+],
+"copper_bbox": [
+161.52,
+104.33,
+161.92,
+104.73
+],
+"copper_center": [
+161.72,
+104.53
+],
+"hole": null,
+"net": "/Connectors/ANALOG.A0",
+"number": "E9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.47,
+104.53
+],
+"copper_bbox": [
+161.22,
+104.33,
+161.72,
+104.73
+],
+"copper_center": [
+161.47,
+104.53
+],
+"hole": null,
+"net": "/Connectors/ANALOG.A0",
+"number": "E9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+168.92,
+105.43
+],
+"copper_bbox": [
+168.72,
+105.23,
+169.12,
+105.63
+],
+"copper_center": [
+168.92,
+105.43
+],
+"hole": null,
+"net": "GND",
+"number": "F1",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+162.62,
+105.43
+],
+"copper_bbox": [
+162.42,
+105.23,
+162.82,
+105.63
+],
+"copper_center": [
+162.62,
+105.43
+],
+"hole": null,
+"net": "/Connectors/ANALOG.A1",
+"number": "F8",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.72,
+105.43
+],
+"copper_bbox": [
+161.52,
+105.23,
+161.92,
+105.63
+],
+"copper_center": [
+161.72,
+105.43
+],
+"hole": null,
+"net": "/Connectors/ANALOG.A2",
+"number": "F9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.47,
+105.43
+],
+"copper_bbox": [
+161.22,
+105.23,
+161.72,
+105.63
+],
+"copper_center": [
+161.47,
+105.43
+],
+"hole": null,
+"net": "/Connectors/ANALOG.A2",
+"number": "F9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+168.02,
+106.33
+],
+"copper_bbox": [
+167.82,
+106.13,
+168.22,
+106.53
+],
+"copper_center": [
+168.02,
+106.33
+],
+"hole": null,
+"net": "/Debugger/SWD_TRG.~{RESET}",
+"number": "G2",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+162.62,
+106.33
+],
+"copper_bbox": [
+162.42,
+106.13,
+162.82,
+106.53
+],
+"copper_center": [
+162.62,
+106.33
+],
+"hole": null,
+"net": "/Connectors/I2C.SCL",
+"number": "G8",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.72,
+106.33
+],
+"copper_bbox": [
+161.52,
+106.13,
+161.92,
+106.53
+],
+"copper_center": [
+161.72,
+106.33
+],
+"hole": null,
+"net": "/Connectors/ANALOG.A3",
+"number": "G9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.47,
+106.33
+],
+"copper_bbox": [
+161.22,
+106.13,
+161.72,
+106.53
+],
+"copper_center": [
+161.47,
+106.33
+],
+"hole": null,
+"net": "/Connectors/ANALOG.A3",
+"number": "G9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+168.02,
+107.23
+],
+"copper_bbox": [
+167.82,
+107.03,
+168.22,
+107.43
+],
+"copper_center": [
+168.02,
+107.23
+],
+"hole": null,
+"net": "/nPM1300/NPM1300.SDA",
+"number": "H2",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+162.62,
+107.23
+],
+"copper_bbox": [
+162.42,
+107.03,
+162.82,
+107.43
+],
+"copper_center": [
+162.62,
+107.23
+],
+"hole": null,
+"net": "GND",
+"number": "H8",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.72,
+107.23
+],
+"copper_bbox": [
+161.52,
+107.03,
+161.92,
+107.43
+],
+"copper_center": [
+161.72,
+107.23
+],
+"hole": null,
+"net": "/nRF54L15/D3_FLASH",
+"number": "H9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.47,
+107.23
+],
+"copper_bbox": [
+161.22,
+107.03,
+161.72,
+107.43
+],
+"copper_center": [
+161.47,
+107.23
+],
+"hole": null,
+"net": "/nRF54L15/D3_FLASH",
+"number": "H9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+168.02,
+108.13
+],
+"copper_bbox": [
+167.82,
+107.93,
+168.22,
+108.33
+],
+"copper_center": [
+168.02,
+108.13
+],
+"hole": null,
+"net": "/nPM1300/NPM1300.SCL",
+"number": "J2",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+167.12,
+108.13
+],
+"copper_bbox": [
+166.92,
+107.93,
+167.32,
+108.33
+],
+"copper_center": [
+167.12,
+108.13
+],
+"hole": null,
+"net": "/Debugger/SWD_TRG.SWDIO",
+"number": "J3",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+166.22,
+108.13
+],
+"copper_bbox": [
+166.02,
+107.93,
+166.42,
+108.33
+],
+"copper_center": [
+166.22,
+108.13
+],
+"hole": null,
+"net": "/Connectors/DIG.D11",
+"number": "J4",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+165.32,
+108.13
+],
+"copper_bbox": [
+165.12,
+107.93,
+165.52,
+108.33
+],
+"copper_center": [
+165.32,
+108.13
+],
+"hole": null,
+"net": "/Connectors/DIG.D12",
+"number": "J5",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+164.42,
+108.13
+],
+"copper_bbox": [
+164.22,
+107.93,
+164.62,
+108.33
+],
+"copper_center": [
+164.42,
+108.13
+],
+"hole": null,
+"net": "/Connectors/DIG.D13",
+"number": "J6",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+163.52,
+108.13
+],
+"copper_bbox": [
+163.32,
+107.93,
+163.72,
+108.33
+],
+"copper_center": [
+163.52,
+108.13
+],
+"hole": null,
+"net": "/nRF54L15/D2_FLASH",
+"number": "J7",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+162.62,
+108.13
+],
+"copper_bbox": [
+162.42,
+107.93,
+162.82,
+108.33
+],
+"copper_center": [
+162.62,
+108.13
+],
+"hole": null,
+"net": "/Connectors/SPI.MOSI",
+"number": "J8",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.72,
+108.13
+],
+"copper_bbox": [
+161.52,
+107.93,
+161.92,
+108.33
+],
+"copper_center": [
+161.72,
+108.13
+],
+"hole": null,
+"net": "/Connectors/SPI.SCK",
+"number": "J9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.47,
+108.13
+],
+"copper_bbox": [
+161.22,
+107.93,
+161.72,
+108.33
+],
+"copper_center": [
+161.47,
+108.13
+],
+"hole": null,
+"net": "/Connectors/SPI.SCK",
+"number": "J9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+168.02,
+109.03
+],
+"copper_bbox": [
+167.82,
+108.83,
+168.22,
+109.23
+],
+"copper_center": [
+168.02,
+109.03
+],
+"hole": null,
+"net": "/nPM1300/NPM1300.INT",
+"number": "K2",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+167.12,
+109.03
+],
+"copper_bbox": [
+166.92,
+108.83,
+167.32,
+109.23
+],
+"copper_center": [
+167.12,
+109.03
+],
+"hole": null,
+"net": "/Debugger/SWD_TRG.SWDCLK",
+"number": "K3",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+166.22,
+109.03
+],
+"copper_bbox": [
+166.02,
+108.83,
+166.42,
+109.23
+],
+"copper_center": [
+166.22,
+109.03
+],
+"hole": null,
+"net": "/Connectors/DIG.D6",
+"number": "K4",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+165.32,
+109.03
+],
+"copper_bbox": [
+165.12,
+108.83,
+165.52,
+109.23
+],
+"copper_center": [
+165.32,
+109.03
+],
+"hole": null,
+"net": "/Connectors/DIG.D9",
+"number": "K5",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+164.42,
+109.03
+],
+"copper_bbox": [
+164.22,
+108.83,
+164.62,
+109.23
+],
+"copper_center": [
+164.42,
+109.03
+],
+"hole": null,
+"net": "/Connectors/DIG.D10",
+"number": "K6",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+163.52,
+109.03
+],
+"copper_bbox": [
+163.32,
+108.83,
+163.72,
+109.23
+],
+"copper_center": [
+163.52,
+109.03
+],
+"hole": null,
+"net": "Net-(D1-A)",
+"number": "K7",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+162.62,
+109.03
+],
+"copper_bbox": [
+162.42,
+108.83,
+162.82,
+109.23
+],
+"copper_center": [
+162.62,
+109.03
+],
+"hole": null,
+"net": "/nRF54L15/~{CS}_FLASH",
+"number": "K8",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.72,
+109.03
+],
+"copper_bbox": [
+161.52,
+108.83,
+161.92,
+109.23
+],
+"copper_center": [
+161.72,
+109.03
+],
+"hole": null,
+"net": "/Connectors/SPI.MISO",
+"number": "K9",
+"ref": "U1"
+},
+{
+"angle": 270.0,
+"at": [
+161.47,
+109.03
+],
+"copper_bbox": [
+161.22,
+108.83,
+161.72,
+109.23
+],
+"copper_center": [
+161.47,
+109.03
+],
+"hole": null,
+"net": "/Connectors/SPI.MISO",
+"number": "K9",
+"ref": "U1"
+},
+{
+"angle": 0.0,
+"at": [
+166.94,
+111.65
+],
+"copper_bbox": [
+166.67,
+111.33,
+167.21,
+111.97
+],
+"copper_center": [
+166.94,
+111.65
+],
+"hole": null,
+"net": "Net-(D1-K)",
+"number": "1",
+"ref": "R6"
+},
+{
+"angle": 0.0,
+"at": [
+167.96,
+111.65
+],
+"copper_bbox": [
+167.69,
+111.33,
+168.23,
+111.97
+],
+"copper_center": [
+167.96,
+111.65
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "R6"
+},
+{
+"angle": 270.0,
+"at": [
+140.44,
+107.28
+],
+"copper_bbox": [
+140.13,
+107.0,
+140.75,
+107.56
+],
+"copper_center": [
+140.44,
+107.28
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "1",
+"ref": "C10"
+},
+{
+"angle": 270.0,
+"at": [
+140.44,
+108.24
+],
+"copper_bbox": [
+140.13,
+107.96,
+140.75,
+108.52
+],
+"copper_center": [
+140.44,
+108.24
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C10"
+},
+{
+"angle": 180.0,
+"at": [
+170.21,
+111.13
+],
+"copper_bbox": [
+169.94,
+110.81,
+170.48,
+111.45
+],
+"copper_center": [
+170.21,
+111.13
+],
+"hole": null,
+"net": "VDD",
+"number": "1",
+"ref": "R7"
+},
+{
+"angle": 180.0,
+"at": [
+169.19,
+111.13
+],
+"copper_bbox": [
+168.92,
+110.81,
+169.46,
+111.45
+],
+"copper_center": [
+169.19,
+111.13
+],
+"hole": null,
+"net": "/nPM1300/NPM1300.SDA",
+"number": "2",
+"ref": "R7"
+},
+{
+"angle": 0.0,
+"at": [
+142.48,
+104.58
+],
+"copper_bbox": [
+142.28,
+104.38,
+142.68,
+104.78
+],
+"copper_center": [
+142.48,
+104.58
+],
+"hole": null,
+"net": "VSYS",
+"number": "1",
+"ref": "D3"
+},
+{
+"angle": 0.0,
+"at": [
+143.28,
+104.58
+],
+"copper_bbox": [
+143.08,
+104.38,
+143.48,
+104.78
+],
+"copper_center": [
+143.28,
+104.58
+],
+"hole": null,
+"net": "Net-(D3-RK)",
+"number": "2",
+"ref": "D3"
+},
+{
+"angle": 0.0,
+"at": [
+143.28,
+105.38
+],
+"copper_bbox": [
+143.08,
+105.18,
+143.48,
+105.58
+],
+"copper_center": [
+143.28,
+105.38
+],
+"hole": null,
+"net": "Net-(D3-GK)",
+"number": "3",
+"ref": "D3"
+},
+{
+"angle": 0.0,
+"at": [
+142.48,
+105.38
+],
+"copper_bbox": [
+142.28,
+105.18,
+142.68,
+105.58
+],
+"copper_center": [
+142.48,
+105.38
+],
+"hole": null,
+"net": "Net-(D3-BK)",
+"number": "4",
+"ref": "D3"
+},
+{
+"angle": 90.0,
+"at": [
+146.18,
+105.86
+],
+"copper_bbox": [
+145.857509,
+105.537509,
+146.502491,
+106.182491
+],
+"copper_center": [
+146.18,
+105.86
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+147.08,
+105.86
+],
+"copper_bbox": [
+146.676887,
+105.53751,
+147.483113,
+106.18249
+],
+"copper_center": [
+147.08,
+105.86
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.08,
+105.86
+],
+"copper_bbox": [
+147.676887,
+105.53751,
+148.483113,
+106.18249
+],
+"copper_center": [
+148.08,
+105.86
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.98,
+105.86
+],
+"copper_bbox": [
+148.657509,
+105.537509,
+149.302491,
+106.182491
+],
+"copper_center": [
+148.98,
+105.86
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+146.18,
+104.96
+],
+"copper_bbox": [
+145.85751,
+104.556887,
+146.50249,
+105.363113
+],
+"copper_center": [
+146.18,
+104.96
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+147.08,
+104.96
+],
+"copper_bbox": [
+146.676887,
+104.556887,
+147.483113,
+105.363113
+],
+"copper_center": [
+147.08,
+104.96
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.08,
+104.96
+],
+"copper_bbox": [
+147.676887,
+104.556887,
+148.483113,
+105.363113
+],
+"copper_center": [
+148.08,
+104.96
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.98,
+104.96
+],
+"copper_bbox": [
+148.65751,
+104.556887,
+149.30249,
+105.363113
+],
+"copper_center": [
+148.98,
+104.96
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+146.18,
+103.96
+],
+"copper_bbox": [
+145.85751,
+103.556887,
+146.50249,
+104.363113
+],
+"copper_center": [
+146.18,
+103.96
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+147.08,
+103.96
+],
+"copper_bbox": [
+146.676887,
+103.556887,
+147.483113,
+104.363113
+],
+"copper_center": [
+147.08,
+103.96
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.08,
+103.96
+],
+"copper_bbox": [
+147.676887,
+103.556887,
+148.483113,
+104.363113
+],
+"copper_center": [
+148.08,
+103.96
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.98,
+103.96
+],
+"copper_bbox": [
+148.65751,
+103.556887,
+149.30249,
+104.363113
+],
+"copper_center": [
+148.98,
+103.96
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+146.18,
+103.06
+],
+"copper_bbox": [
+145.857509,
+102.737509,
+146.502491,
+103.382491
+],
+"copper_center": [
+146.18,
+103.06
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+147.08,
+103.06
+],
+"copper_bbox": [
+146.676887,
+102.73751,
+147.483113,
+103.38249
+],
+"copper_center": [
+147.08,
+103.06
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.08,
+103.06
+],
+"copper_bbox": [
+147.676887,
+102.73751,
+148.483113,
+103.38249
+],
+"copper_center": [
+148.08,
+103.06
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.98,
+103.06
+],
+"copper_bbox": [
+148.657509,
+102.737509,
+149.302491,
+103.382491
+],
+"copper_center": [
+148.98,
+103.06
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+145.83,
+106.91
+],
+"copper_bbox": [
+145.705,
+106.51,
+145.955,
+107.31
+],
+"copper_center": [
+145.83,
+106.91
+],
+"hole": null,
+"net": "VSYS",
+"number": "1",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+146.33,
+106.91
+],
+"copper_bbox": [
+146.205,
+106.51,
+146.455,
+107.31
+],
+"copper_center": [
+146.33,
+106.91
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+146.83,
+106.91
+],
+"copper_bbox": [
+146.705,
+106.51,
+146.955,
+107.31
+],
+"copper_center": [
+146.83,
+106.91
+],
+"hole": null,
+"net": "unconnected-(U2-SW1-Pad3)",
+"number": "3",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+147.33,
+106.91
+],
+"copper_bbox": [
+147.205,
+106.51,
+147.455,
+107.31
+],
+"copper_center": [
+147.33,
+106.91
+],
+"hole": null,
+"net": "VSYS",
+"number": "4",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+147.83,
+106.91
+],
+"copper_bbox": [
+147.705,
+106.51,
+147.955,
+107.31
+],
+"copper_center": [
+147.83,
+106.91
+],
+"hole": null,
+"net": "Net-(U2-SW2)",
+"number": "5",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.33,
+106.91
+],
+"copper_bbox": [
+148.205,
+106.51,
+148.455,
+107.31
+],
+"copper_center": [
+148.33,
+106.91
+],
+"hole": null,
+"net": "GND",
+"number": "6",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.83,
+106.91
+],
+"copper_bbox": [
+148.705,
+106.51,
+148.955,
+107.31
+],
+"copper_center": [
+148.83,
+106.91
+],
+"hole": null,
+"net": "/nPM1300/NPM1300.INT",
+"number": "7",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+149.33,
+106.91
+],
+"copper_bbox": [
+149.205,
+106.51,
+149.455,
+107.31
+],
+"copper_center": [
+149.33,
+106.91
+],
+"hole": null,
+"net": "/Connectors/ENABLE",
+"number": "8",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+150.03,
+106.21
+],
+"copper_bbox": [
+149.63,
+106.085,
+150.43,
+106.335
+],
+"copper_center": [
+150.03,
+106.21
+],
+"hole": null,
+"net": "unconnected-(U2-GPIO2-Pad9)",
+"number": "9",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+150.03,
+105.71
+],
+"copper_bbox": [
+149.63,
+105.585,
+150.43,
+105.835
+],
+"copper_center": [
+150.03,
+105.71
+],
+"hole": null,
+"net": "unconnected-(U2-GPIO3-Pad10)",
+"number": "10",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+150.03,
+105.21
+],
+"copper_bbox": [
+149.63,
+105.085,
+150.43,
+105.335
+],
+"copper_center": [
+150.03,
+105.21
+],
+"hole": null,
+"net": "unconnected-(U2-GPIO4-Pad11)",
+"number": "11",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+150.03,
+104.71
+],
+"copper_bbox": [
+149.63,
+104.585,
+150.43,
+104.835
+],
+"copper_center": [
+150.03,
+104.71
+],
+"hole": null,
+"net": "VDD",
+"number": "12",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+150.03,
+104.21
+],
+"copper_bbox": [
+149.63,
+104.085,
+150.43,
+104.335
+],
+"copper_center": [
+150.03,
+104.21
+],
+"hole": null,
+"net": "/nPM1300/NPM1300.SDA",
+"number": "13",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+150.03,
+103.71
+],
+"copper_bbox": [
+149.63,
+103.585,
+150.43,
+103.835
+],
+"copper_center": [
+150.03,
+103.71
+],
+"hole": null,
+"net": "/nPM1300/NPM1300.SCL",
+"number": "14",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+150.03,
+103.21
+],
+"copper_bbox": [
+149.63,
+103.085,
+150.43,
+103.335
+],
+"copper_center": [
+150.03,
+103.21
+],
+"hole": null,
+"net": "/Connectors/SHPHLD",
+"number": "15",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+150.03,
+102.71
+],
+"copper_bbox": [
+149.63,
+102.585,
+150.43,
+102.835
+],
+"copper_center": [
+150.03,
+102.71
+],
+"hole": null,
+"net": "Net-(U2-VSET2)",
+"number": "16",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+149.33,
+102.01
+],
+"copper_bbox": [
+149.205,
+101.61,
+149.455,
+102.41
+],
+"copper_center": [
+149.33,
+102.01
+],
+"hole": null,
+"net": "GND",
+"number": "17",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.83,
+102.01
+],
+"copper_bbox": [
+148.705,
+101.61,
+148.955,
+102.41
+],
+"copper_center": [
+148.83,
+102.01
+],
+"hole": null,
+"net": "GND",
+"number": "18",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.33,
+102.01
+],
+"copper_bbox": [
+148.205,
+101.61,
+148.455,
+102.41
+],
+"copper_center": [
+148.33,
+102.01
+],
+"hole": null,
+"net": "+BATT",
+"number": "19",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+147.83,
+102.01
+],
+"copper_bbox": [
+147.705,
+101.61,
+147.955,
+102.41
+],
+"copper_center": [
+147.83,
+102.01
+],
+"hole": null,
+"net": "VSYS",
+"number": "20",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+147.33,
+102.01
+],
+"copper_bbox": [
+147.205,
+101.61,
+147.455,
+102.41
+],
+"copper_center": [
+147.33,
+102.01
+],
+"hole": null,
+"net": "/Debugger/USB.VBUS",
+"number": "21",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+146.83,
+102.01
+],
+"copper_bbox": [
+146.705,
+101.61,
+146.955,
+102.41
+],
+"copper_center": [
+146.83,
+102.01
+],
+"hole": null,
+"net": "VBUS",
+"number": "22",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+146.33,
+102.01
+],
+"copper_bbox": [
+146.205,
+101.61,
+146.455,
+102.41
+],
+"copper_center": [
+146.33,
+102.01
+],
+"hole": null,
+"net": "/Debugger/USB.CC1",
+"number": "23",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+145.83,
+102.01
+],
+"copper_bbox": [
+145.705,
+101.61,
+145.955,
+102.41
+],
+"copper_center": [
+145.83,
+102.01
+],
+"hole": null,
+"net": "/Debugger/USB.CC2",
+"number": "24",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+145.13,
+102.71
+],
+"copper_bbox": [
+144.73,
+102.585,
+145.53,
+102.835
+],
+"copper_center": [
+145.13,
+102.71
+],
+"hole": null,
+"net": "Net-(D3-RK)",
+"number": "25",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+145.13,
+103.21
+],
+"copper_bbox": [
+144.73,
+103.085,
+145.53,
+103.335
+],
+"copper_center": [
+145.13,
+103.21
+],
+"hole": null,
+"net": "Net-(D3-GK)",
+"number": "26",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+145.13,
+103.71
+],
+"copper_bbox": [
+144.73,
+103.585,
+145.53,
+103.835
+],
+"copper_center": [
+145.13,
+103.71
+],
+"hole": null,
+"net": "Net-(D3-BK)",
+"number": "27",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+145.13,
+104.21
+],
+"copper_bbox": [
+144.73,
+104.085,
+145.53,
+104.335
+],
+"copper_center": [
+145.13,
+104.21
+],
+"hole": null,
+"net": "GND",
+"number": "28",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+145.13,
+104.71
+],
+"copper_bbox": [
+144.73,
+104.585,
+145.53,
+104.835
+],
+"copper_center": [
+145.13,
+104.71
+],
+"hole": null,
+"net": "GND",
+"number": "29",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+145.13,
+105.21
+],
+"copper_bbox": [
+144.73,
+105.085,
+145.53,
+105.335
+],
+"copper_center": [
+145.13,
+105.21
+],
+"hole": null,
+"net": "GND",
+"number": "30",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+145.13,
+105.71
+],
+"copper_bbox": [
+144.73,
+105.585,
+145.53,
+105.835
+],
+"copper_center": [
+145.13,
+105.71
+],
+"hole": null,
+"net": "GND",
+"number": "31",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+145.13,
+106.21
+],
+"copper_bbox": [
+144.73,
+106.085,
+145.53,
+106.335
+],
+"copper_center": [
+145.13,
+106.21
+],
+"hole": null,
+"net": "Net-(JP1-A)",
+"number": "32",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+146.58,
+105.46
+],
+"copper_bbox": [
+146.33,
+105.21,
+146.83,
+105.71
+],
+"copper_center": [
+146.58,
+105.46
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "33",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+147.58,
+105.46
+],
+"copper_bbox": [
+147.33,
+105.21,
+147.83,
+105.71
+],
+"copper_center": [
+147.58,
+105.46
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "33",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.58,
+105.46
+],
+"copper_bbox": [
+148.33,
+105.21,
+148.83,
+105.71
+],
+"copper_center": [
+148.58,
+105.46
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "33",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+146.58,
+104.46
+],
+"copper_bbox": [
+146.33,
+104.21,
+146.83,
+104.71
+],
+"copper_center": [
+146.58,
+104.46
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "33",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+147.58,
+104.46
+],
+"copper_bbox": [
+147.33,
+104.21,
+147.83,
+104.71
+],
+"copper_center": [
+147.58,
+104.46
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "33",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+147.58,
+104.46
+],
+"copper_bbox": [
+146.33,
+103.21,
+148.83,
+105.71
+],
+"copper_center": [
+147.58,
+104.46
+],
+"hole": null,
+"net": "GND",
+"number": "33",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+147.58,
+104.46
+],
+"copper_bbox": [
+145.78,
+102.66,
+149.38,
+106.26
+],
+"copper_center": [
+147.58,
+104.46
+],
+"hole": null,
+"net": "GND",
+"number": "33",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.58,
+104.46
+],
+"copper_bbox": [
+148.33,
+104.21,
+148.83,
+104.71
+],
+"copper_center": [
+148.58,
+104.46
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "33",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+146.58,
+103.46
+],
+"copper_bbox": [
+146.33,
+103.21,
+146.83,
+103.71
+],
+"copper_center": [
+146.58,
+103.46
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "33",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+147.58,
+103.46
+],
+"copper_bbox": [
+147.33,
+103.21,
+147.83,
+103.71
+],
+"copper_center": [
+147.58,
+103.46
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "33",
+"ref": "U2"
+},
+{
+"angle": 90.0,
+"at": [
+148.58,
+103.46
+],
+"copper_bbox": [
+148.33,
+103.21,
+148.83,
+103.71
+],
+"copper_center": [
+148.58,
+103.46
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "33",
+"ref": "U2"
+},
+{
+"angle": 0.0,
+"at": [
+138.92,
+104.57
+],
+"copper_bbox": [
+138.64,
+104.26,
+139.2,
+104.88
+],
+"copper_center": [
+138.92,
+104.57
+],
+"hole": null,
+"net": "Net-(U5-DECUSB)",
+"number": "1",
+"ref": "C23"
+},
+{
+"angle": 0.0,
+"at": [
+139.88,
+104.57
+],
+"copper_bbox": [
+139.6,
+104.26,
+140.16,
+104.88
+],
+"copper_center": [
+139.88,
+104.57
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C23"
+},
+{
+"angle": 90.0,
+"at": [
+127.103416,
+101.355058
+],
+"copper_bbox": [
+126.783416,
+101.085058,
+127.423416,
+101.625058
+],
+"copper_center": [
+127.103416,
+101.355058
+],
+"hole": null,
+"net": "VDD",
+"number": "1",
+"ref": "R2"
+},
+{
+"angle": 90.0,
+"at": [
+127.103416,
+100.335058
+],
+"copper_bbox": [
+126.783416,
+100.065058,
+127.423416,
+100.605058
+],
+"copper_center": [
+127.103416,
+100.335058
+],
+"hole": null,
+"net": "/Connectors/I2C.SCL",
+"number": "2",
+"ref": "R2"
+},
+{
+"angle": 90.0,
+"at": [
+158.06,
+103.42
+],
+"copper_bbox": [
+157.75,
+103.14,
+158.37,
+103.7
+],
+"copper_center": [
+158.06,
+103.42
+],
+"hole": null,
+"net": "VDD",
+"number": "1",
+"ref": "C24"
+},
+{
+"angle": 90.0,
+"at": [
+158.06,
+102.46
+],
+"copper_bbox": [
+157.75,
+102.18,
+158.37,
+102.74
+],
+"copper_center": [
+158.06,
+102.46
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C24"
+},
+{
+"angle": 0.0,
+"at": [
+174.98,
+96.09
+],
+"copper_bbox": [
+173.73,
+94.84,
+176.23,
+97.34
+],
+"copper_center": [
+174.98,
+96.09
+],
+"hole": [
+2.5,
+2.5
+],
+"net": "",
+"number": "",
+"ref": "H2"
+},
+{
+"angle": 270.0,
+"at": [
+140.44,
+110.05
+],
+"copper_bbox": [
+140.13,
+109.77,
+140.75,
+110.33
+],
+"copper_center": [
+140.44,
+110.05
+],
+"hole": null,
+"net": "Net-(U5-DEC1)",
+"number": "1",
+"ref": "C19"
+},
+{
+"angle": 270.0,
+"at": [
+140.44,
+111.01
+],
+"copper_bbox": [
+140.13,
+110.73,
+140.75,
+111.29
+],
+"copper_center": [
+140.44,
+111.01
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C19"
+},
+{
+"angle": 270.0,
+"at": [
+151.14,
+105.21
+],
+"copper_bbox": [
+150.83,
+104.93,
+151.45,
+105.49
+],
+"copper_center": [
+151.14,
+105.21
+],
+"hole": null,
+"net": "VDD",
+"number": "1",
+"ref": "C1"
+},
+{
+"angle": 270.0,
+"at": [
+151.14,
+106.17
+],
+"copper_bbox": [
+150.83,
+105.89,
+151.45,
+106.45
+],
+"copper_center": [
+151.14,
+106.17
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C1"
+},
+{
+"angle": 270.0,
+"at": [
+123.96,
+102.09
+],
+"copper_bbox": [
+123.635,
+101.765,
+124.285,
+102.415
+],
+"copper_center": [
+123.96,
+102.09
+],
+"hole": [
+0.65,
+0.65
+],
+"net": "",
+"number": "",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+123.96,
+107.87
+],
+"copper_bbox": [
+123.635,
+107.545,
+124.285,
+108.195
+],
+"copper_center": [
+123.96,
+107.87
+],
+"hole": [
+0.65,
+0.65
+],
+"net": "",
+"number": "",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+101.73
+],
+"copper_bbox": [
+124.68,
+101.43,
+126.13,
+102.03
+],
+"copper_center": [
+125.405,
+101.73
+],
+"hole": null,
+"net": "GND",
+"number": "A1",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+102.53
+],
+"copper_bbox": [
+124.68,
+102.23,
+126.13,
+102.83
+],
+"copper_center": [
+125.405,
+102.53
+],
+"hole": null,
+"net": "/Debugger/USB.VBUS",
+"number": "A4",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+103.73
+],
+"copper_bbox": [
+124.68,
+103.58,
+126.13,
+103.88
+],
+"copper_center": [
+125.405,
+103.73
+],
+"hole": null,
+"net": "/Debugger/USB.CC1",
+"number": "A5",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+104.73
+],
+"copper_bbox": [
+124.68,
+104.58,
+126.13,
+104.88
+],
+"copper_center": [
+125.405,
+104.73
+],
+"hole": null,
+"net": "/Debugger/D+",
+"number": "A6",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+105.23
+],
+"copper_bbox": [
+124.68,
+105.08,
+126.13,
+105.38
+],
+"copper_center": [
+125.405,
+105.23
+],
+"hole": null,
+"net": "/Debugger/D-",
+"number": "A7",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+106.23
+],
+"copper_bbox": [
+124.68,
+106.08,
+126.13,
+106.38
+],
+"copper_center": [
+125.405,
+106.23
+],
+"hole": null,
+"net": "unconnected-(J3-SBU1-PadA8)",
+"number": "A8",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+107.43
+],
+"copper_bbox": [
+124.68,
+107.13,
+126.13,
+107.73
+],
+"copper_center": [
+125.405,
+107.43
+],
+"hole": null,
+"net": "/Debugger/USB.VBUS",
+"number": "A9",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+108.23
+],
+"copper_bbox": [
+124.68,
+107.93,
+126.13,
+108.53
+],
+"copper_center": [
+125.405,
+108.23
+],
+"hole": null,
+"net": "GND",
+"number": "A12",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+108.23
+],
+"copper_bbox": [
+124.68,
+107.93,
+126.13,
+108.53
+],
+"copper_center": [
+125.405,
+108.23
+],
+"hole": null,
+"net": "GND",
+"number": "B1",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+107.43
+],
+"copper_bbox": [
+124.68,
+107.13,
+126.13,
+107.73
+],
+"copper_center": [
+125.405,
+107.43
+],
+"hole": null,
+"net": "/Debugger/USB.VBUS",
+"number": "B4",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+106.73
+],
+"copper_bbox": [
+124.68,
+106.58,
+126.13,
+106.88
+],
+"copper_center": [
+125.405,
+106.73
+],
+"hole": null,
+"net": "/Debugger/USB.CC2",
+"number": "B5",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+105.73
+],
+"copper_bbox": [
+124.68,
+105.58,
+126.13,
+105.88
+],
+"copper_center": [
+125.405,
+105.73
+],
+"hole": null,
+"net": "/Debugger/D+",
+"number": "B6",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+104.23
+],
+"copper_bbox": [
+124.68,
+104.08,
+126.13,
+104.38
+],
+"copper_center": [
+125.405,
+104.23
+],
+"hole": null,
+"net": "/Debugger/D-",
+"number": "B7",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+103.23
+],
+"copper_bbox": [
+124.68,
+103.08,
+126.13,
+103.38
+],
+"copper_center": [
+125.405,
+103.23
+],
+"hole": null,
+"net": "unconnected-(J3-SBU2-PadB8)",
+"number": "B8",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+102.53
+],
+"copper_bbox": [
+124.68,
+102.23,
+126.13,
+102.83
+],
+"copper_center": [
+125.405,
+102.53
+],
+"hole": null,
+"net": "/Debugger/USB.VBUS",
+"number": "B9",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+125.405,
+101.73
+],
+"copper_bbox": [
+124.68,
+101.43,
+126.13,
+102.03
+],
+"copper_center": [
+125.405,
+101.73
+],
+"hole": null,
+"net": "GND",
+"number": "B12",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+124.49,
+100.66
+],
+"copper_bbox": [
+123.44,
+100.16,
+125.54,
+101.16
+],
+"copper_center": [
+124.49,
+100.66
+],
+"hole": [
+0.6,
+1.7
+],
+"net": "GND",
+"number": "S1",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+120.31,
+100.66
+],
+"copper_bbox": [
+119.51,
+100.16,
+121.11,
+101.16
+],
+"copper_center": [
+120.31,
+100.66
+],
+"hole": [
+0.6,
+1.2
+],
+"net": "GND",
+"number": "S1",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+124.49,
+109.3
+],
+"copper_bbox": [
+123.44,
+108.8,
+125.54,
+109.8
+],
+"copper_center": [
+124.49,
+109.3
+],
+"hole": [
+0.6,
+1.7
+],
+"net": "GND",
+"number": "S1",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+120.31,
+109.3
+],
+"copper_bbox": [
+119.51,
+108.8,
+121.11,
+109.8
+],
+"copper_center": [
+120.31,
+109.3
+],
+"hole": [
+0.6,
+1.2
+],
+"net": "GND",
+"number": "S1",
+"ref": "J3"
+},
+{
+"angle": 270.0,
+"at": [
+129.93,
+108.82
+],
+"copper_bbox": [
+129.62,
+108.54,
+130.24,
+109.1
+],
+"copper_center": [
+129.93,
+108.82
+],
+"hole": null,
+"net": "GND",
+"number": "1",
+"ref": "C18"
+},
+{
+"angle": 270.0,
+"at": [
+129.93,
+109.78
+],
+"copper_bbox": [
+129.62,
+109.5,
+130.24,
+110.06
+],
+"copper_center": [
+129.93,
+109.78
+],
+"hole": null,
+"net": "Net-(U5-XC1)",
+"number": "2",
+"ref": "C18"
+},
+{
+"angle": 270.0,
+"at": [
+159.46,
+106.53
+],
+"copper_bbox": [
+158.815,
+106.45,
+160.105,
+106.61
+],
+"copper_center": [
+159.46,
+106.53
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U4"
+},
+{
+"angle": 270.0,
+"at": [
+160.21,
+105.105
+],
+"copper_bbox": [
+160.085,
+104.655,
+160.335,
+105.555
+],
+"copper_center": [
+160.21,
+105.105
+],
+"hole": null,
+"net": "/nRF54L15/~{CS}_FLASH",
+"number": "1",
+"ref": "U4"
+},
+{
+"angle": 270.0,
+"at": [
+159.71,
+105.105
+],
+"copper_bbox": [
+159.585,
+104.655,
+159.835,
+105.555
+],
+"copper_center": [
+159.71,
+105.105
+],
+"hole": null,
+"net": "/Connectors/SPI.MISO",
+"number": "2",
+"ref": "U4"
+},
+{
+"angle": 270.0,
+"at": [
+159.21,
+105.105
+],
+"copper_bbox": [
+159.085,
+104.655,
+159.335,
+105.555
+],
+"copper_center": [
+159.21,
+105.105
+],
+"hole": null,
+"net": "/nRF54L15/D2_FLASH",
+"number": "3",
+"ref": "U4"
+},
+{
+"angle": 270.0,
+"at": [
+158.71,
+105.105
+],
+"copper_bbox": [
+158.585,
+104.655,
+158.835,
+105.555
+],
+"copper_center": [
+158.71,
+105.105
+],
+"hole": null,
+"net": "GND",
+"number": "4",
+"ref": "U4"
+},
+{
+"angle": 270.0,
+"at": [
+158.71,
+107.955
+],
+"copper_bbox": [
+158.585,
+107.505,
+158.835,
+108.405
+],
+"copper_center": [
+158.71,
+107.955
+],
+"hole": null,
+"net": "/Connectors/SPI.MOSI",
+"number": "5",
+"ref": "U4"
+},
+{
+"angle": 270.0,
+"at": [
+159.21,
+107.955
+],
+"copper_bbox": [
+159.085,
+107.505,
+159.335,
+108.405
+],
+"copper_center": [
+159.21,
+107.955
+],
+"hole": null,
+"net": "/Connectors/SPI.SCK",
+"number": "6",
+"ref": "U4"
+},
+{
+"angle": 270.0,
+"at": [
+159.71,
+107.955
+],
+"copper_bbox": [
+159.585,
+107.505,
+159.835,
+108.405
+],
+"copper_center": [
+159.71,
+107.955
+],
+"hole": null,
+"net": "/nRF54L15/D3_FLASH",
+"number": "7",
+"ref": "U4"
+},
+{
+"angle": 270.0,
+"at": [
+160.21,
+107.955
+],
+"copper_bbox": [
+160.085,
+107.505,
+160.335,
+108.405
+],
+"copper_center": [
+160.21,
+107.955
+],
+"hole": null,
+"net": "VDD",
+"number": "8",
+"ref": "U4"
+},
+{
+"angle": 270.0,
+"at": [
+159.46,
+106.53
+],
+"copper_bbox": [
+158.66,
+106.43,
+160.26,
+106.63
+],
+"copper_center": [
+159.46,
+106.53
+],
+"hole": null,
+"net": "GND",
+"number": "9",
+"ref": "U4"
+},
+{
+"angle": 90.0,
+"at": [
+148.58,
+99.595
+],
+"copper_bbox": [
+148.105,
+99.145,
+149.055,
+100.045
+],
+"copper_center": [
+148.58,
+99.595
+],
+"hole": null,
+"net": "VSYS",
+"number": "1",
+"ref": "C4"
+},
+{
+"angle": 90.0,
+"at": [
+148.58,
+98.045
+],
+"copper_bbox": [
+148.105,
+97.595,
+149.055,
+98.495
+],
+"copper_center": [
+148.58,
+98.045
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C4"
+},
+{
+"angle": 270.0,
+"at": [
+131.14,
+109.5
+],
+"copper_bbox": [
+130.74,
+109.05,
+131.54,
+109.95
+],
+"copper_center": [
+131.14,
+109.5
+],
+"hole": null,
+"net": "Net-(U5-XC1)",
+"number": "1",
+"ref": "Y2"
+},
+{
+"angle": 270.0,
+"at": [
+131.14,
+110.9
+],
+"copper_bbox": [
+130.74,
+110.45,
+131.54,
+111.35
+],
+"copper_center": [
+131.14,
+110.9
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "Y2"
+},
+{
+"angle": 270.0,
+"at": [
+132.24,
+110.9
+],
+"copper_bbox": [
+131.84,
+110.45,
+132.64,
+111.35
+],
+"copper_center": [
+132.24,
+110.9
+],
+"hole": null,
+"net": "Net-(U5-XC2)",
+"number": "3",
+"ref": "Y2"
+},
+{
+"angle": 270.0,
+"at": [
+132.24,
+109.5
+],
+"copper_bbox": [
+131.84,
+109.05,
+132.64,
+109.95
+],
+"copper_center": [
+132.24,
+109.5
+],
+"hole": null,
+"net": "GND",
+"number": "4",
+"ref": "Y2"
+},
+{
+"angle": 180.0,
+"at": [
+134.44,
+111.71
+],
+"copper_bbox": [
+134.16,
+111.4,
+134.72,
+112.02
+],
+"copper_center": [
+134.44,
+111.71
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "1",
+"ref": "C16"
+},
+{
+"angle": 180.0,
+"at": [
+133.48,
+111.71
+],
+"copper_bbox": [
+133.2,
+111.4,
+133.76,
+112.02
+],
+"copper_center": [
+133.48,
+111.71
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C16"
+},
+{
+"angle": 180.0,
+"at": [
+133.26,
+106.78
+],
+"copper_bbox": [
+132.98,
+106.47,
+133.54,
+107.09
+],
+"copper_center": [
+133.26,
+106.78
+],
+"hole": null,
+"net": "Net-(U5-DEC4)",
+"number": "1",
+"ref": "C22"
+},
+{
+"angle": 180.0,
+"at": [
+132.3,
+106.78
+],
+"copper_bbox": [
+132.02,
+106.47,
+132.58,
+107.09
+],
+"copper_center": [
+132.3,
+106.78
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C22"
+},
+{
+"angle": 90.0,
+"at": [
+160.26,
+100.87
+],
+"copper_bbox": [
+159.95,
+100.59,
+160.57,
+101.15
+],
+"copper_center": [
+160.26,
+100.87
+],
+"hole": null,
+"net": "VDD",
+"number": "1",
+"ref": "C9"
+},
+{
+"angle": 90.0,
+"at": [
+160.26,
+99.91
+],
+"copper_bbox": [
+159.95,
+99.63,
+160.57,
+100.19
+],
+"copper_center": [
+160.26,
+99.91
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C9"
+},
+{
+"angle": 90.0,
+"at": [
+144.88,
+99.595
+],
+"copper_bbox": [
+144.405,
+99.145,
+145.355,
+100.045
+],
+"copper_center": [
+144.88,
+99.595
+],
+"hole": null,
+"net": "VBUS",
+"number": "1",
+"ref": "C6"
+},
+{
+"angle": 90.0,
+"at": [
+144.88,
+98.045
+],
+"copper_bbox": [
+144.405,
+97.595,
+145.355,
+98.495
+],
+"copper_center": [
+144.88,
+98.045
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C6"
+},
+{
+"angle": 0.0,
+"at": [
+121.64,
+113.87
+],
+"copper_bbox": [
+120.39,
+112.62,
+122.89,
+115.12
+],
+"copper_center": [
+121.64,
+113.87
+],
+"hole": [
+2.5,
+2.5
+],
+"net": "",
+"number": "",
+"ref": "H3"
+},
+{
+"angle": 270.0,
+"at": [
+143.11,
+107.01
+],
+"copper_bbox": [
+142.79,
+106.74,
+143.43,
+107.28
+],
+"copper_center": [
+143.11,
+107.01
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "1",
+"ref": "R8"
+},
+{
+"angle": 270.0,
+"at": [
+143.11,
+108.03
+],
+"copper_bbox": [
+142.79,
+107.76,
+143.43,
+108.3
+],
+"copper_center": [
+143.11,
+108.03
+],
+"hole": null,
+"net": "/Debugger/TRG_~{RESET}_NRF52",
+"number": "2",
+"ref": "R8"
+},
+{
+"angle": 180.0,
+"at": [
+165.6375,
+111.65
+],
+"copper_bbox": [
+165.2,
+111.175,
+166.075,
+112.125
+],
+"copper_center": [
+165.6375,
+111.65
+],
+"hole": null,
+"net": "Net-(D1-K)",
+"number": "1",
+"ref": "D1"
+},
+{
+"angle": 180.0,
+"at": [
+164.0625,
+111.65
+],
+"copper_bbox": [
+163.625,
+111.175,
+164.5,
+112.125
+],
+"copper_center": [
+164.0625,
+111.65
+],
+"hole": null,
+"net": "Net-(D1-A)",
+"number": "2",
+"ref": "D1"
+},
+{
+"angle": 0.0,
+"at": [
+128.31,
+111.855
+],
+"copper_bbox": [
+128.03,
+111.545,
+128.59,
+112.165
+],
+"copper_center": [
+128.31,
+111.855
+],
+"hole": null,
+"net": "Net-(J6-Pin_4)",
+"number": "1",
+"ref": "C13"
+},
+{
+"angle": 0.0,
+"at": [
+129.27,
+111.855
+],
+"copper_bbox": [
+128.99,
+111.545,
+129.55,
+112.165
+],
+"copper_center": [
+129.27,
+111.855
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C13"
+},
+{
+"angle": 180.0,
+"at": [
+157.835,
+111.605
+],
+"copper_bbox": [
+157.31,
+111.28,
+158.36,
+111.93
+],
+"copper_center": [
+157.835,
+111.605
+],
+"hole": null,
+"net": "GND",
+"number": "1",
+"ref": "SW1"
+},
+{
+"angle": 180.0,
+"at": [
+153.685,
+111.605
+],
+"copper_bbox": [
+153.16,
+111.28,
+154.21,
+111.93
+],
+"copper_center": [
+153.685,
+111.605
+],
+"hole": null,
+"net": "GND",
+"number": "1",
+"ref": "SW1"
+},
+{
+"angle": 180.0,
+"at": [
+157.835,
+109.455
+],
+"copper_bbox": [
+157.31,
+109.13,
+158.36,
+109.78
+],
+"copper_center": [
+157.835,
+109.455
+],
+"hole": null,
+"net": "/Debugger/SWD_TRG.~{RESET}",
+"number": "2",
+"ref": "SW1"
+},
+{
+"angle": 180.0,
+"at": [
+153.71,
+109.455
+],
+"copper_bbox": [
+153.185,
+109.13,
+154.235,
+109.78
+],
+"copper_center": [
+153.71,
+109.455
+],
+"hole": null,
+"net": "/Debugger/SWD_TRG.~{RESET}",
+"number": "2",
+"ref": "SW1"
+},
+{
+"angle": 0.0,
+"at": [
+154.64,
+104.235
+],
+"copper_bbox": [
+154.23,
+103.7,
+155.05,
+104.77
+],
+"copper_center": [
+154.64,
+104.235
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+154.64,
+105.605
+],
+"copper_bbox": [
+154.23,
+105.07,
+155.05,
+106.14
+],
+"copper_center": [
+154.64,
+105.605
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+155.76,
+104.235
+],
+"copper_bbox": [
+155.35,
+103.7,
+156.17,
+104.77
+],
+"copper_center": [
+155.76,
+104.235
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+155.76,
+105.605
+],
+"copper_bbox": [
+155.35,
+105.07,
+156.17,
+106.14
+],
+"copper_center": [
+155.76,
+105.605
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+154.45,
+102.875
+],
+"copper_bbox": [
+154.31,
+102.52,
+154.59,
+103.37
+],
+"copper_center": [
+154.45,
+102.875
+],
+"hole": null,
+"net": "GND",
+"number": "1",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+153.405,
+103.67
+],
+"copper_bbox": [
+153.05,
+103.53,
+153.9,
+103.81
+],
+"copper_center": [
+153.405,
+103.67
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "2",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+153.405,
+104.17
+],
+"copper_bbox": [
+153.05,
+104.03,
+153.9,
+104.31
+],
+"copper_center": [
+153.405,
+104.17
+],
+"hole": null,
+"net": "/Debugger/UART_RX_NRF52",
+"number": "3",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+153.405,
+104.67
+],
+"copper_bbox": [
+153.05,
+104.53,
+153.9,
+104.81
+],
+"copper_center": [
+153.405,
+104.67
+],
+"hole": null,
+"net": "/Debugger/UART_TX_NRF52",
+"number": "4",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+153.405,
+105.17
+],
+"copper_bbox": [
+153.05,
+105.03,
+153.9,
+105.31
+],
+"copper_center": [
+153.405,
+105.17
+],
+"hole": null,
+"net": "/Debugger/TRG_~{RESET}_NRF52",
+"number": "5",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+153.405,
+105.67
+],
+"copper_bbox": [
+153.05,
+105.53,
+153.9,
+105.81
+],
+"copper_center": [
+153.405,
+105.67
+],
+"hole": null,
+"net": "/Debugger/TRG_SWDIO_NRF52",
+"number": "6",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+153.405,
+106.17
+],
+"copper_bbox": [
+153.05,
+106.03,
+153.9,
+106.31
+],
+"copper_center": [
+153.405,
+106.17
+],
+"hole": null,
+"net": "/Debugger/TRG_SWDCLK_NRF52",
+"number": "7",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+154.45,
+106.965
+],
+"copper_bbox": [
+154.31,
+106.47,
+154.59,
+107.32
+],
+"copper_center": [
+154.45,
+106.965
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "8",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+155.95,
+106.965
+],
+"copper_bbox": [
+155.81,
+106.47,
+156.09,
+107.32
+],
+"copper_center": [
+155.95,
+106.965
+],
+"hole": null,
+"net": "GND",
+"number": "9",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+156.995,
+106.17
+],
+"copper_bbox": [
+156.5,
+106.03,
+157.35,
+106.31
+],
+"copper_center": [
+156.995,
+106.17
+],
+"hole": null,
+"net": "/Debugger/SWD_TRG.SWDCLK",
+"number": "10",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+156.995,
+105.67
+],
+"copper_bbox": [
+156.5,
+105.53,
+157.35,
+105.81
+],
+"copper_center": [
+156.995,
+105.67
+],
+"hole": null,
+"net": "/Debugger/SWD_TRG.SWDIO",
+"number": "11",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+156.995,
+105.17
+],
+"copper_bbox": [
+156.5,
+105.03,
+157.35,
+105.31
+],
+"copper_center": [
+156.995,
+105.17
+],
+"hole": null,
+"net": "/Debugger/SWD_TRG.~{RESET}",
+"number": "12",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+156.995,
+104.67
+],
+"copper_bbox": [
+156.5,
+104.53,
+157.35,
+104.81
+],
+"copper_center": [
+156.995,
+104.67
+],
+"hole": null,
+"net": "/Connectors/UART.TX",
+"number": "13",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+156.995,
+104.17
+],
+"copper_bbox": [
+156.5,
+104.03,
+157.35,
+104.31
+],
+"copper_center": [
+156.995,
+104.17
+],
+"hole": null,
+"net": "/Connectors/UART.RX",
+"number": "14",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+156.995,
+103.67
+],
+"copper_bbox": [
+156.5,
+103.53,
+157.35,
+103.81
+],
+"copper_center": [
+156.995,
+103.67
+],
+"hole": null,
+"net": "VDD",
+"number": "15",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+155.95,
+102.875
+],
+"copper_bbox": [
+155.81,
+102.52,
+156.09,
+103.37
+],
+"copper_center": [
+155.95,
+102.875
+],
+"hole": null,
+"net": "GND",
+"number": "16",
+"ref": "U6"
+},
+{
+"angle": 0.0,
+"at": [
+155.2,
+104.92
+],
+"copper_bbox": [
+154.175,
+103.645,
+156.225,
+106.195
+],
+"copper_center": [
+155.2,
+104.92
+],
+"hole": null,
+"net": "GND",
+"number": "17",
+"ref": "U6"
+},
+{
+"angle": 90.0,
+"at": [
+151.2,
+102.8
+],
+"copper_bbox": [
+150.88,
+102.53,
+151.52,
+103.07
+],
+"copper_center": [
+151.2,
+102.8
+],
+"hole": null,
+"net": "Net-(U2-VSET2)",
+"number": "1",
+"ref": "R4"
+},
+{
+"angle": 90.0,
+"at": [
+151.2,
+101.78
+],
+"copper_bbox": [
+150.88,
+101.51,
+151.52,
+102.05
+],
+"copper_center": [
+151.2,
+101.78
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "R4"
+},
+{
+"angle": 0.0,
+"at": [
+150.045,
+100.59
+],
+"copper_bbox": [
+149.595,
+100.115,
+150.495,
+101.065
+],
+"copper_center": [
+150.045,
+100.59
+],
+"hole": null,
+"net": "+BATT",
+"number": "1",
+"ref": "C11"
+},
+{
+"angle": 0.0,
+"at": [
+151.595,
+100.59
+],
+"copper_bbox": [
+151.145,
+100.115,
+152.045,
+101.065
+],
+"copper_center": [
+151.595,
+100.59
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C11"
+},
+{
+"angle": 180.0,
+"at": [
+159.84,
+98.23
+],
+"copper_bbox": [
+159.34,
+97.33,
+160.34,
+99.13
+],
+"copper_center": [
+159.84,
+98.23
+],
+"hole": null,
+"net": "Net-(U1-P1.01{slash}XL2)",
+"number": "1",
+"ref": "Y1"
+},
+{
+"angle": 180.0,
+"at": [
+162.34,
+98.23
+],
+"copper_bbox": [
+161.84,
+97.33,
+162.84,
+99.13
+],
+"copper_center": [
+162.34,
+98.23
+],
+"hole": null,
+"net": "Net-(U1-P1.00{slash}XL1)",
+"number": "2",
+"ref": "Y1"
+},
+{
+"angle": 0.0,
+"at": [
+121.64,
+96.09
+],
+"copper_bbox": [
+120.39,
+94.84,
+122.89,
+97.34
+],
+"copper_center": [
+121.64,
+96.09
+],
+"hole": [
+2.5,
+2.5
+],
+"net": "",
+"number": "",
+"ref": "H1"
+},
+{
+"angle": 180.0,
+"at": [
+157.835,
+100.505
+],
+"copper_bbox": [
+157.31,
+100.18,
+158.36,
+100.83
+],
+"copper_center": [
+157.835,
+100.505
+],
+"hole": null,
+"net": "/Connectors/DIG.D11",
+"number": "1",
+"ref": "SW2"
+},
+{
+"angle": 180.0,
+"at": [
+153.685,
+100.505
+],
+"copper_bbox": [
+153.16,
+100.18,
+154.21,
+100.83
+],
+"copper_center": [
+153.685,
+100.505
+],
+"hole": null,
+"net": "/Connectors/DIG.D11",
+"number": "1",
+"ref": "SW2"
+},
+{
+"angle": 180.0,
+"at": [
+157.835,
+98.355
+],
+"copper_bbox": [
+157.31,
+98.03,
+158.36,
+98.68
+],
+"copper_center": [
+157.835,
+98.355
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "SW2"
+},
+{
+"angle": 180.0,
+"at": [
+153.71,
+98.355
+],
+"copper_bbox": [
+153.185,
+98.03,
+154.235,
+98.68
+],
+"copper_center": [
+153.71,
+98.355
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "SW2"
+},
+{
+"angle": 90.0,
+"at": [
+143.23,
+94.82
+],
+"copper_bbox": [
+142.38,
+93.97,
+144.08,
+95.67
+],
+"copper_center": [
+143.23,
+94.82
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "+BATT",
+"number": "1",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+143.23,
+94.82
+],
+"copper_bbox": [
+142.38,
+93.97,
+144.08,
+95.67
+],
+"copper_center": [
+143.23,
+94.82
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "+BATT",
+"number": "1",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+143.23,
+93.55
+],
+"copper_bbox": [
+142.38,
+92.7,
+144.08,
+94.4
+],
+"copper_center": [
+143.23,
+93.55
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "+BATT",
+"number": "1",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+145.77,
+94.82
+],
+"copper_bbox": [
+144.92,
+93.97,
+146.62,
+95.67
+],
+"copper_center": [
+145.77,
+94.82
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ENABLE",
+"number": "2",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+145.77,
+93.55
+],
+"copper_bbox": [
+144.92,
+92.7,
+146.62,
+94.82
+],
+"copper_center": [
+145.77,
+93.76
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ENABLE",
+"number": "2",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+148.31,
+94.82
+],
+"copper_bbox": [
+147.46,
+93.97,
+149.16,
+95.67
+],
+"copper_center": [
+148.31,
+94.82
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "VSYS",
+"number": "3",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+148.31,
+93.55
+],
+"copper_bbox": [
+147.46,
+92.7,
+149.16,
+94.82
+],
+"copper_center": [
+148.31,
+93.76
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "VSYS",
+"number": "3",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+150.85,
+94.82
+],
+"copper_bbox": [
+150.0,
+93.97,
+151.7,
+95.67
+],
+"copper_center": [
+150.85,
+94.82
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D13",
+"number": "4",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+150.85,
+93.55
+],
+"copper_bbox": [
+150.0,
+92.7,
+151.7,
+94.82
+],
+"copper_center": [
+150.85,
+93.76
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D13",
+"number": "4",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+153.39,
+94.82
+],
+"copper_bbox": [
+152.54,
+93.97,
+154.24,
+95.67
+],
+"copper_center": [
+153.39,
+94.82
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D12",
+"number": "5",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+153.39,
+93.55
+],
+"copper_bbox": [
+152.54,
+92.7,
+154.24,
+94.82
+],
+"copper_center": [
+153.39,
+93.76
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D12",
+"number": "5",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+155.93,
+94.82
+],
+"copper_bbox": [
+155.08,
+93.97,
+156.78,
+95.67
+],
+"copper_center": [
+155.93,
+94.82
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D11",
+"number": "6",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+155.93,
+93.55
+],
+"copper_bbox": [
+155.08,
+92.7,
+156.78,
+94.82
+],
+"copper_center": [
+155.93,
+93.76
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D11",
+"number": "6",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+158.47,
+94.82
+],
+"copper_bbox": [
+157.62,
+93.97,
+159.32,
+95.67
+],
+"copper_center": [
+158.47,
+94.82
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D10",
+"number": "7",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+158.47,
+93.55
+],
+"copper_bbox": [
+157.62,
+92.7,
+159.32,
+94.82
+],
+"copper_center": [
+158.47,
+93.76
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D10",
+"number": "7",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+161.01,
+94.82
+],
+"copper_bbox": [
+160.16,
+93.97,
+161.86,
+95.67
+],
+"copper_center": [
+161.01,
+94.82
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D9",
+"number": "8",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+161.01,
+93.55
+],
+"copper_bbox": [
+160.16,
+92.7,
+161.86,
+94.82
+],
+"copper_center": [
+161.01,
+93.76
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D9",
+"number": "8",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+163.55,
+94.82
+],
+"copper_bbox": [
+162.7,
+93.97,
+164.4,
+95.67
+],
+"copper_center": [
+163.55,
+94.82
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D6",
+"number": "9",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+163.55,
+93.55
+],
+"copper_bbox": [
+162.7,
+92.7,
+164.4,
+94.82
+],
+"copper_center": [
+163.55,
+93.76
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D6",
+"number": "9",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+166.09,
+94.82
+],
+"copper_bbox": [
+165.24,
+93.97,
+166.94,
+95.67
+],
+"copper_center": [
+166.09,
+94.82
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D5",
+"number": "10",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+166.09,
+93.55
+],
+"copper_bbox": [
+165.24,
+92.7,
+166.94,
+94.82
+],
+"copper_center": [
+166.09,
+93.76
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/DIG.D5",
+"number": "10",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+168.63,
+94.82
+],
+"copper_bbox": [
+167.78,
+93.97,
+169.48,
+95.67
+],
+"copper_center": [
+168.63,
+94.82
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/I2C.SCL",
+"number": "11",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+168.63,
+93.55
+],
+"copper_bbox": [
+167.78,
+92.7,
+169.48,
+94.82
+],
+"copper_center": [
+168.63,
+93.76
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/I2C.SCL",
+"number": "11",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+171.17,
+94.82
+],
+"copper_bbox": [
+170.32,
+93.97,
+172.02,
+95.67
+],
+"copper_center": [
+171.17,
+94.82
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/I2C.SDA",
+"number": "12",
+"ref": "J2"
+},
+{
+"angle": 90.0,
+"at": [
+171.17,
+93.55
+],
+"copper_bbox": [
+170.32,
+92.7,
+172.02,
+94.82
+],
+"copper_center": [
+171.17,
+93.76
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/I2C.SDA",
+"number": "12",
+"ref": "J2"
+},
+{
+"angle": 0.0,
+"at": [
+126.81,
+113.28
+],
+"copper_bbox": [
+126.66,
+112.88,
+126.96,
+113.68
+],
+"copper_center": [
+126.81,
+113.28
+],
+"hole": null,
+"net": "unconnected-(J6-Pin_1-Pad1)",
+"number": "1",
+"ref": "J6"
+},
+{
+"angle": 0.0,
+"at": [
+127.31,
+113.28
+],
+"copper_bbox": [
+127.16,
+112.88,
+127.46,
+113.68
+],
+"copper_center": [
+127.31,
+113.28
+],
+"hole": null,
+"net": "Net-(J6-Pin_2)",
+"number": "2",
+"ref": "J6"
+},
+{
+"angle": 0.0,
+"at": [
+127.81,
+113.28
+],
+"copper_bbox": [
+127.66,
+112.88,
+127.96,
+113.68
+],
+"copper_center": [
+127.81,
+113.28
+],
+"hole": null,
+"net": "unconnected-(J6-Pin_3-Pad3)",
+"number": "3",
+"ref": "J6"
+},
+{
+"angle": 0.0,
+"at": [
+128.31,
+113.28
+],
+"copper_bbox": [
+128.16,
+112.88,
+128.46,
+113.68
+],
+"copper_center": [
+128.31,
+113.28
+],
+"hole": null,
+"net": "Net-(J6-Pin_4)",
+"number": "4",
+"ref": "J6"
+},
+{
+"angle": 0.0,
+"at": [
+128.81,
+113.28
+],
+"copper_bbox": [
+128.66,
+112.88,
+128.96,
+113.68
+],
+"copper_center": [
+128.81,
+113.28
+],
+"hole": null,
+"net": "unconnected-(J6-Pin_5-Pad5)",
+"number": "5",
+"ref": "J6"
+},
+{
+"angle": 0.0,
+"at": [
+125.81,
+115.78
+],
+"copper_bbox": [
+125.61,
+115.38,
+126.01,
+116.18
+],
+"copper_center": [
+125.81,
+115.78
+],
+"hole": null,
+"net": "GND",
+"number": "MP",
+"ref": "J6"
+},
+{
+"angle": 0.0,
+"at": [
+129.81,
+115.78
+],
+"copper_bbox": [
+129.61,
+115.38,
+130.01,
+116.18
+],
+"copper_center": [
+129.81,
+115.78
+],
+"hole": null,
+"net": "GND",
+"number": "MP",
+"ref": "J6"
+},
+{
+"angle": 90.0,
+"at": [
+150.37,
+111.705
+],
+"copper_bbox": [
+149.895,
+111.255,
+150.845,
+112.155
+],
+"copper_center": [
+150.37,
+111.705
+],
+"hole": null,
+"net": "Net-(JP1-A)",
+"number": "1",
+"ref": "C8"
+},
+{
+"angle": 90.0,
+"at": [
+150.37,
+110.155
+],
+"copper_bbox": [
+149.895,
+109.705,
+150.845,
+110.605
+],
+"copper_center": [
+150.37,
+110.155
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C8"
+},
+{
+"angle": 0.0,
+"at": [
+148.085,
+108.67
+],
+"copper_bbox": [
+147.635,
+108.195,
+148.535,
+109.145
+],
+"copper_center": [
+148.085,
+108.67
+],
+"hole": null,
+"net": "VSYS",
+"number": "1",
+"ref": "C2"
+},
+{
+"angle": 0.0,
+"at": [
+149.635,
+108.67
+],
+"copper_bbox": [
+149.185,
+108.195,
+150.085,
+109.145
+],
+"copper_center": [
+149.635,
+108.67
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C2"
+},
+{
+"angle": 90.0,
+"at": [
+128.043416,
+101.355058
+],
+"copper_bbox": [
+127.723416,
+101.085058,
+128.363416,
+101.625058
+],
+"copper_center": [
+128.043416,
+101.355058
+],
+"hole": null,
+"net": "VDD",
+"number": "1",
+"ref": "R3"
+},
+{
+"angle": 90.0,
+"at": [
+128.043416,
+100.335058
+],
+"copper_bbox": [
+127.723416,
+100.065058,
+128.363416,
+100.605058
+],
+"copper_center": [
+128.043416,
+100.335058
+],
+"hole": null,
+"net": "/Connectors/I2C.SDA",
+"number": "2",
+"ref": "R3"
+},
+{
+"angle": 0.0,
+"at": [
+138.59,
+111.69
+],
+"copper_bbox": [
+138.31,
+111.38,
+138.87,
+112.0
+],
+"copper_center": [
+138.59,
+111.69
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "1",
+"ref": "C15"
+},
+{
+"angle": 0.0,
+"at": [
+139.55,
+111.69
+],
+"copper_bbox": [
+139.27,
+111.38,
+139.83,
+112.0
+],
+"copper_center": [
+139.55,
+111.69
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C15"
+},
+{
+"angle": 0.0,
+"at": [
+127.8975,
+104.4725
+],
+"copper_bbox": [
+127.56,
+104.2975,
+128.235,
+104.6475
+],
+"copper_center": [
+127.8975,
+104.4725
+],
+"hole": null,
+"net": "unconnected-(U3-IO1-Pad1)",
+"number": "1",
+"ref": "U3"
+},
+{
+"angle": 0.0,
+"at": [
+127.8975,
+104.9725
+],
+"copper_bbox": [
+127.56,
+104.7975,
+128.235,
+105.1475
+],
+"copper_center": [
+127.8975,
+104.9725
+],
+"hole": null,
+"net": "/Debugger/D-",
+"number": "2",
+"ref": "U3"
+},
+{
+"angle": 0.0,
+"at": [
+127.8975,
+105.4725
+],
+"copper_bbox": [
+127.56,
+105.2975,
+128.235,
+105.6475
+],
+"copper_center": [
+127.8975,
+105.4725
+],
+"hole": null,
+"net": "GND",
+"number": "3",
+"ref": "U3"
+},
+{
+"angle": 0.0,
+"at": [
+129.3225,
+105.4725
+],
+"copper_bbox": [
+128.985,
+105.2975,
+129.66,
+105.6475
+],
+"copper_center": [
+129.3225,
+105.4725
+],
+"hole": null,
+"net": "/Debugger/D+",
+"number": "4",
+"ref": "U3"
+},
+{
+"angle": 0.0,
+"at": [
+129.3225,
+104.4725
+],
+"copper_bbox": [
+128.985,
+104.2975,
+129.66,
+104.6475
+],
+"copper_center": [
+129.3225,
+104.4725
+],
+"hole": null,
+"net": "/Debugger/USB.VBUS",
+"number": "5",
+"ref": "U3"
+},
+{
+"angle": 90.0,
+"at": [
+148.86,
+111.7175
+],
+"copper_bbox": [
+148.385,
+111.28,
+149.335,
+112.155
+],
+"copper_center": [
+148.86,
+111.7175
+],
+"hole": null,
+"net": "Net-(JP1-A)",
+"number": "1",
+"ref": "L1"
+},
+{
+"angle": 90.0,
+"at": [
+148.86,
+110.1425
+],
+"copper_bbox": [
+148.385,
+109.705,
+149.335,
+110.58
+],
+"copper_center": [
+148.86,
+110.1425
+],
+"hole": null,
+"net": "Net-(U2-SW2)",
+"number": "2",
+"ref": "L1"
+},
+{
+"angle": 180.0,
+"at": [
+127.31,
+111.855
+],
+"copper_bbox": [
+127.03,
+111.545,
+127.59,
+112.165
+],
+"copper_center": [
+127.31,
+111.855
+],
+"hole": null,
+"net": "Net-(J6-Pin_2)",
+"number": "1",
+"ref": "C14"
+},
+{
+"angle": 180.0,
+"at": [
+126.35,
+111.855
+],
+"copper_bbox": [
+126.07,
+111.545,
+126.63,
+112.165
+],
+"copper_center": [
+126.35,
+111.855
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C14"
+},
+{
+"angle": 90.0,
+"at": [
+147.01,
+99.595
+],
+"copper_bbox": [
+146.535,
+99.145,
+147.485,
+100.045
+],
+"copper_center": [
+147.01,
+99.595
+],
+"hole": null,
+"net": "/Debugger/USB.VBUS",
+"number": "1",
+"ref": "C5"
+},
+{
+"angle": 90.0,
+"at": [
+147.01,
+98.045
+],
+"copper_bbox": [
+146.535,
+97.595,
+147.485,
+98.495
+],
+"copper_center": [
+147.01,
+98.045
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C5"
+},
+{
+"angle": 90.0,
+"at": [
+140.44,
+106.42
+],
+"copper_bbox": [
+140.13,
+106.14,
+140.75,
+106.7
+],
+"copper_center": [
+140.44,
+106.42
+],
+"hole": null,
+"net": "VBUS",
+"number": "1",
+"ref": "C7"
+},
+{
+"angle": 90.0,
+"at": [
+140.44,
+105.46
+],
+"copper_bbox": [
+140.13,
+105.18,
+140.75,
+105.74
+],
+"copper_center": [
+140.44,
+105.46
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C7"
+},
+{
+"angle": 0.0,
+"at": [
+155.25,
+108.04
+],
+"copper_bbox": [
+154.98,
+107.72,
+155.52,
+108.36
+],
+"copper_center": [
+155.25,
+108.04
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "1",
+"ref": "R1"
+},
+{
+"angle": 0.0,
+"at": [
+156.27,
+108.04
+],
+"copper_bbox": [
+156.0,
+107.72,
+156.54,
+108.36
+],
+"copper_center": [
+156.27,
+108.04
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "R1"
+},
+{
+"angle": 180.0,
+"at": [
+132.78,
+107.74
+],
+"copper_bbox": [
+132.5,
+107.43,
+133.06,
+108.05
+],
+"copper_center": [
+132.78,
+107.74
+],
+"hole": null,
+"net": "Net-(U5-DEC3)",
+"number": "1",
+"ref": "C21"
+},
+{
+"angle": 180.0,
+"at": [
+131.82,
+107.74
+],
+"copper_bbox": [
+131.54,
+107.43,
+132.1,
+108.05
+],
+"copper_center": [
+131.82,
+107.74
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C21"
+},
+{
+"angle": 180.0,
+"at": [
+129.49,
+98.633
+],
+"copper_bbox": [
+129.19,
+97.858,
+129.79,
+99.408
+],
+"copper_center": [
+129.49,
+98.633
+],
+"hole": null,
+"net": "GND",
+"number": "1",
+"ref": "J5"
+},
+{
+"angle": 180.0,
+"at": [
+128.49,
+98.633
+],
+"copper_bbox": [
+128.19,
+97.858,
+128.79,
+99.408
+],
+"copper_center": [
+128.49,
+98.633
+],
+"hole": null,
+"net": "VDD",
+"number": "2",
+"ref": "J5"
+},
+{
+"angle": 180.0,
+"at": [
+127.49,
+98.633
+],
+"copper_bbox": [
+127.19,
+97.858,
+127.79,
+99.408
+],
+"copper_center": [
+127.49,
+98.633
+],
+"hole": null,
+"net": "/Connectors/I2C.SDA",
+"number": "3",
+"ref": "J5"
+},
+{
+"angle": 180.0,
+"at": [
+126.49,
+98.633
+],
+"copper_bbox": [
+126.19,
+97.858,
+126.79,
+99.408
+],
+"copper_center": [
+126.49,
+98.633
+],
+"hole": null,
+"net": "/Connectors/I2C.SCL",
+"number": "4",
+"ref": "J5"
+},
+{
+"angle": 180.0,
+"at": [
+130.79,
+94.758
+],
+"copper_bbox": [
+130.19,
+93.858,
+131.39,
+95.658
+],
+"copper_center": [
+130.79,
+94.758
+],
+"hole": null,
+"net": "GND",
+"number": "MP",
+"ref": "J5"
+},
+{
+"angle": 180.0,
+"at": [
+125.19,
+94.758
+],
+"copper_bbox": [
+124.59,
+93.858,
+125.79,
+95.658
+],
+"copper_center": [
+125.19,
+94.758
+],
+"hole": null,
+"net": "GND",
+"number": "MP",
+"ref": "J5"
+},
+{
+"angle": 180.0,
+"at": [
+146.615,
+108.67
+],
+"copper_bbox": [
+146.165,
+108.195,
+147.065,
+109.145
+],
+"copper_center": [
+146.615,
+108.67
+],
+"hole": null,
+"net": "VSYS",
+"number": "1",
+"ref": "C3"
+},
+{
+"angle": 180.0,
+"at": [
+145.065,
+108.67
+],
+"copper_bbox": [
+144.615,
+108.195,
+145.515,
+109.145
+],
+"copper_center": [
+145.065,
+108.67
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C3"
+},
+{
+"angle": 180.0,
+"at": [
+135.87,
+104.4
+],
+"copper_bbox": [
+135.59,
+104.09,
+136.15,
+104.71
+],
+"copper_center": [
+135.87,
+104.4
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "1",
+"ref": "C17"
+},
+{
+"angle": 180.0,
+"at": [
+134.91,
+104.4
+],
+"copper_bbox": [
+134.63,
+104.09,
+135.19,
+104.71
+],
+"copper_center": [
+134.91,
+104.4
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C17"
+},
+{
+"angle": 180.0,
+"at": [
+137.913333,
+109.163333
+],
+"copper_bbox": [
+137.448575,
+108.698575,
+138.378091,
+109.628091
+],
+"copper_center": [
+137.913333,
+109.163333
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+137.913333,
+108.13
+],
+"copper_bbox": [
+137.448575,
+107.665242,
+138.378091,
+108.594758
+],
+"copper_center": [
+137.913333,
+108.13
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+137.913333,
+107.096667
+],
+"copper_bbox": [
+137.448575,
+106.631909,
+138.378091,
+107.561425
+],
+"copper_center": [
+137.913333,
+107.096667
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+136.88,
+109.163333
+],
+"copper_bbox": [
+136.415242,
+108.698575,
+137.344758,
+109.628091
+],
+"copper_center": [
+136.88,
+109.163333
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+136.88,
+108.13
+],
+"copper_bbox": [
+136.415242,
+107.665242,
+137.344758,
+108.594758
+],
+"copper_center": [
+136.88,
+108.13
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+136.88,
+107.096667
+],
+"copper_bbox": [
+136.415242,
+106.631909,
+137.344758,
+107.561425
+],
+"copper_center": [
+136.88,
+107.096667
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+135.846667,
+109.163333
+],
+"copper_bbox": [
+135.381909,
+108.698575,
+136.311425,
+109.628091
+],
+"copper_center": [
+135.846667,
+109.163333
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+135.846667,
+108.13
+],
+"copper_bbox": [
+135.381909,
+107.665242,
+136.311425,
+108.594758
+],
+"copper_center": [
+135.846667,
+108.13
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+135.846667,
+107.096667
+],
+"copper_bbox": [
+135.381909,
+106.631909,
+136.311425,
+107.561425
+],
+"copper_center": [
+135.846667,
+107.096667
+],
+"hole": null,
+"net": "",
+"number": "",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+139.3175,
+109.93
+],
+"copper_bbox": [
+138.905,
+109.805,
+139.73,
+110.055
+],
+"copper_center": [
+139.3175,
+109.93
+],
+"hole": null,
+"net": "Net-(U5-DEC1)",
+"number": "1",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+139.3175,
+109.53
+],
+"copper_bbox": [
+138.905,
+109.405,
+139.73,
+109.655
+],
+"copper_center": [
+139.3175,
+109.53
+],
+"hole": null,
+"net": "unconnected-(U5-P0.00{slash}XL1-Pad2)",
+"number": "2",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+139.3175,
+109.13
+],
+"copper_bbox": [
+138.905,
+109.005,
+139.73,
+109.255
+],
+"copper_center": [
+139.3175,
+109.13
+],
+"hole": null,
+"net": "unconnected-(U5-P0.01{slash}XL2-Pad3)",
+"number": "3",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+139.3175,
+108.73
+],
+"copper_bbox": [
+138.905,
+108.605,
+139.73,
+108.855
+],
+"copper_center": [
+139.3175,
+108.73
+],
+"hole": null,
+"net": "unconnected-(U5-P0.04{slash}AIN2-Pad4)",
+"number": "4",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+139.3175,
+108.33
+],
+"copper_bbox": [
+138.905,
+108.205,
+139.73,
+108.455
+],
+"copper_center": [
+139.3175,
+108.33
+],
+"hole": null,
+"net": "unconnected-(U5-P0.05{slash}AIN3-Pad5)",
+"number": "5",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+139.3175,
+107.93
+],
+"copper_bbox": [
+138.905,
+107.805,
+139.73,
+108.055
+],
+"copper_center": [
+139.3175,
+107.93
+],
+"hole": null,
+"net": "unconnected-(U5-P1.09-Pad6)",
+"number": "6",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+139.3175,
+107.53
+],
+"copper_bbox": [
+138.905,
+107.405,
+139.73,
+107.655
+],
+"copper_center": [
+139.3175,
+107.53
+],
+"hole": null,
+"net": "unconnected-(U5-P0.11-Pad7)",
+"number": "7",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+139.3175,
+107.13
+],
+"copper_bbox": [
+138.905,
+107.005,
+139.73,
+107.255
+],
+"copper_center": [
+139.3175,
+107.13
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "8",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+139.3175,
+106.73
+],
+"copper_bbox": [
+138.905,
+106.605,
+139.73,
+106.855
+],
+"copper_center": [
+139.3175,
+106.73
+],
+"hole": null,
+"net": "VBUS",
+"number": "9",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+139.3175,
+106.33
+],
+"copper_bbox": [
+138.905,
+106.205,
+139.73,
+106.455
+],
+"copper_center": [
+139.3175,
+106.33
+],
+"hole": null,
+"net": "VBUS",
+"number": "10",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+138.68,
+105.6925
+],
+"copper_bbox": [
+138.555,
+105.28,
+138.805,
+106.105
+],
+"copper_center": [
+138.68,
+105.6925
+],
+"hole": null,
+"net": "Net-(U5-DECUSB)",
+"number": "11",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+138.28,
+105.6925
+],
+"copper_bbox": [
+138.155,
+105.28,
+138.405,
+106.105
+],
+"copper_center": [
+138.28,
+105.6925
+],
+"hole": null,
+"net": "/Debugger/D-",
+"number": "12",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+137.88,
+105.6925
+],
+"copper_bbox": [
+137.755,
+105.28,
+138.005,
+106.105
+],
+"copper_center": [
+137.88,
+105.6925
+],
+"hole": null,
+"net": "/Debugger/D+",
+"number": "13",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+137.48,
+105.6925
+],
+"copper_bbox": [
+137.355,
+105.28,
+137.605,
+106.105
+],
+"copper_center": [
+137.48,
+105.6925
+],
+"hole": null,
+"net": "unconnected-(U5-P0.15-Pad14)",
+"number": "14",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+137.08,
+105.6925
+],
+"copper_bbox": [
+136.955,
+105.28,
+137.205,
+106.105
+],
+"copper_center": [
+137.08,
+105.6925
+],
+"hole": null,
+"net": "unconnected-(U5-P0.17-Pad15)",
+"number": "15",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+136.68,
+105.6925
+],
+"copper_bbox": [
+136.555,
+105.28,
+136.805,
+106.105
+],
+"copper_center": [
+136.68,
+105.6925
+],
+"hole": null,
+"net": "Net-(J8-~{RESET})",
+"number": "16",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+136.28,
+105.6925
+],
+"copper_bbox": [
+136.155,
+105.28,
+136.405,
+106.105
+],
+"copper_center": [
+136.28,
+105.6925
+],
+"hole": null,
+"net": "unconnected-(U5-P0.20-Pad17)",
+"number": "17",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+135.88,
+105.6925
+],
+"copper_bbox": [
+135.755,
+105.28,
+136.005,
+106.105
+],
+"copper_center": [
+135.88,
+105.6925
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "18",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+135.48,
+105.6925
+],
+"copper_bbox": [
+135.355,
+105.28,
+135.605,
+106.105
+],
+"copper_center": [
+135.48,
+105.6925
+],
+"hole": null,
+"net": "Net-(J8-SWDIO)",
+"number": "19",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+135.08,
+105.6925
+],
+"copper_bbox": [
+134.955,
+105.28,
+135.205,
+106.105
+],
+"copper_center": [
+135.08,
+105.6925
+],
+"hole": null,
+"net": "Net-(J8-SWCLK)",
+"number": "20",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+134.4425,
+106.33
+],
+"copper_bbox": [
+134.03,
+106.205,
+134.855,
+106.455
+],
+"copper_center": [
+134.4425,
+106.33
+],
+"hole": null,
+"net": "unconnected-(U5-DEC5{slash}NC-Pad21)",
+"number": "21",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+134.4425,
+106.73
+],
+"copper_bbox": [
+134.03,
+106.605,
+134.855,
+106.855
+],
+"copper_center": [
+134.4425,
+106.73
+],
+"hole": null,
+"net": "unconnected-(U5-P0.09{slash}NFC1-Pad22)",
+"number": "22",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+134.4425,
+107.13
+],
+"copper_bbox": [
+134.03,
+107.005,
+134.855,
+107.255
+],
+"copper_center": [
+134.4425,
+107.13
+],
+"hole": null,
+"net": "unconnected-(U5-P0.10{slash}NFC2-Pad23)",
+"number": "23",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+134.4425,
+107.53
+],
+"copper_bbox": [
+134.03,
+107.405,
+134.855,
+107.655
+],
+"copper_center": [
+134.4425,
+107.53
+],
+"hole": null,
+"net": "unconnected-(U5-ANT-Pad24)",
+"number": "24",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+134.4425,
+107.93
+],
+"copper_bbox": [
+134.03,
+107.805,
+134.855,
+108.055
+],
+"copper_center": [
+134.4425,
+107.93
+],
+"hole": null,
+"net": "GND",
+"number": "25",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+134.4425,
+108.33
+],
+"copper_bbox": [
+134.03,
+108.205,
+134.855,
+108.455
+],
+"copper_center": [
+134.4425,
+108.33
+],
+"hole": null,
+"net": "Net-(U5-DEC4)",
+"number": "26",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+134.4425,
+108.73
+],
+"copper_bbox": [
+134.03,
+108.605,
+134.855,
+108.855
+],
+"copper_center": [
+134.4425,
+108.73
+],
+"hole": null,
+"net": "Net-(U5-DEC3)",
+"number": "27",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+134.4425,
+109.13
+],
+"copper_bbox": [
+134.03,
+109.005,
+134.855,
+109.255
+],
+"copper_center": [
+134.4425,
+109.13
+],
+"hole": null,
+"net": "Net-(U5-XC1)",
+"number": "28",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+134.4425,
+109.53
+],
+"copper_bbox": [
+134.03,
+109.405,
+134.855,
+109.655
+],
+"copper_center": [
+134.4425,
+109.53
+],
+"hole": null,
+"net": "Net-(U5-XC2)",
+"number": "29",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+134.4425,
+109.93
+],
+"copper_bbox": [
+134.03,
+109.805,
+134.855,
+110.055
+],
+"copper_center": [
+134.4425,
+109.93
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "30",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+135.08,
+110.5675
+],
+"copper_bbox": [
+134.955,
+110.155,
+135.205,
+110.98
+],
+"copper_center": [
+135.08,
+110.5675
+],
+"hole": null,
+"net": "unconnected-(U5-P0.03{slash}AIN1-Pad31)",
+"number": "31",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+135.48,
+110.5675
+],
+"copper_bbox": [
+135.355,
+110.155,
+135.605,
+110.98
+],
+"copper_center": [
+135.48,
+110.5675
+],
+"hole": null,
+"net": "/Debugger/TRG_SWDCLK_NRF52",
+"number": "32",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+135.88,
+110.5675
+],
+"copper_bbox": [
+135.755,
+110.155,
+136.005,
+110.98
+],
+"copper_center": [
+135.88,
+110.5675
+],
+"hole": null,
+"net": "/Debugger/TRG_SWDIO_NRF52",
+"number": "33",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+136.28,
+110.5675
+],
+"copper_bbox": [
+136.155,
+110.155,
+136.405,
+110.98
+],
+"copper_center": [
+136.28,
+110.5675
+],
+"hole": null,
+"net": "/Debugger/TRG_~{RESET}_NRF52",
+"number": "34",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+136.68,
+110.5675
+],
+"copper_bbox": [
+136.555,
+110.155,
+136.805,
+110.98
+],
+"copper_center": [
+136.68,
+110.5675
+],
+"hole": null,
+"net": "/Debugger/UART_TX_NRF52",
+"number": "35",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+137.08,
+110.5675
+],
+"copper_bbox": [
+136.955,
+110.155,
+137.205,
+110.98
+],
+"copper_center": [
+137.08,
+110.5675
+],
+"hole": null,
+"net": "/Debugger/UART_RX_NRF52",
+"number": "36",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+137.48,
+110.5675
+],
+"copper_bbox": [
+137.355,
+110.155,
+137.605,
+110.98
+],
+"copper_center": [
+137.48,
+110.5675
+],
+"hole": null,
+"net": "GND",
+"number": "37",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+137.88,
+110.5675
+],
+"copper_bbox": [
+137.755,
+110.155,
+138.005,
+110.98
+],
+"copper_center": [
+137.88,
+110.5675
+],
+"hole": null,
+"net": "Net-(U5-DEC4)",
+"number": "38",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+138.28,
+110.5675
+],
+"copper_bbox": [
+138.155,
+110.155,
+138.405,
+110.98
+],
+"copper_center": [
+138.28,
+110.5675
+],
+"hole": null,
+"net": "unconnected-(U5-DCC-Pad39)",
+"number": "39",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+138.68,
+110.5675
+],
+"copper_bbox": [
+138.555,
+110.155,
+138.805,
+110.98
+],
+"copper_center": [
+138.68,
+110.5675
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "40",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+138.43,
+109.68
+],
+"copper_bbox": [
+138.18,
+109.43,
+138.68,
+109.93
+],
+"copper_center": [
+138.43,
+109.68
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+138.43,
+108.646667
+],
+"copper_bbox": [
+138.18,
+108.396667,
+138.68,
+108.896667
+],
+"copper_center": [
+138.43,
+108.646667
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+138.43,
+107.613333
+],
+"copper_bbox": [
+138.18,
+107.363333,
+138.68,
+107.863333
+],
+"copper_center": [
+138.43,
+107.613333
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+138.43,
+106.58
+],
+"copper_bbox": [
+138.18,
+106.33,
+138.68,
+106.83
+],
+"copper_center": [
+138.43,
+106.58
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+137.396667,
+109.68
+],
+"copper_bbox": [
+137.146667,
+109.43,
+137.646667,
+109.93
+],
+"copper_center": [
+137.396667,
+109.68
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+137.396667,
+108.646667
+],
+"copper_bbox": [
+137.146667,
+108.396667,
+137.646667,
+108.896667
+],
+"copper_center": [
+137.396667,
+108.646667
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+137.396667,
+107.613333
+],
+"copper_bbox": [
+137.146667,
+107.363333,
+137.646667,
+107.863333
+],
+"copper_center": [
+137.396667,
+107.613333
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+137.396667,
+106.58
+],
+"copper_bbox": [
+137.146667,
+106.33,
+137.646667,
+106.83
+],
+"copper_center": [
+137.396667,
+106.58
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+136.88,
+108.13
+],
+"copper_bbox": [
+135.08,
+106.33,
+138.68,
+109.93
+],
+"copper_center": [
+136.88,
+108.13
+],
+"hole": null,
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+136.88,
+108.13
+],
+"copper_bbox": [
+135.08,
+106.33,
+138.68,
+109.93
+],
+"copper_center": [
+136.88,
+108.13
+],
+"hole": null,
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+136.363333,
+109.68
+],
+"copper_bbox": [
+136.113333,
+109.43,
+136.613333,
+109.93
+],
+"copper_center": [
+136.363333,
+109.68
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+136.363333,
+108.646667
+],
+"copper_bbox": [
+136.113333,
+108.396667,
+136.613333,
+108.896667
+],
+"copper_center": [
+136.363333,
+108.646667
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+136.363333,
+107.613333
+],
+"copper_bbox": [
+136.113333,
+107.363333,
+136.613333,
+107.863333
+],
+"copper_center": [
+136.363333,
+107.613333
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+136.363333,
+106.58
+],
+"copper_bbox": [
+136.113333,
+106.33,
+136.613333,
+106.83
+],
+"copper_center": [
+136.363333,
+106.58
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+135.33,
+109.68
+],
+"copper_bbox": [
+135.08,
+109.43,
+135.58,
+109.93
+],
+"copper_center": [
+135.33,
+109.68
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+135.33,
+108.646667
+],
+"copper_bbox": [
+135.08,
+108.396667,
+135.58,
+108.896667
+],
+"copper_center": [
+135.33,
+108.646667
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+135.33,
+107.613333
+],
+"copper_bbox": [
+135.08,
+107.363333,
+135.58,
+107.863333
+],
+"copper_center": [
+135.33,
+107.613333
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 180.0,
+"at": [
+135.33,
+106.58
+],
+"copper_bbox": [
+135.08,
+106.33,
+135.58,
+106.83
+],
+"copper_center": [
+135.33,
+106.58
+],
+"hole": [
+0.2,
+0.2
+],
+"net": "GND",
+"number": "41",
+"ref": "U5"
+},
+{
+"angle": 270.0,
+"at": [
+160.21,
+109.14
+],
+"copper_bbox": [
+159.9,
+108.86,
+160.52,
+109.42
+],
+"copper_center": [
+160.21,
+109.14
+],
+"hole": null,
+"net": "VDD",
+"number": "1",
+"ref": "C12"
+},
+{
+"angle": 270.0,
+"at": [
+160.21,
+110.1
+],
+"copper_bbox": [
+159.9,
+109.82,
+160.52,
+110.38
+],
+"copper_center": [
+160.21,
+110.1
+],
+"hole": null,
+"net": "GND",
+"number": "2",
+"ref": "C12"
+},
+{
+"angle": 0.0,
+"at": [
+131.21,
+112.06
+],
+"copper_bbox": [
+130.93,
+111.75,
+131.49,
+112.37
+],
+"copper_center": [
+131.21,
+112.06
+],
+"hole": null,
+"net": "GND",
+"number": "1",
+"ref": "C20"
+},
+{
+"angle": 0.0,
+"at": [
+132.17,
+112.06
+],
+"copper_bbox": [
+131.89,
+111.75,
+132.45,
+112.37
+],
+"copper_center": [
+132.17,
+112.06
+],
+"hole": null,
+"net": "Net-(U5-XC2)",
+"number": "2",
+"ref": "C20"
+},
+{
+"angle": 90.0,
+"at": [
+152.86,
+106.98
+],
+"copper_bbox": [
+152.11,
+106.48,
+153.61,
+107.48
+],
+"copper_center": [
+152.86,
+106.98
+],
+"hole": null,
+"net": "Net-(JP1-A)",
+"number": "1",
+"ref": "JP1"
+},
+{
+"angle": 90.0,
+"at": [
+152.86,
+105.68
+],
+"copper_bbox": [
+152.11,
+105.18,
+153.61,
+106.18
+],
+"copper_center": [
+152.86,
+105.68
+],
+"hole": null,
+"net": "VDD",
+"number": "2",
+"ref": "JP1"
+},
+{
+"angle": 180.0,
+"at": [
+136.7,
+102.38
+],
+"copper_bbox": [
+135.95,
+101.63,
+137.45,
+103.13
+],
+"copper_center": [
+136.7,
+102.38
+],
+"hole": null,
+"net": "Net-(J8-SWDIO)",
+"number": "1",
+"ref": "TP12"
+},
+{
+"angle": 180.0,
+"at": [
+139.1,
+99.98
+],
+"copper_bbox": [
+138.35,
+99.23,
+139.85,
+100.73
+],
+"copper_center": [
+139.1,
+99.98
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "1",
+"ref": "TP9"
+},
+{
+"angle": 270.0,
+"at": [
+133.07,
+115.14
+],
+"copper_bbox": [
+132.22,
+114.29,
+133.92,
+115.99
+],
+"copper_center": [
+133.07,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Debugger/SWD_TRG.~{RESET}",
+"number": "1",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+133.07,
+116.41
+],
+"copper_bbox": [
+132.22,
+115.14,
+133.92,
+117.26
+],
+"copper_center": [
+133.07,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Debugger/SWD_TRG.~{RESET}",
+"number": "1",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+135.61,
+115.14
+],
+"copper_bbox": [
+134.76,
+114.29,
+136.46,
+115.99
+],
+"copper_center": [
+135.61,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "VDD",
+"number": "2",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+135.61,
+116.41
+],
+"copper_bbox": [
+134.76,
+115.14,
+136.46,
+117.26
+],
+"copper_center": [
+135.61,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "VDD",
+"number": "2",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+138.15,
+115.14
+],
+"copper_bbox": [
+137.3,
+114.29,
+139.0,
+115.99
+],
+"copper_center": [
+138.15,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "unconnected-(J1-Pin_3-Pad3)",
+"number": "3",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+138.15,
+116.41
+],
+"copper_bbox": [
+137.3,
+115.14,
+139.0,
+117.26
+],
+"copper_center": [
+138.15,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "unconnected-(J1-Pin_3-Pad3)",
+"number": "3",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+140.69,
+115.14
+],
+"copper_bbox": [
+139.84,
+114.29,
+141.54,
+115.99
+],
+"copper_center": [
+140.69,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "GND",
+"number": "4",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+140.69,
+116.41
+],
+"copper_bbox": [
+139.84,
+115.14,
+141.54,
+117.26
+],
+"copper_center": [
+140.69,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "GND",
+"number": "4",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+143.23,
+115.14
+],
+"copper_bbox": [
+142.38,
+114.29,
+144.08,
+115.99
+],
+"copper_center": [
+143.23,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ANALOG.A0",
+"number": "5",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+143.23,
+116.41
+],
+"copper_bbox": [
+142.38,
+115.14,
+144.08,
+117.26
+],
+"copper_center": [
+143.23,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ANALOG.A0",
+"number": "5",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+145.77,
+115.14
+],
+"copper_bbox": [
+144.92,
+114.29,
+146.62,
+115.99
+],
+"copper_center": [
+145.77,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ANALOG.A1",
+"number": "6",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+145.77,
+116.41
+],
+"copper_bbox": [
+144.92,
+115.14,
+146.62,
+117.26
+],
+"copper_center": [
+145.77,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ANALOG.A1",
+"number": "6",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+148.31,
+115.14
+],
+"copper_bbox": [
+147.46,
+114.29,
+149.16,
+115.99
+],
+"copper_center": [
+148.31,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ANALOG.A2",
+"number": "7",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+148.31,
+116.41
+],
+"copper_bbox": [
+147.46,
+115.14,
+149.16,
+117.26
+],
+"copper_center": [
+148.31,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ANALOG.A2",
+"number": "7",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+150.85,
+115.14
+],
+"copper_bbox": [
+150.0,
+114.29,
+151.7,
+115.99
+],
+"copper_center": [
+150.85,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ANALOG.A3",
+"number": "8",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+150.85,
+116.41
+],
+"copper_bbox": [
+150.0,
+115.14,
+151.7,
+117.26
+],
+"copper_center": [
+150.85,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ANALOG.A3",
+"number": "8",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+153.39,
+115.14
+],
+"copper_bbox": [
+152.54,
+114.29,
+154.24,
+115.99
+],
+"copper_center": [
+153.39,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ANALOG.A4",
+"number": "9",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+153.39,
+116.41
+],
+"copper_bbox": [
+152.54,
+115.14,
+154.24,
+117.26
+],
+"copper_center": [
+153.39,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ANALOG.A4",
+"number": "9",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+155.93,
+115.14
+],
+"copper_bbox": [
+155.08,
+114.29,
+156.78,
+115.99
+],
+"copper_center": [
+155.93,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ANALOG.A5",
+"number": "10",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+155.93,
+116.41
+],
+"copper_bbox": [
+155.08,
+115.14,
+156.78,
+117.26
+],
+"copper_center": [
+155.93,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/ANALOG.A5",
+"number": "10",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+158.47,
+115.14
+],
+"copper_bbox": [
+157.62,
+114.29,
+159.32,
+115.99
+],
+"copper_center": [
+158.47,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/SPI.SCK",
+"number": "11",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+158.47,
+116.41
+],
+"copper_bbox": [
+157.62,
+115.14,
+159.32,
+117.26
+],
+"copper_center": [
+158.47,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/SPI.SCK",
+"number": "11",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+161.01,
+115.14
+],
+"copper_bbox": [
+160.16,
+114.29,
+161.86,
+115.99
+],
+"copper_center": [
+161.01,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/SPI.MOSI",
+"number": "12",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+161.01,
+116.41
+],
+"copper_bbox": [
+160.16,
+115.14,
+161.86,
+117.26
+],
+"copper_center": [
+161.01,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/SPI.MOSI",
+"number": "12",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+163.55,
+115.14
+],
+"copper_bbox": [
+162.7,
+114.29,
+164.4,
+115.99
+],
+"copper_center": [
+163.55,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/SPI.MISO",
+"number": "13",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+163.55,
+116.41
+],
+"copper_bbox": [
+162.7,
+115.14,
+164.4,
+117.26
+],
+"copper_center": [
+163.55,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/SPI.MISO",
+"number": "13",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+166.09,
+115.14
+],
+"copper_bbox": [
+165.24,
+114.29,
+166.94,
+115.99
+],
+"copper_center": [
+166.09,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/UART.RX",
+"number": "14",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+166.09,
+116.41
+],
+"copper_bbox": [
+165.24,
+115.14,
+166.94,
+117.26
+],
+"copper_center": [
+166.09,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/UART.RX",
+"number": "14",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+168.63,
+115.14
+],
+"copper_bbox": [
+167.78,
+114.29,
+169.48,
+115.99
+],
+"copper_center": [
+168.63,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/UART.TX",
+"number": "15",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+168.63,
+116.41
+],
+"copper_bbox": [
+167.78,
+115.14,
+169.48,
+117.26
+],
+"copper_center": [
+168.63,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/UART.TX",
+"number": "15",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+171.17,
+115.14
+],
+"copper_bbox": [
+170.32,
+114.29,
+172.02,
+115.99
+],
+"copper_center": [
+171.17,
+115.14
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/SHPHLD",
+"number": "16",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+171.17,
+116.41
+],
+"copper_bbox": [
+170.32,
+115.14,
+172.02,
+117.26
+],
+"copper_center": [
+171.17,
+116.2
+],
+"hole": [
+1.0,
+1.0
+],
+"net": "/Connectors/SHPHLD",
+"number": "16",
+"ref": "J1"
+},
+{
+"angle": 270.0,
+"at": [
+122.3,
+108.58
+],
+"copper_bbox": [
+121.55,
+107.83,
+123.05,
+109.33
+],
+"copper_center": [
+122.3,
+108.58
+],
+"hole": null,
+"net": "/Debugger/USB.CC2",
+"number": "1",
+"ref": "TP6"
+},
+{
+"angle": 90.0,
+"at": [
+122.4,
+103.78
+],
+"copper_bbox": [
+121.65,
+103.03,
+123.15,
+104.53
+],
+"copper_center": [
+122.4,
+103.78
+],
+"hole": null,
+"net": "/Debugger/D-",
+"number": "1",
+"ref": "TP8"
+},
+{
+"angle": 90.0,
+"at": [
+170.36,
+102.48
+],
+"copper_bbox": [
+169.36,
+101.48,
+171.36,
+103.48
+],
+"copper_center": [
+170.36,
+102.48
+],
+"hole": null,
+"net": "/Debugger/SWD_TRG.SWDIO",
+"number": "1",
+"ref": "TP1"
+},
+{
+"angle": 90.0,
+"at": [
+165.51,
+107.48
+],
+"copper_bbox": [
+164.51,
+106.48,
+166.51,
+108.48
+],
+"copper_center": [
+165.51,
+107.48
+],
+"hole": null,
+"net": "GND",
+"number": "1",
+"ref": "TP4"
+},
+{
+"angle": 180.0,
+"at": [
+139.1,
+102.38
+],
+"copper_bbox": [
+138.35,
+101.63,
+139.85,
+103.13
+],
+"copper_center": [
+139.1,
+102.38
+],
+"hole": null,
+"net": "Net-(J8-SWCLK)",
+"number": "1",
+"ref": "TP11"
+},
+{
+"angle": 270.0,
+"at": [
+122.3,
+101.38
+],
+"copper_bbox": [
+121.55,
+100.63,
+123.05,
+102.13
+],
+"copper_center": [
+122.3,
+101.38
+],
+"hole": null,
+"net": "/Debugger/USB.VBUS",
+"number": "1",
+"ref": "TP5"
+},
+{
+"angle": 180.0,
+"at": [
+136.7,
+99.98
+],
+"copper_bbox": [
+135.95,
+99.23,
+137.45,
+100.73
+],
+"copper_center": [
+136.7,
+99.98
+],
+"hole": null,
+"net": "Net-(J8-~{RESET})",
+"number": "1",
+"ref": "TP10"
+},
+{
+"angle": 90.0,
+"at": [
+122.4,
+106.18
+],
+"copper_bbox": [
+121.65,
+105.43,
+123.15,
+106.93
+],
+"copper_center": [
+122.4,
+106.18
+],
+"hole": null,
+"net": "/Debugger/D+",
+"number": "1",
+"ref": "TP7"
+},
+{
+"angle": 90.0,
+"at": [
+170.36,
+107.48
+],
+"copper_bbox": [
+169.36,
+106.48,
+171.36,
+108.48
+],
+"copper_center": [
+170.36,
+107.48
+],
+"hole": null,
+"net": "/Debugger/SWD_TRG.SWDCLK",
+"number": "1",
+"ref": "TP3"
+},
+{
+"angle": 90.0,
+"at": [
+128.61,
+107.5125
+],
+"copper_bbox": [
+128.1147,
+107.0172,
+129.1053,
+108.0078
+],
+"copper_center": [
+128.61,
+107.5125
+],
+"hole": [
+0.9906,
+0.9906
+],
+"net": "",
+"number": "",
+"ref": "J8"
+},
+{
+"angle": 90.0,
+"at": [
+127.594,
+102.4325
+],
+"copper_bbox": [
+127.0987,
+101.9372,
+128.0893,
+102.9278
+],
+"copper_center": [
+127.594,
+102.4325
+],
+"hole": [
+0.9906,
+0.9906
+],
+"net": "",
+"number": "",
+"ref": "J8"
+},
+{
+"angle": 90.0,
+"at": [
+129.626,
+102.4325
+],
+"copper_bbox": [
+129.1307,
+101.9372,
+130.1213,
+102.9278
+],
+"copper_center": [
+129.626,
+102.4325
+],
+"hole": [
+0.9906,
+0.9906
+],
+"net": "",
+"number": "",
+"ref": "J8"
+},
+{
+"angle": 90.0,
+"at": [
+127.975,
+106.2425
+],
+"copper_bbox": [
+127.5813,
+105.8488,
+128.3687,
+106.6362
+],
+"copper_center": [
+127.975,
+106.2425
+],
+"hole": null,
+"net": "/Debugger/nRF52_VDD",
+"number": "1",
+"ref": "J8"
+},
+{
+"angle": 90.0,
+"at": [
+129.245,
+106.2425
+],
+"copper_bbox": [
+128.8513,
+105.8488,
+129.6387,
+106.6362
+],
+"copper_center": [
+129.245,
+106.2425
+],
+"hole": null,
+"net": "Net-(J8-SWDIO)",
+"number": "2",
+"ref": "J8"
+},
+{
+"angle": 90.0,
+"at": [
+127.975,
+104.9725
+],
+"copper_bbox": [
+127.5813,
+104.5788,
+128.3687,
+105.3662
+],
+"copper_center": [
+127.975,
+104.9725
+],
+"hole": null,
+"net": "Net-(J8-~{RESET})",
+"number": "3",
+"ref": "J8"
+},
+{
+"angle": 90.0,
+"at": [
+129.245,
+104.9725
+],
+"copper_bbox": [
+128.8513,
+104.5788,
+129.6387,
+105.3662
+],
+"copper_center": [
+129.245,
+104.9725
+],
+"hole": null,
+"net": "Net-(J8-SWCLK)",
+"number": "4",
+"ref": "J8"
+},
+{
+"angle": 90.0,
+"at": [
+127.975,
+103.7025
+],
+"copper_bbox": [
+127.5813,
+103.3088,
+128.3687,
+104.0962
+],
+"copper_center": [
+127.975,
+103.7025
+],
+"hole": null,
+"net": "GND",
+"number": "5",
+"ref": "J8"
+},
+{
+"angle": 90.0,
+"at": [
+129.245,
+103.7025
+],
+"copper_bbox": [
+128.8513,
+103.3088,
+129.6387,
+104.0962
+],
+"copper_center": [
+129.245,
+103.7025
+],
+"hole": null,
+"net": "unconnected-(J8-SWO-Pad6)",
+"number": "6",
+"ref": "J8"
+},
+{
+"angle": 90.0,
+"at": [
+165.36,
+102.48
+],
+"copper_bbox": [
+164.36,
+101.48,
+166.36,
+103.48
+],
+"copper_center": [
+165.36,
+102.48
+],
+"hole": null,
+"net": "/Debugger/SWD_TRG.~{RESET}",
+"number": "1",
+"ref": "TP2"
+}
+]
+}

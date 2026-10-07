@@ -127,18 +127,77 @@ class SideValues:
 
 
 @dataclass(kw_only=True)
+class Tolerance:
+    """Manufacturing tolerances of a stackup layer, as [minus, plus] deviations (IPC-2581 tolPlus/tolMinus)."""
+
+    thickness: Vec2 | None = _f("[minus, plus] in mm, e.g. [-0.01, 0.01].", default=None)
+    epsilon_r: Vec2 | None = _f("[minus, plus] of the dielectric constant.", default=None)
+
+
+@dataclass(kw_only=True)
+class StackupSublayer:
+    """One part of a dielectric the source splits into several (KiCad ``addsublayer``, gbrjob '(1/2)' entries)."""
+
+    thickness: float | None = _f("mm.", default=None, minimum=0)
+    material: str | None = _f("Material name, e.g. '2116 RC58%'.", default=None)
+    color: str | None = _f("Colour as the source names it.", default=None)
+    epsilon_r: float | None = _f("Dielectric constant.", default=None, exclusiveMinimum=0)
+    loss_tangent: float | None = _f("Dielectric loss tangent.", default=None, minimum=0)
+
+
+@dataclass(kw_only=True)
 class StackupLayer:
     """One physical layer, listed top to bottom."""
 
     name: str = _f("Source name: 'F.Cu', 'dielectric 1', 'Top Solder Mask'...")
     kind: Literal["silk", "paste", "mask", "copper", "dielectric", "other"] = _f("Material role.")
     side: LayerSide = _f("'inner' for inner copper and dielectrics.")
-    thickness: float | None = _f("mm.", default=None, minimum=0)
-    material: str | None = _f("'FR4', 'Polyimide'...", default=None)
+    thickness: float | None = _f("mm (with sublayers: their sum).", default=None, minimum=0)
+    material: str | None = _f(
+        "'FR4', 'Polyimide'... (with sublayers of different materials: their names joined by ' + ').", default=None
+    )
     color: str | None = _f("Colour as the source names it: a name ('Blue', 'Matte Black') or '#RRGGBB'.", default=None)
-    epsilon_r: float | None = _f("Dielectric constant.", default=None, exclusiveMinimum=0)
-    loss_tangent: float | None = _f("Dielectric loss tangent.", default=None, minimum=0)
+    epsilon_r: float | None = _f(
+        "Dielectric constant (with sublayers: the series value, total thickness / sum(thickness_i / epsilon_r_i)).",
+        default=None,
+        exclusiveMinimum=0,
+    )
+    loss_tangent: float | None = _f(
+        "Dielectric loss tangent (with sublayers: the thickness-weighted mean).", default=None, minimum=0
+    )
     layer: str | None = _f("The Layer.id this physical layer is drawn by, if any.", default=None)
+    dielectric: Literal["prepreg", "core"] | None = _f(
+        "Dielectrics: prepreg or core, when the source says (KiCad type, IPC-2581 DIELPREG/DIELCORE).", default=None
+    )
+    sublayers: list[StackupSublayer] = _f(
+        "Dielectrics the source splits into parts, top to bottom, the first included; empty otherwise.",
+        factory=list,
+    )
+    frequency: float | None = _f(
+        "Hz at which epsilon_r and loss_tangent are given (KiCad spec_frequency, ODB++ FrequencyVal).",
+        default=None,
+        exclusiveMinimum=0,
+    )
+    dielectric_model: Literal["constant", "djordjevic_sarkar"] | None = _f(
+        "How epsilon_r/loss_tangent vary with frequency (KiCad dielectric_model).", default=None
+    )
+    locked: bool | None = _f(
+        "Thickness fixed for impedance control (KiCad '(thickness ... locked)').", default=None
+    )
+    tolerance: Tolerance | None = _f("Manufacturing tolerances, when the source gives them.", default=None)
+    finished_thickness: float | None = _f(
+        "Copper: plated (finished) thickness, mm, when it differs from the base foil.", default=None, minimum=0
+    )
+    roughness_rq: float | None = _f("Copper: RMS surface roughness, mm (0.0005 = 0.5 um).", default=None, minimum=0)
+    conductivity: float | None = _f("Copper: conductivity, S/m.", default=None, exclusiveMinimum=0)
+    etch_factor: float | None = _f(
+        "Copper: etch factor (thickness / one side's undercut), for trapezoidal traces.", default=None, minimum=0
+    )
+    thickness_over_copper: float | None = _f(
+        "Solder mask: thickness over the traces, mm, when it differs from 'thickness' (over the laminate).",
+        default=None,
+        minimum=0,
+    )
 
 
 @dataclass(kw_only=True)
@@ -152,6 +211,10 @@ class Stackup:
     silk_color: SideValues = _f("Silkscreen colour per side.", factory=SideValues)
     layers: list[StackupLayer] = _f(
         "Physical layers top to bottom; empty when the source has no stackup.", factory=list
+    )
+    impedance_controlled: bool | None = _f(
+        "The board is ordered impedance controlled (KiCad dielectric_constraints, gbrjob ImpedanceControlled).",
+        default=None,
     )
 
 
@@ -237,6 +300,10 @@ class Pad:
     size: Vec2 = _f("Width, height, mm.")
     layers: list[str] = _f("KiCad layer names, wildcards kept ('*.Cu', 'F.Paste'...).")
     drill: PadDrill | None = _f("The hole, for thru_hole/np_thru_hole.", default=None)
+    offset: Vec2 | None = _f(
+        "Copper shape offset of a pad without a hole (castellated SMD pads); pads with one keep it in drill.offset.",
+        default=None,
+    )
     roundrect_rratio: float | None = _f(
         "roundrect/chamfered: corner radius / shorter side.", default=None, minimum=0, maximum=0.5
     )
@@ -349,6 +416,70 @@ class Panel:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+# nets and net classes (impedance targets)
+
+
+@dataclass(kw_only=True)
+class Net:
+    """An electrical net."""
+
+    name: str = _f("Net name as the source writes it ('/USB/D+', 'GND').")
+    net_class: str | None = _f("The NetClass.name it belongs to ('Default' when the source assigns none).", default=None)
+    pair: str | None = _f(
+        "The partner net of a differential pair (KiCad pairs '+'/'-' and 'P'/'N' suffixes).", default=None
+    )
+
+
+@dataclass(kw_only=True)
+class ImpedanceLayer:
+    """Geometry a target applies to on one signal layer (KiCad tuning profile layer entry, IPC-2581 Impedance)."""
+
+    layer: str = _f("Signal layer ('F.Cu', 'In1.Cu').")
+    width: float | None = _f("Track width, mm.", default=None, minimum=0)
+    gap: float | None = _f("Differential pair gap, mm.", default=None, minimum=0)
+    ref_top: str | None = _f("Reference plane above, if any.", default=None)
+    ref_bottom: str | None = _f("Reference plane below, if any.", default=None)
+
+
+@dataclass(kw_only=True)
+class ImpedanceTarget:
+    """A controlled-impedance target."""
+
+    kind: Literal["single", "differential"] = _f("Single-ended Z0 or differential Zdiff.")
+    target: float = _f("Ohms.", exclusiveMinimum=0)
+    tolerance_pct: float | None = _f("Allowed deviation, percent (10 = +-10 %); null = unspecified.", default=None)
+    common_mode: float | None = _f(
+        "Differential: common-mode target, ohms, when given (class names like BAL_D90_C30).", default=None
+    )
+    structure: Literal["microstrip", "stripline", "coplanar", "coplanar_grounded"] | None = _f(
+        "Transmission-line structure, when the source says (MS, SL, CPW, CPWG).", default=None
+    )
+    source: Literal["tuning_profile", "ipc2581", "odbpp", "name", "user"] = _f(
+        "Where the target comes from: a KiCad tuning profile, an IPC-2581/ODB++ spec, the class name convention "
+        "(SE_50_CP, DP_90_MS, 90ohm...) or a user entry."
+    )
+    layers: list[ImpedanceLayer] = _f("Per-layer geometry, when the source gives it.", factory=list)
+
+
+@dataclass(kw_only=True)
+class NetClass:
+    """A net class (KiCad .kicad_pro net_settings) with its design rules and impedance target."""
+
+    name: str = _f("Class name.")
+    nets: list[str] = _f("Net names in the class.", factory=list)
+    patterns: list[str] = _f("Assignment patterns (KiCad netclass_patterns, wildcards).", factory=list)
+    track_width: float | None = _f("mm.", default=None, minimum=0)
+    clearance: float | None = _f("mm.", default=None, minimum=0)
+    diff_pair_width: float | None = _f("mm.", default=None, minimum=0)
+    diff_pair_gap: float | None = _f("mm.", default=None, minimum=0)
+    via_diameter: float | None = _f("mm.", default=None, minimum=0)
+    via_drill: float | None = _f("mm.", default=None, minimum=0)
+    priority: int | None = _f("KiCad priority (lower wins; Default is the largest).", default=None)
+    tuning_profile: str | None = _f("KiCad 10 tuning profile name, when set.", default=None)
+    impedance: ImpedanceTarget | None = _f("Controlled-impedance target, when known.", default=None)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # the board
 
 
@@ -370,6 +501,8 @@ class Board:
     footprints: dict[str, Footprint] = _f("Footprint definitions by library id.", factory=dict)
     components: list[Component] = _f("Placed parts.", factory=list)
     panel: Panel | None = _f("Panel, when the source is one.", default=None)
+    nets: list[Net] = _f("Nets, when the source has them (KiCad, ODB++, IPC-2581, Gerber X2).", factory=list)
+    net_classes: list[NetClass] = _f("Net classes with their rules and impedance targets.", factory=list)
     warnings: list[str] = _f("What the reader could not represent or had to guess.", factory=list)
     meta: dict[str, Any] = _f("Free-form application data (not interpreted by boarddd).", factory=dict)
 

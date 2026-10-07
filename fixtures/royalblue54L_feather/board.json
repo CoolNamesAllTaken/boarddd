@@ -124,10 +124,16 @@
     "role": "pcb",
     "side": null,
     "sha256": "535dbe212f43a8bab12b23277e176a94ac9694177258af2981c0e7b08e4b7252"
+   },
+   {
+    "path": "kicad/RoyalBlue54L-Feather.kicad_pro",
+    "role": "other",
+    "side": null,
+    "sha256": "a25ffa7ff829d5eaff27b29724b57821ce2ee7fd39ae367b9ea078d290e37690"
    }
   ],
   "generator": "KiCad Pcbnew 10.0.6 (fab outputs); pcbnew 9.0 (board file)",
-  "reader": "boarddd fixtures/royalblue54L_feather/make_board.py (hand-written golden)",
+  "reader": "boarddd io.kicad.read_kicad_pcb + fixtures/royalblue54L_feather/make_board.py (fab files)",
   "created": "2025-02-12",
   "commit": null,
   "ref": null
@@ -477,7 +483,18 @@
     "color": "White",
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "F.Silkscreen"
+    "layer": "F.Silkscreen",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "F.Paste",
@@ -488,7 +505,18 @@
     "color": null,
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "F.Paste"
+    "layer": "F.Paste",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "F.Mask",
@@ -499,7 +527,18 @@
     "color": "Blue",
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "F.Mask"
+    "layer": "F.Mask",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "F.Cu",
@@ -510,7 +549,18 @@
     "color": null,
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "F.Cu"
+    "layer": "F.Cu",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "dielectric 1",
@@ -521,7 +571,18 @@
     "color": null,
     "epsilon_r": 4.5,
     "loss_tangent": 0.02,
-    "layer": null
+    "layer": null,
+    "dielectric": "prepreg",
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "In1.Cu",
@@ -532,7 +593,18 @@
     "color": null,
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "In1.Cu"
+    "layer": "In1.Cu",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "dielectric 2",
@@ -543,7 +615,18 @@
     "color": null,
     "epsilon_r": 4.5,
     "loss_tangent": 0.02,
-    "layer": null
+    "layer": null,
+    "dielectric": "core",
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "In2.Cu",
@@ -554,7 +637,18 @@
     "color": null,
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "In2.Cu"
+    "layer": "In2.Cu",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "dielectric 3",
@@ -565,7 +659,18 @@
     "color": null,
     "epsilon_r": 4.5,
     "loss_tangent": 0.02,
-    "layer": null
+    "layer": null,
+    "dielectric": "prepreg",
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "In3.Cu",
@@ -576,7 +681,18 @@
     "color": null,
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "In3.Cu"
+    "layer": "In3.Cu",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "dielectric 4",
@@ -587,7 +703,18 @@
     "color": null,
     "epsilon_r": 4.5,
     "loss_tangent": 0.02,
-    "layer": null
+    "layer": null,
+    "dielectric": "core",
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "In4.Cu",
@@ -598,7 +725,18 @@
     "color": null,
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "In4.Cu"
+    "layer": "In4.Cu",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "dielectric 5",
@@ -609,7 +747,18 @@
     "color": null,
     "epsilon_r": 4.5,
     "loss_tangent": 0.02,
-    "layer": null
+    "layer": null,
+    "dielectric": "prepreg",
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "In5.Cu",
@@ -620,7 +769,18 @@
     "color": null,
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "In5.Cu"
+    "layer": "In5.Cu",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "dielectric 6",
@@ -631,7 +791,18 @@
     "color": null,
     "epsilon_r": 4.5,
     "loss_tangent": 0.02,
-    "layer": null
+    "layer": null,
+    "dielectric": "core",
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "In6.Cu",
@@ -642,7 +813,18 @@
     "color": null,
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "In6.Cu"
+    "layer": "In6.Cu",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "dielectric 7",
@@ -653,7 +835,18 @@
     "color": null,
     "epsilon_r": 4.5,
     "loss_tangent": 0.02,
-    "layer": null
+    "layer": null,
+    "dielectric": "prepreg",
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "B.Cu",
@@ -664,7 +857,18 @@
     "color": null,
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "B.Cu"
+    "layer": "B.Cu",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "B.Mask",
@@ -675,7 +879,18 @@
     "color": "Blue",
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "B.Mask"
+    "layer": "B.Mask",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "B.Paste",
@@ -686,7 +901,18 @@
     "color": null,
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "B.Paste"
+    "layer": "B.Paste",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    },
    {
     "name": "B.SilkS",
@@ -697,9 +923,21 @@
     "color": "White",
     "epsilon_r": null,
     "loss_tangent": null,
-    "layer": "B.Silkscreen"
+    "layer": "B.Silkscreen",
+    "dielectric": null,
+    "sublayers": [],
+    "frequency": null,
+    "dielectric_model": null,
+    "locked": null,
+    "tolerance": null,
+    "finished_thickness": null,
+    "roughness_rq": null,
+    "conductivity": null,
+    "etch_factor": null,
+    "thickness_over_copper": null
    }
-  ]
+  ],
+  "impedance_controlled": false
  },
  "layers": [
   {
@@ -4285,6 +4523,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -4317,6 +4556,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -4349,6 +4589,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -4381,6 +4622,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -4819,6 +5061,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -4851,6 +5094,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5063,6 +5307,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5095,6 +5340,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5316,6 +5562,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5357,6 +5604,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5398,6 +5646,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5429,6 +5678,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5460,6 +5710,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5491,6 +5742,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5522,6 +5774,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5553,6 +5806,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5584,6 +5838,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5726,6 +5981,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5758,6 +6014,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5790,6 +6047,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.166667,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -5822,6 +6080,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.166667,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -6272,6 +6531,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -6304,6 +6564,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -6336,6 +6597,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -6368,6 +6630,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -6400,6 +6663,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.208333,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -6432,6 +6696,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.208333,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -6746,6 +7011,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -6778,6 +7044,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -6810,6 +7077,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -6842,6 +7110,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -7139,6 +7408,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -7171,6 +7441,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -7383,6 +7654,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -7415,6 +7687,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -7626,6 +7899,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -8070,6 +8344,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -8823,6 +9098,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -8855,6 +9131,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -9101,6 +9378,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -9133,6 +9411,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -9165,6 +9444,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -9197,6 +9477,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -26658,6 +26939,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -26897,6 +27179,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -27332,6 +27615,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -27847,6 +28131,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -28362,6 +28647,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -28797,6 +29083,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -29312,6 +29599,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -29342,6 +29630,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -29372,6 +29661,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -29887,6 +30177,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -30402,6 +30693,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -30432,6 +30724,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -30462,6 +30755,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -30977,6 +31271,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -31412,6 +31707,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -31927,6 +32223,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -32442,6 +32739,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -32879,6 +33177,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -32911,6 +33210,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -32943,6 +33243,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -32975,6 +33276,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33007,6 +33309,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33039,6 +33342,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33071,6 +33375,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33103,6 +33408,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33135,6 +33441,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33167,6 +33474,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33199,6 +33507,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33231,6 +33540,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33263,6 +33573,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33295,6 +33606,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33327,6 +33639,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33359,6 +33672,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33391,6 +33705,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33423,6 +33738,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33455,6 +33771,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33487,6 +33804,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33519,6 +33837,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33551,6 +33870,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33583,6 +33903,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33615,6 +33936,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33647,6 +33969,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33679,6 +34002,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33711,6 +34035,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33743,6 +34068,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33775,6 +34101,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33807,6 +34134,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33839,6 +34167,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33871,6 +34200,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33911,6 +34241,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33919,7 +34250,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -33951,6 +34282,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33959,7 +34291,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -33991,6 +34323,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -33999,7 +34332,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -34031,6 +34364,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -34039,7 +34373,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -34071,6 +34405,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -34079,7 +34414,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -34101,6 +34436,7 @@
       "B.Cu"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -34109,7 +34445,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -34132,6 +34468,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -34140,7 +34477,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -34172,6 +34509,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -34180,7 +34518,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -34212,6 +34550,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -34220,7 +34559,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -34252,6 +34591,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -34260,7 +34600,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -34292,6 +34632,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -34300,7 +34641,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -34646,6 +34987,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -35321,6 +35663,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -35996,6 +36339,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -36671,6 +37015,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -37346,6 +37691,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -38021,6 +38367,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -38696,6 +39043,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -39371,6 +39719,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -40046,6 +40395,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -40723,6 +41073,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -40755,6 +41106,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -40787,6 +41139,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -40819,6 +41172,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -40851,6 +41205,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -40883,6 +41238,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -40915,6 +41271,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -40947,6 +41304,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -40979,6 +41337,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41011,6 +41370,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41043,6 +41403,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41075,6 +41436,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41107,6 +41469,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41139,6 +41502,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41171,6 +41535,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41203,6 +41568,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41235,6 +41601,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41267,6 +41634,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41299,6 +41667,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41331,6 +41700,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41363,6 +41733,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41395,6 +41766,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41427,6 +41799,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41459,6 +41832,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41491,6 +41865,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41523,6 +41898,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41555,6 +41931,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41587,6 +41964,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41619,6 +41997,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41651,6 +42030,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41683,6 +42063,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41715,6 +42096,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41747,6 +42129,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41779,6 +42162,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41811,6 +42195,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41843,6 +42228,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41875,6 +42261,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41907,6 +42294,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41939,6 +42327,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -41971,6 +42360,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42011,6 +42401,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42019,7 +42410,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42051,6 +42442,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42059,7 +42451,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42091,6 +42483,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42099,7 +42492,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42131,6 +42524,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42139,7 +42533,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42171,6 +42565,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42179,7 +42574,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42211,6 +42606,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42219,7 +42615,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42251,6 +42647,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42259,7 +42656,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42291,6 +42688,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42299,7 +42697,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42322,6 +42720,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42330,7 +42729,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42352,6 +42751,7 @@
       "B.Cu"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42360,7 +42760,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42392,6 +42792,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42400,7 +42801,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42432,6 +42833,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42440,7 +42842,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42472,6 +42874,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42480,7 +42883,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42512,6 +42915,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42520,7 +42924,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42552,6 +42956,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42560,7 +42965,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42592,6 +42997,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42600,7 +43006,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42632,6 +43038,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42640,7 +43047,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -42672,6 +43079,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -42680,7 +43088,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -43026,6 +43434,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -43056,6 +43465,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -43086,6 +43496,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -43116,6 +43527,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -43148,6 +43560,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -43377,6 +43790,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -43606,6 +44020,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -43835,6 +44250,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -44064,6 +44480,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -44293,6 +44710,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -44522,6 +44940,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -44751,6 +45170,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -44980,6 +45400,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -45209,6 +45630,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -45438,6 +45860,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -45667,6 +46090,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -45896,6 +46320,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -46125,6 +46550,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -46354,6 +46780,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -46583,6 +47010,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -46811,6 +47239,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47199,6 +47628,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47231,6 +47661,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47263,6 +47694,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47295,6 +47727,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47327,6 +47760,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47359,6 +47793,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47391,6 +47826,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47423,6 +47859,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47455,6 +47892,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47486,6 +47924,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47494,7 +47933,7 @@
      "primitives": null,
      "solder_mask_margin": null,
      "solder_paste_margin": null,
-     "function": null,
+     "function": "heatsink",
      "paste": null,
      "mask": null,
      "holes": null
@@ -47740,6 +48179,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47772,6 +48212,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47804,6 +48245,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47836,6 +48278,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -47868,6 +48311,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -48156,6 +48600,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -48188,6 +48633,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -48400,6 +48846,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -48432,6 +48879,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -48464,6 +48912,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -48496,6 +48945,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -48528,6 +48978,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -48560,6 +49011,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -48592,6 +49044,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -48808,6 +49261,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": 0.0,
      "chamfer_ratio": 0.25,
      "chamfer": [
@@ -48854,6 +49308,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": 0.0,
      "chamfer_ratio": 0.25,
      "chamfer": [
@@ -48900,6 +49355,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -48941,6 +49397,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -48982,6 +49439,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49023,6 +49481,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": 0.0,
      "chamfer_ratio": 0.25,
      "chamfer": [
@@ -49069,6 +49528,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49110,6 +49570,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49151,6 +49612,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49192,6 +49654,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49233,6 +49696,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49274,6 +49738,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49315,6 +49780,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49356,6 +49822,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49397,6 +49864,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49438,6 +49906,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49479,6 +49948,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49520,6 +49990,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49561,6 +50032,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49602,6 +50074,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49643,6 +50116,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49684,6 +50158,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49725,6 +50200,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49766,6 +50242,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -49807,6 +50284,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50011,6 +50489,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50052,6 +50531,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50093,6 +50573,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": 0.0,
      "chamfer_ratio": 0.25,
      "chamfer": [
@@ -50139,6 +50620,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50180,6 +50662,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": 0.25,
      "chamfer_ratio": 0.25,
      "chamfer": [
@@ -50225,6 +50708,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50266,6 +50750,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50307,6 +50792,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50348,6 +50834,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50389,6 +50876,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50430,6 +50918,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50471,6 +50960,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50512,6 +51002,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50553,6 +51044,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50594,6 +51086,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50635,6 +51128,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50676,6 +51170,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50717,6 +51212,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50758,6 +51254,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50799,6 +51296,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50840,6 +51338,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50881,6 +51380,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50922,6 +51422,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -50963,6 +51464,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -51004,6 +51506,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -51045,6 +51548,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -51086,6 +51590,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -51127,6 +51632,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -51168,6 +51674,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -51209,6 +51716,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -51250,6 +51758,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -51291,6 +51800,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -51485,6 +51995,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -51926,6 +52437,7 @@
       "F.Mask"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52377,6 +52889,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52418,6 +52931,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52450,6 +52964,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52482,6 +52997,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52514,6 +53030,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52546,6 +53063,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52578,6 +53096,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52610,6 +53129,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52642,6 +53162,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52674,6 +53195,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52706,6 +53228,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52738,6 +53261,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52770,6 +53294,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52802,6 +53327,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52834,6 +53360,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52866,6 +53393,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52898,6 +53426,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52930,6 +53459,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -52971,6 +53501,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53012,6 +53543,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53053,6 +53585,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53094,6 +53627,7 @@
        0.0
       ]
      },
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53306,6 +53840,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53338,6 +53873,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53370,6 +53906,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53402,6 +53939,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53434,6 +53972,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53466,6 +54005,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53498,6 +54038,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53530,6 +54071,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53562,6 +54104,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53594,6 +54137,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53626,6 +54170,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53658,6 +54203,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53690,6 +54236,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53722,6 +54269,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53754,6 +54302,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53786,6 +54335,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53818,6 +54368,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53850,6 +54401,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53882,6 +54434,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53914,6 +54467,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53946,6 +54500,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -53978,6 +54533,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54010,6 +54566,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54042,6 +54599,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54074,6 +54632,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54106,6 +54665,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54138,6 +54698,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54170,6 +54731,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54202,6 +54764,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54234,6 +54797,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54266,6 +54830,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54298,6 +54863,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54330,6 +54896,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54362,6 +54929,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54394,6 +54962,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54426,6 +54995,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54458,6 +55028,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54490,6 +55061,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54522,6 +55094,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54554,6 +55127,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54586,6 +55160,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54618,6 +55193,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54650,6 +55226,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54682,6 +55259,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54714,6 +55292,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54746,6 +55325,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54778,6 +55358,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54810,6 +55391,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54842,6 +55424,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54874,6 +55457,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54906,6 +55490,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54938,6 +55523,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -54970,6 +55556,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -55002,6 +55589,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -55034,6 +55622,7 @@
       "F.Paste"
      ],
      "drill": null,
+     "offset": null,
      "roundrect_rratio": null,
      "chamfer_ratio": null,
      "chamfer": null,
@@ -57758,6 +58347,610 @@
   }
  ],
  "panel": null,
+ "nets": [
+  {
+   "name": "GND",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(J3-SBU1-PadA8)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(J3-SBU2-PadB8)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/USB.VBUS",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/nRF52_VDD",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/ANALOG.A3",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/SPI.SCK",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/ANALOG.A1",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/SPI.MISO",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/UART.RX",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/ANALOG.A2",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/SHPHLD",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/ANALOG.A4",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/SPI.MOSI",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "+BATT",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/ANALOG.A5",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/ANALOG.A0",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/UART.TX",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/ENABLE",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/DIG.D11",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/DIG.D9",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/I2C.SDA",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/I2C.SCL",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/DIG.D12",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/DIG.D6",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/DIG.D13",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/DIG.D5",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "VDD",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(U2-SW2)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Connectors/DIG.D10",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/USB.CC2",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U2-SW1-Pad3)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/USB.CC1",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/D-",
+   "net_class": "USB_DIFF",
+   "pair": "/Debugger/D+"
+  },
+  {
+   "name": "VSYS",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "VBUS",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/D+",
+   "net_class": "USB_DIFF",
+   "pair": "/Debugger/D-"
+  },
+  {
+   "name": "/nPM1300/NPM1300.SCL",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(U1-P1.01{slash}XL2)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/nPM1300/NPM1300.SDA",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(U1-P1.00{slash}XL1)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/SWD_TRG.~{RESET}",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U2-GPIO4-Pad11)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(U2-VSET2)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U2-GPIO3-Pad10)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U2-GPIO2-Pad9)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(D1-A)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(D1-K)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(J8-SWO-Pad6)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U3-IO1-Pad1)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(U5-XC1)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(U5-DEC1)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(U5-XC2)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(U5-DEC3)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(U5-DEC4)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(J8-SWDIO)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-P0.11-Pad7)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-P0.05{slash}AIN3-Pad5)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-P1.09-Pad6)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-P0.10{slash}NFC2-Pad23)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-P0.09{slash}NFC1-Pad22)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(U5-DECUSB)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-P0.17-Pad15)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/SWD_TRG.SWDIO",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-DEC5{slash}NC-Pad21)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-P0.20-Pad17)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-P0.03{slash}AIN1-Pad31)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-P0.15-Pad14)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-DCC-Pad39)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-ANT-Pad24)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-P0.00{slash}XL1-Pad2)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-P0.04{slash}AIN2-Pad4)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(J8-~{RESET})",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(J8-SWCLK)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(U5-P0.01{slash}XL2-Pad3)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/nRF54L15/D3_FLASH",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/nPM1300/NPM1300.INT",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/nRF54L15/~{CS}_FLASH",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(D3-BK)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(D3-RK)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(D3-GK)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(JP1-A)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(J6-Pin_4)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "Net-(J6-Pin_2)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(J6-Pin_1-Pad1)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(J6-Pin_5-Pad5)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(J6-Pin_3-Pad3)",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/nRF54L15/D2_FLASH",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/TRG_SWDCLK_NRF52",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/UART_TX_NRF52",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/TRG_SWDIO_NRF52",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/UART_RX_NRF52",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/TRG_~{RESET}_NRF52",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "/Debugger/SWD_TRG.SWDCLK",
+   "net_class": "Default",
+   "pair": null
+  },
+  {
+   "name": "unconnected-(J1-Pin_3-Pad3)",
+   "net_class": "Default",
+   "pair": null
+  }
+ ],
+ "net_classes": [
+  {
+   "name": "Default",
+   "nets": [
+    "GND",
+    "unconnected-(J3-SBU1-PadA8)",
+    "unconnected-(J3-SBU2-PadB8)",
+    "/Debugger/USB.VBUS",
+    "/Debugger/nRF52_VDD",
+    "/Connectors/ANALOG.A3",
+    "/Connectors/SPI.SCK",
+    "/Connectors/ANALOG.A1",
+    "/Connectors/SPI.MISO",
+    "/Connectors/UART.RX",
+    "/Connectors/ANALOG.A2",
+    "/Connectors/SHPHLD",
+    "/Connectors/ANALOG.A4",
+    "/Connectors/SPI.MOSI",
+    "+BATT",
+    "/Connectors/ANALOG.A5",
+    "/Connectors/ANALOG.A0",
+    "/Connectors/UART.TX",
+    "/Connectors/ENABLE",
+    "/Connectors/DIG.D11",
+    "/Connectors/DIG.D9",
+    "/Connectors/I2C.SDA",
+    "/Connectors/I2C.SCL",
+    "/Connectors/DIG.D12",
+    "/Connectors/DIG.D6",
+    "/Connectors/DIG.D13",
+    "/Connectors/DIG.D5",
+    "VDD",
+    "Net-(U2-SW2)",
+    "/Connectors/DIG.D10",
+    "/Debugger/USB.CC2",
+    "unconnected-(U2-SW1-Pad3)",
+    "/Debugger/USB.CC1",
+    "VSYS",
+    "VBUS",
+    "/nPM1300/NPM1300.SCL",
+    "Net-(U1-P1.01{slash}XL2)",
+    "/nPM1300/NPM1300.SDA",
+    "Net-(U1-P1.00{slash}XL1)",
+    "/Debugger/SWD_TRG.~{RESET}",
+    "unconnected-(U2-GPIO4-Pad11)",
+    "Net-(U2-VSET2)",
+    "unconnected-(U2-GPIO3-Pad10)",
+    "unconnected-(U2-GPIO2-Pad9)",
+    "Net-(D1-A)",
+    "Net-(D1-K)",
+    "unconnected-(J8-SWO-Pad6)",
+    "unconnected-(U3-IO1-Pad1)",
+    "Net-(U5-XC1)",
+    "Net-(U5-DEC1)",
+    "Net-(U5-XC2)",
+    "Net-(U5-DEC3)",
+    "Net-(U5-DEC4)",
+    "Net-(J8-SWDIO)",
+    "unconnected-(U5-P0.11-Pad7)",
+    "unconnected-(U5-P0.05{slash}AIN3-Pad5)",
+    "unconnected-(U5-P1.09-Pad6)",
+    "unconnected-(U5-P0.10{slash}NFC2-Pad23)",
+    "unconnected-(U5-P0.09{slash}NFC1-Pad22)",
+    "Net-(U5-DECUSB)",
+    "unconnected-(U5-P0.17-Pad15)",
+    "/Debugger/SWD_TRG.SWDIO",
+    "unconnected-(U5-DEC5{slash}NC-Pad21)",
+    "unconnected-(U5-P0.20-Pad17)",
+    "unconnected-(U5-P0.03{slash}AIN1-Pad31)",
+    "unconnected-(U5-P0.15-Pad14)",
+    "unconnected-(U5-DCC-Pad39)",
+    "unconnected-(U5-ANT-Pad24)",
+    "unconnected-(U5-P0.00{slash}XL1-Pad2)",
+    "unconnected-(U5-P0.04{slash}AIN2-Pad4)",
+    "Net-(J8-~{RESET})",
+    "Net-(J8-SWCLK)",
+    "unconnected-(U5-P0.01{slash}XL2-Pad3)",
+    "/nRF54L15/D3_FLASH",
+    "/nPM1300/NPM1300.INT",
+    "/nRF54L15/~{CS}_FLASH",
+    "Net-(D3-BK)",
+    "Net-(D3-RK)",
+    "Net-(D3-GK)",
+    "Net-(JP1-A)",
+    "Net-(J6-Pin_4)",
+    "Net-(J6-Pin_2)",
+    "unconnected-(J6-Pin_1-Pad1)",
+    "unconnected-(J6-Pin_5-Pad5)",
+    "unconnected-(J6-Pin_3-Pad3)",
+    "/nRF54L15/D2_FLASH",
+    "/Debugger/TRG_SWDCLK_NRF52",
+    "/Debugger/UART_TX_NRF52",
+    "/Debugger/TRG_SWDIO_NRF52",
+    "/Debugger/UART_RX_NRF52",
+    "/Debugger/TRG_~{RESET}_NRF52",
+    "/Debugger/SWD_TRG.SWDCLK",
+    "unconnected-(J1-Pin_3-Pad3)"
+   ],
+   "patterns": [],
+   "track_width": 0.25,
+   "clearance": 0.15,
+   "diff_pair_width": 0.2,
+   "diff_pair_gap": 0.25,
+   "via_diameter": 0.8,
+   "via_drill": 0.4,
+   "priority": 2147483647,
+   "tuning_profile": null,
+   "impedance": null
+  },
+  {
+   "name": "USB_DIFF",
+   "nets": [
+    "/Debugger/D-",
+    "/Debugger/D+"
+   ],
+   "patterns": [],
+   "track_width": 0.125,
+   "clearance": 0.2032,
+   "diff_pair_width": 0.125,
+   "diff_pair_gap": 0.2032,
+   "via_diameter": 0.8,
+   "via_drill": 0.4,
+   "priority": 0,
+   "tuning_profile": null,
+   "impedance": null
+  }
+ ],
  "warnings": [
   "183 vias have a 0 mm drill in the drill file (the demo board's vias use a 0.00001 mm placeholder drill)"
  ],

@@ -70,7 +70,8 @@
           "top": null,
           "bottom": null
         },
-        "layers": []
+        "layers": [],
+        "impedance_controlled": null
       }
     },
     "layers": {
@@ -116,6 +117,22 @@
         }
       ],
       "default": null
+    },
+    "nets": {
+      "description": "Nets, when the source has them (KiCad, ODB++, IPC-2581, Gerber X2).",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Net"
+      },
+      "default": []
+    },
+    "net_classes": {
+      "description": "Net classes with their rules and impedance targets.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/NetClass"
+      },
+      "default": []
     },
     "warnings": {
       "description": "What the reader could not represent or had to guess.",
@@ -536,6 +553,129 @@
       ],
       "additionalProperties": false
     },
+    "ImpedanceLayer": {
+      "type": "object",
+      "description": "Geometry a target applies to on one signal layer (KiCad tuning profile layer entry, IPC-2581 Impedance).",
+      "properties": {
+        "layer": {
+          "description": "Signal layer ('F.Cu', 'In1.Cu').",
+          "type": "string"
+        },
+        "width": {
+          "description": "Track width, mm.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
+        "gap": {
+          "description": "Differential pair gap, mm.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
+        "ref_top": {
+          "description": "Reference plane above, if any.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "ref_bottom": {
+          "description": "Reference plane below, if any.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "layer"
+      ],
+      "additionalProperties": false
+    },
+    "ImpedanceTarget": {
+      "type": "object",
+      "description": "A controlled-impedance target.",
+      "properties": {
+        "kind": {
+          "description": "Single-ended Z0 or differential Zdiff.",
+          "type": "string",
+          "enum": [
+            "single",
+            "differential"
+          ]
+        },
+        "target": {
+          "description": "Ohms.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "tolerance_pct": {
+          "description": "Allowed deviation, percent (10 = +-10 %); null = unspecified.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "common_mode": {
+          "description": "Differential: common-mode target, ohms, when given (class names like BAL_D90_C30).",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "structure": {
+          "description": "Transmission-line structure, when the source says (MS, SL, CPW, CPWG).",
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "microstrip",
+            "stripline",
+            "coplanar",
+            "coplanar_grounded",
+            null
+          ],
+          "default": null
+        },
+        "source": {
+          "description": "Where the target comes from: a KiCad tuning profile, an IPC-2581/ODB++ spec, the class name convention (SE_50_CP, DP_90_MS, 90ohm...) or a user entry.",
+          "type": "string",
+          "enum": [
+            "tuning_profile",
+            "ipc2581",
+            "odbpp",
+            "name",
+            "user"
+          ]
+        },
+        "layers": {
+          "description": "Per-layer geometry, when the source gives it.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ImpedanceLayer"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "kind",
+        "target",
+        "source"
+      ],
+      "additionalProperties": false
+    },
     "Layer": {
       "type": "object",
       "description": "One drawable layer (a Gerber, an ODB++ layer, a drill file...).",
@@ -716,6 +856,148 @@
       },
       "required": [
         "path"
+      ],
+      "additionalProperties": false
+    },
+    "Net": {
+      "type": "object",
+      "description": "An electrical net.",
+      "properties": {
+        "name": {
+          "description": "Net name as the source writes it ('/USB/D+', 'GND').",
+          "type": "string"
+        },
+        "net_class": {
+          "description": "The NetClass.name it belongs to ('Default' when the source assigns none).",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "pair": {
+          "description": "The partner net of a differential pair (KiCad pairs '+'/'-' and 'P'/'N' suffixes).",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "NetClass": {
+      "type": "object",
+      "description": "A net class (KiCad .kicad_pro net_settings) with its design rules and impedance target.",
+      "properties": {
+        "name": {
+          "description": "Class name.",
+          "type": "string"
+        },
+        "nets": {
+          "description": "Net names in the class.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "patterns": {
+          "description": "Assignment patterns (KiCad netclass_patterns, wildcards).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "track_width": {
+          "description": "mm.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
+        "clearance": {
+          "description": "mm.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
+        "diff_pair_width": {
+          "description": "mm.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
+        "diff_pair_gap": {
+          "description": "mm.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
+        "via_diameter": {
+          "description": "mm.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
+        "via_drill": {
+          "description": "mm.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
+        "priority": {
+          "description": "KiCad priority (lower wins; Default is the largest).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "default": null
+        },
+        "tuning_profile": {
+          "description": "KiCad 10 tuning profile name, when set.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "impedance": {
+          "description": "Controlled-impedance target, when known.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImpedanceTarget"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name"
       ],
       "additionalProperties": false
     },
@@ -929,6 +1211,29 @@
           "anyOf": [
             {
               "$ref": "#/$defs/PadDrill"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "offset": {
+          "description": "Copper shape offset of a pad without a hole (castellated SMD pads); pads with one keep it in drill.offset.",
+          "anyOf": [
+            {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
             },
             {
               "type": "null"
@@ -1458,6 +1763,14 @@
             "$ref": "#/$defs/StackupLayer"
           },
           "default": []
+        },
+        "impedance_controlled": {
+          "description": "The board is ordered impedance controlled (KiCad dielectric_constraints, gbrjob ImpedanceControlled).",
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
         }
       },
       "required": [],
@@ -1494,6 +1807,177 @@
           ]
         },
         "thickness": {
+          "description": "mm (with sublayers: their sum).",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
+        "material": {
+          "description": "'FR4', 'Polyimide'... (with sublayers of different materials: their names joined by ' + ').",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "color": {
+          "description": "Colour as the source names it: a name ('Blue', 'Matte Black') or '#RRGGBB'.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "epsilon_r": {
+          "description": "Dielectric constant (with sublayers: the series value, total thickness / sum(thickness_i / epsilon_r_i)).",
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "default": null
+        },
+        "loss_tangent": {
+          "description": "Dielectric loss tangent (with sublayers: the thickness-weighted mean).",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
+        "layer": {
+          "description": "The Layer.id this physical layer is drawn by, if any.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "dielectric": {
+          "description": "Dielectrics: prepreg or core, when the source says (KiCad type, IPC-2581 DIELPREG/DIELCORE).",
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "prepreg",
+            "core",
+            null
+          ],
+          "default": null
+        },
+        "sublayers": {
+          "description": "Dielectrics the source splits into parts, top to bottom, the first included; empty otherwise.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StackupSublayer"
+          },
+          "default": []
+        },
+        "frequency": {
+          "description": "Hz at which epsilon_r and loss_tangent are given (KiCad spec_frequency, ODB++ FrequencyVal).",
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "default": null
+        },
+        "dielectric_model": {
+          "description": "How epsilon_r/loss_tangent vary with frequency (KiCad dielectric_model).",
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "constant",
+            "djordjevic_sarkar",
+            null
+          ],
+          "default": null
+        },
+        "locked": {
+          "description": "Thickness fixed for impedance control (KiCad '(thickness ... locked)').",
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "tolerance": {
+          "description": "Manufacturing tolerances, when the source gives them.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Tolerance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "finished_thickness": {
+          "description": "Copper: plated (finished) thickness, mm, when it differs from the base foil.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
+        "roughness_rq": {
+          "description": "Copper: RMS surface roughness, mm (0.0005 = 0.5 um).",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
+        "conductivity": {
+          "description": "Copper: conductivity, S/m.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "default": null
+        },
+        "etch_factor": {
+          "description": "Copper: etch factor (thickness / one side's undercut), for trapezoidal traces.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
+        "thickness_over_copper": {
+          "description": "Solder mask: thickness over the traces, mm, when it differs from 'thickness' (over the laminate).",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "side"
+      ],
+      "additionalProperties": false
+    },
+    "StackupSublayer": {
+      "type": "object",
+      "description": "One part of a dielectric the source splits into several (KiCad ``addsublayer``, gbrjob '(1/2)' entries).",
+      "properties": {
+        "thickness": {
           "description": "mm.",
           "type": [
             "number",
@@ -1503,7 +1987,7 @@
           "default": null
         },
         "material": {
-          "description": "'FR4', 'Polyimide'...",
+          "description": "Material name, e.g. '2116 RC58%'.",
           "type": [
             "string",
             "null"
@@ -1511,7 +1995,7 @@
           "default": null
         },
         "color": {
-          "description": "Colour as the source names it: a name ('Blue', 'Matte Black') or '#RRGGBB'.",
+          "description": "Colour as the source names it.",
           "type": [
             "string",
             "null"
@@ -1535,21 +2019,63 @@
           ],
           "minimum": 0,
           "default": null
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "Tolerance": {
+      "type": "object",
+      "description": "Manufacturing tolerances of a stackup layer, as [minus, plus] deviations (IPC-2581 tolPlus/tolMinus).",
+      "properties": {
+        "thickness": {
+          "description": "[minus, plus] in mm, e.g. [-0.01, 0.01].",
+          "anyOf": [
+            {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
-        "layer": {
-          "description": "The Layer.id this physical layer is drawn by, if any.",
-          "type": [
-            "string",
-            "null"
+        "epsilon_r": {
+          "description": "[minus, plus] of the dielectric constant.",
+          "anyOf": [
+            {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "null"
+            }
           ],
           "default": null
         }
       },
-      "required": [
-        "name",
-        "kind",
-        "side"
-      ],
+      "required": [],
       "additionalProperties": false
     }
   }
