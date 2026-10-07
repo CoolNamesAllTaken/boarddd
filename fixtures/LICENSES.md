@@ -17,8 +17,11 @@ synthetic boards and data generated here belong in `fixtures/`; no company or cu
 | `generated/outline/sheet/` | royalblue Edge.Cuts plotted with the drawing sheet (`--ibt`) and its gbrjob, for `io.outline.pick_board` | `generated/outline/make.sh`, kicad-cli 10.0.6 | derived from royalblue54L_feather: CERN-OHL-P v2 |
 | `generated/drill/` | `test/fixtures/slots-board/slots.kicad_pcb` drilled as routed and G85 slots, and in inches with each zero format, for `io.excellon` and the JS parity tests | `generated/drill/make.sh`, kicad-cli 10.0.6 | derived from a board written for boarddd: MIT |
 | `generated/bom/` | a KiCad-layout BOM of royalblue54L_feather (31 lines; no MPNs: the demo has none), for `io.bom` | `generated/bom/make_bom.py` from `royalblue54L_feather/board.json` | derived from royalblue54L_feather: CERN-OHL-P v2 |
+| `generated/step/royalblue54L_feather.step.gz` | royalblue's whole STEP export with KiCad's stock models (components and board body), gzipped, for the `[step]` extra's tests | `generated/step/make.sh` (kicad-cli 10.0.6) | derived from royalblue54L_feather (CERN-OHL-P v2) and KiCad's 3D library (CC-BY-SA 4.0 with the KiCad libraries exception) |
 | `generated/step/royalblue54L_feather-excerpt.step` | 16 components' occurrence chains and the board body cut out of royalblue's STEP export (KiCad stock models), solids emptied, for `step.text`/`step.registration` | `generated/step/make.sh` (kicad-cli 10.0.6) + `make_excerpt.py` | derived from royalblue54L_feather (CERN-OHL-P v2) and KiCad's 3D library (CC-BY-SA 4.0 with the KiCad libraries exception) |
 | `generated/*/make*` | scripts | written for boarddd | MIT (this repository) |
+| `impedance/cases.json`, `impedance/make_cases.mjs` | shared impedance cases: reference values (Polar's published Si9000 cases, HFSS values published in Ttl/js_2d_fields' tests, scipy and scikit-rf evaluations) and generated inputs/results | written for boarddd; reference numbers cited per source in the file | MIT (this repository) |
+| `impedance/qs-sweep.json` | 886 quasi-static field solutions used to fit and check boarddd's impedance corrections | numbers computed locally with hforsten's solver (Ttl/js_2d_fields, GPL-3.0) used as a tool; no code from it is in boarddd | MIT (this repository) |
 
 Python-only goldens live next to their tests: `python/tests/kicad/fixtures/pad_placement/` (kipr's pcbnew set, MIT;
 the footprints are KiCad library footprints, CC-BY-SA 4.0 with the KiCad libraries exception, plus kipr's own
@@ -28,3 +31,8 @@ numbers for the board above: CERN-OHL-P v2).
 | `pic_programmer/kicad/pic_programmer.kicad_pcb` | KiCad demo board (`demos/pic_programmer`, 2 layers, 63 footprints) | KiCad 10.0.6's `demos/` folder, unmodified | KiCad demo data: the folder has no licence file of its own; it ships in KiCad's source tree (GPL-3.0-or-later). The same demo's Gerbers are in `test/fixtures/pic_programmer/` |
 | `pic_programmer/exchange/` | IPC-2581 (gzipped) and ODB++ (zip) exports of that board | `make_exchange.sh`, kicad-cli 10.0.6 | derived from the board above |
 | `make_exchange.sh` | script | written for boarddd | MIT (this repository) |
+
+The `[step]` extra's own fixtures live next to its tests: `python/tests/step/fixtures_occ/tiny.step` and
+`tiny-pos.csv` (magpie's synthetic board, `make_board.py`, of KiCad stock footprints and 3D models) and
+`fixtures_occ/library/*.step` (three KiCad stock 3D models, unmodified): KiCad's libraries are CC-BY-SA 4.0
+with the KiCad libraries exception; the script is MIT.
