@@ -1,8 +1,8 @@
 # Python readers (`boarddd.io`, `boarddd.step`)
 
 Server-side readers that turn a fab package or KiCad files into the board model ([model.md](model.md)).
-Stdlib only; `.xlsx`/`.xls` BOMs need the `[xlsx]` extra (openpyxl, xlrd). IPC-2581/ODB++ (`io.ipc2581`,
-`io.odbpp`) are a later phase. The OCP-backed STEP engine is the `[step]` extra: see [step.md](step.md).
+Stdlib only; `.xlsx`/`.xls` BOMs need the `[xlsx]` extra (openpyxl, xlrd). The OCP-backed STEP engine is the
+`[step]` extra: see [step.md](step.md).
 
 ```python
 from boarddd.io.package import read_package
@@ -13,7 +13,11 @@ open("board.json", "w").write(board.to_json())
 
 | module | reads | source (magpie `src/magpie/…` at `3a0374d3`) |
 |---|---|---|
-| `io.package` | a folder or zip → `Board` (the one entry point) | boarddd (new) |
+| `io.package` | a folder, zip or single file → `Board` (the one entry point; detects IPC-2581 and ODB++) | boarddd (new) |
+| `io.ipc2581` | IPC-2581 rev A/B/C (`.xml`/`.cvg`, gzip accepted) → `Board`: components + packages (`read_components`), profile, holes and slots, layers, stackup with Er/Df, nets | `pcb/ipc2581.py`; `read_ipc2581` (board level) new (F3) |
+| `io.odbpp` | ODB++ v7/v8 (dir, `.zip`, `.tgz`/`.tar`, `.Z`/`.gz` members) → `Board`: components + packages (`read_components`), profile, drill-layer holes and slots, matrix layers, per-layer stackup values, nets | `pcb/odbpp.py`; `read_odbpp` (board level) new (F3); two fixes, below |
+| `io.eda` | the component model both readers build, and `to_model` onto `boarddd.model` | `footprint/model.py` (subset); `to_model` new |
+| `io.layers` | layer ids (KiCad names) and `order`, shared by package, IPC-2581 and ODB++ | boarddd (new) |
 | `io.archive` | zips, safely (zip slip, bombs, symlinks, member floods) | `pcb/extract.py` |
 | `io.classify` | what each file is: X2 `%TF.FileFunction`, `M48`, eight EDA naming conventions, content sniffing; `FabFile` kinds | `pcb/classify.py` + `pcb/kinds.py` |
 | `io.gerber` | the board profile KiCad plots onto other layers (`plots_profile`, `without_profile`) | `pcb/gerber.py` |
@@ -121,10 +125,81 @@ transform, net classes), the stackup kicad-cli wrote into the gbrjob, hand-writt
 project/tuning-profile cases, and every KiCad demo board when `KICAD_DEMOS` (default `/usr/share/kicad/demos`) is
 there. Each golden folder has its `make_golden.py` (`kicad-python`, KiCad 10.0.6).
 
+## IPC-2581 and ODB++ (`io.ipc2581`, `io.odbpp`)
+
+```python
+from boarddd.io.ipc2581 import read_ipc2581
+from boarddd.io.odbpp import read_odbpp
+
+board = read_ipc2581("board-ipc2581.xml.gz")     # or read_odbpp("board-odb.zip" | "job.tgz" | "job/")
+board = read_package("export/")                  # the same, when the folder/zip holds no Gerber copper
+```
+
+Both read magpie's component model (`read_components`: placement, package with pads/paste/mask/courtyard/fab/silk,
+BOM properties) and convert it with `io.eda.to_model`: a placement is the model's transform as it is; footprints
+flip to KiCad semantics (y down, pad position = its hole, copper offset in `drill.offset`); a package shared by
+several components becomes one footprint (instances that differ beyond the file's coordinate step become
+`<name>#2` with a warning). The board level is boarddd's own:
+
+| board field | IPC-2581 | ODB++ |
+|---|---|---|
+| `name` | the Step's name | the file/folder name (KiCad's `JOB_NAME` is `job`) |
+| `source.generator`, `created` | `SoftwarePackage` name + revision | `misc/info` `SAVE_APP`, `CREATION_DATE` |
+| `outline` | `Step/Profile` polygon (+ `Cutout`s), arcs at 48 points per turn | the step `profile` surface (islands, holes), arcs likewise |
+| `drills` | `Hole`s and `SlotCavity`s of the DRILL/ROUT layers; `VIA` → via, `PLATED` → component | `P` features of the drill layers (`oval` symbols are slots), `.drill` attribute for plating and vias |
+| `layers` | `CadData/Layer` by `layerFunction`; KiCad ids, the package order | the matrix by `TYPE` (DOCUMENT layers by name); KiCad ids, the package order |
+| `stackup` | `Stackup` thicknesses, `overallThickness`; `CadHeader/Spec` materials, colours, Er, Df | each layer's `attrlist`: thickness (KiCad writes 0.01 mm), Er, Df, material; no overall thickness or colours |
+| `nets` | net names of the `LayerFeature` sets (+ `LogicalNet`/`PhyNet`) | `NET` records of `eda/data` |
+
+`read_package` picks the format by content: an IPC-2581 document (`<IPC-2581`, gzip accepted), an ODB++ archive
+(a zip or tar with `matrix/matrix`) or an unpacked ODB++ tree inside the package. With Gerber copper present the
+Gerbers stay the source and a warning names the IPC-2581/ODB++ file. Nested archives inside a *zipped* package are
+skipped by `io.archive` (by design), so ship an ODB++ zip as the package itself or inside a folder.
+
+Fixes to magpie's ODB++ reader (found by the cross-check below): a pad's copper is the copper feature nearest its
+pin, not the first one listed (an exposed pad's thermal-via pins list the pad's copper too); and copper drawn away
+from its hole (KiCad's `(drill (offset))`) stays where the feature is, with the hole as the drill offset (it was
+moved onto the hole).
+
+### Against the `.kicad_pcb` (KiCad 10.0.6 exports of the royalblue54L_feather and pic_programmer demos)
+
+`python/tests/io/test_exchange.py` reads both exports of both boards and compares them with `read_kicad_pcb`:
+
+| | IPC-2581 | ODB++ |
+|---|---|---|
+| components | all (71, 63); position, rotation, side, value identical | royalblue: 70 (LOGO1, a footprint without pads, is not exported); within 0.0075 mm (2 decimals) |
+| pads (placed on the board) | identical but: J1/J2 offset rect pads (27) 0.30 mm off, KiCad's exporter writing the copper offset along board x unrotated; U2/U5 one sub-pad fewer (merged) | identical within 0.016 mm but: J2, U5 one sub-pad fewer (merged) |
+| custom pads | the outline as a polygon on a 0.01 mm anchor (KiCad's anchor shape is merged into it) | likewise |
+| `connect` pads | read as `smd` | likewise |
+| nets | identical (95, 111) | identical |
+| outline | within 5 µm; same area to 0.02 mm² | within 10 µm |
+| drills | identical: 278 and 251, 4 slots (ends in the other order), placeholder vias at 0 | within 0.0075 mm |
+| stackup | thickness 1.6, Er 4.5 / Df 0.02, FR4, mask colour | per-layer thickness, Er, Df; no overall thickness (would sum to 1.56 from rounded values) or colours |
+| footprints | keyed by the export's package names: KiCad's with a `_<n>` suffix and no library (`D_DO-35_SOD27_P7.62mm_Horizontal_9`); KiCad writes one package per differing instance group, so pic_programmer has 23 packages for 21 footprints (3 for the D_DO-35 P7.62) | the package names without the suffix (`D_DO-35_SOD27_P7.62mm_Horizontal`), no library; 26 for royalblue (27 less LOGO1), 21 for pic_programmer |
+
+## ODB++ in the browser (`boarddd/gerber` `loadOdbJob`)
+
+```js
+import { createGerberRenderer, loadOdbJob, groupBoardLayers, renderBoard } from 'boarddd/gerber';
+const layers = await loadOdbJob(file, { renderer });          // .zip, .tgz/.tar.gz, .tar, or a dropped folder
+await renderBoard(renderer, groupBoardLayers(layers.map((l) => ({ name: l.name, content: l.source }))));
+```
+
+The upstream ODB++ loader (`js/src/odb` of the fork at `FORK_COMMIT`) is vendored by `scripts/sync-fork.sh` into
+`third_party/wasm-gerber-renderer/odb/`; `src/gerber/odb.js` wraps it, and `src/gerber/odb-zip.js` reads ZIPs with
+the platform `DecompressionStream("deflate-raw")` (upstream's ZIP reader needs `node:zlib`). TAR/TGZ and folders use
+upstream's readers; `.Z` members use the renderer's wasm. Each layer comes back as `{ name, kind, source }`, the
+source an `%ODB++LAYER%` envelope the wasm reads like Gerber/Excellon text, named Gerber-style (`f.cu.gtl`) so name
+classification works; `groupBoardLayers` / `renderBoard` take them like Gerbers (`hasGeometry`, `layerRole` and
+`renderBoard`'s empty-drill check read the envelopes). `test/browser/gerber-odb.spec.mjs` draws royalblue's ODB++
+copper and mask over its Gerbers (identical within 2 px) and the whole board both ways (99.7 % of board pixels
+equal). Known renderer limit: the wasm draws an ODB++ oval drill pad (a KiCad slot) as a round hole.
+
 ## Tests and fixtures
 
 `python/tests/io/` and `python/tests/step/` hold magpie's tests, ported onto public data only: the
-royalblue54L_feather fab export, `test/fixtures/pic_programmer` and `slots-board`, and data generated
+royalblue54L_feather fab export and its IPC-2581/ODB++ exports, `fixtures/pic_programmer` (board + exports),
+`test/fixtures/pic_programmer` and `slots-board`, and data generated
 from them under `fixtures/generated/` (each folder has its make script; see
 [fixtures/LICENSES.md](../fixtures/LICENSES.md)). `test_parity_js.py` checks `io.excellon` against
 `boarddd/gerber` `parseExcellon` and `io.outline` against `boardOutline` on the same files (needs `node`).

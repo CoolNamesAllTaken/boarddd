@@ -25,18 +25,22 @@ boarddd's own module (phase F1); the readers it calls are copied from magpie.
 
 from __future__ import annotations
 
+import gzip
 import hashlib
+import io
 import json
 import re
+import tarfile
 import zipfile
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
 from boarddd import model as m
-from boarddd.io import archive, classify, excellon, gbrjob, outline
+from boarddd.io import archive, classify, excellon, gbrjob, ipc2581, odbpp, outline
 from boarddd.io import bom as bom_reader
 from boarddd.io import pos as pos_reader
 from boarddd.io.classify import FabFile
+from boarddd.io.layers import layer_id, layer_order
 
 __all__ = ["read_package", "read_files", "package_files", "layer_id"]
 
@@ -72,12 +76,6 @@ _LAYER_ROLE = {
     FabFile.GERBER_DOC: "user",
     FabFile.DRILL: "drill",
 }
-#: Non-copper layers come after the N copper layers, in this order (the golden board's rule):
-#: outline, paste, silk, mask, then the drills (plated first), then fab and user drawings.
-_DRAW_ORDER = ["outline", "paste", "silk", "mask", "copper", "drill"]
-_AFTER_DRILLS = ["PTH", "NPTH", "fab", "user"]
-_KICAD_PREFIX = {"top": "F", "bottom": "B"}
-_KICAD_SUFFIX = {"mask": "Mask", "paste": "Paste", "silk": "Silkscreen", "fab": "Fab"}
 _DRILL_FUNCTION = {"viadrill": "via", "componentdrill": "component", "mechanicaldrill": "mechanical"}
 _TF_POLARITY = re.compile(r"%TF\.FilePolarity,(\w+)\*%")
 _DRILL_FILE_FUNCTION = re.compile(r"TF\.FileFunction,([^\r\n*]+)")
@@ -93,8 +91,11 @@ def r(value: float) -> float:
 
 
 def package_files(path: str | Path) -> dict[str, bytes]:
-    """{relpath: bytes} of a package folder (recursively; dot-files and dot-dirs skipped) or zip."""
+    """{relpath: bytes} of a package folder (recursively; dot-files and dot-dirs skipped) or zip; any
+    other single file (an IPC-2581 .xml/.cvg[.gz], an ODB++ .tgz) as {name: bytes}."""
     path = Path(path)
+    if path.is_file() and not zipfile.is_zipfile(path):
+        return {path.name: path.read_bytes()}
     if path.is_dir():
         out = {}
         for file in sorted(path.rglob("*")):
@@ -116,6 +117,12 @@ def read_files(files: Mapping[str, bytes], *, name: str | None = None, conventio
     """`read_package` on files already in memory: {relpath: bytes}."""
     warnings: list[str] = []
     found = {rel: classify.classify(rel, data, convention) for rel, data in files.items()}
+    exchange = _exchange(files)
+    has_copper = any(c.kind == FabFile.GERBER_COPPER for c in found.values())
+    if exchange and not has_copper:
+        return _read_exchange(files, found, exchange, name, warnings)
+    for kind, where, _ in exchange:
+        warnings.append(f"{where}: {kind} data next to the Gerbers; read from the Gerbers (use io.{kind} for it)")
     by_kind: dict[str, list[str]] = {}
     for rel in sorted(found):
         by_kind.setdefault(found[rel].kind, []).append(rel)
@@ -156,6 +163,90 @@ def read_files(files: Mapping[str, bytes], *, name: str | None = None, conventio
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+# IPC-2581 and ODB++ inside a package
+
+
+def _exchange(files: Mapping[str, bytes]) -> list[tuple[str, str, bytes]]:
+    """[(reader, where, bytes)] for every IPC-2581 file, ODB++ archive and unpacked ODB++ tree, IPC-2581 first.
+
+    `where` is the relpath (or, for an unpacked tree, its folder); an unpacked tree is re-zipped in
+    memory for `io.odbpp`."""
+    ipc, odb = [], []
+    for rel, data in sorted(files.items()):
+        head = data[:8192]
+        if head[:2] == b"\x1f\x8b":
+            try:
+                with gzip.GzipFile(fileobj=io.BytesIO(data)) as gz:
+                    head = gz.read(8192)
+            except (OSError, EOFError):
+                head = b""
+            if head and _is_odb_tar(data):
+                odb.append(("odbpp", rel, data))
+                continue
+        if b"<IPC-2581" in head:
+            ipc.append(("ipc2581", rel, data))
+        elif data[:4] == b"PK\x03\x04" and _is_odb_zip(data):
+            odb.append(("odbpp", rel, data))
+        elif head[257:262] == b"ustar" and _is_odb_tar(data):
+            odb.append(("odbpp", rel, data))
+    roots = sorted({rel[: -len("matrix/matrix")] for rel in files if rel.lower().endswith("matrix/matrix")})
+    for root in roots:
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            for rel, data in files.items():
+                if rel.startswith(root):
+                    zf.writestr(rel[len(root) :], data)
+        odb.append(("odbpp", root.rstrip("/") or ".", buf.getvalue()))
+    return ipc + odb
+
+
+def _is_odb_zip(data: bytes) -> bool:
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as zf:
+            return any(n.lower().endswith("matrix/matrix") for n in zf.namelist())
+    except zipfile.BadZipFile:
+        return False
+
+
+def _is_odb_tar(data: bytes) -> bool:
+    try:
+        with tarfile.open(fileobj=io.BytesIO(data)) as tf:
+            return any(n.lower().endswith("matrix/matrix") for n in tf.getnames())
+    except (tarfile.TarError, OSError, EOFError):
+        return False
+
+
+def _read_exchange(files, found, exchange, name, warnings) -> m.Board:
+    kind, where, data = exchange[0]
+    reader = ipc2581.read_ipc2581 if kind == "ipc2581" else odbpp.read_odbpp
+    board = reader(data, name=None)
+    if len(exchange) > 1:
+        warnings.append(f"{len(exchange)} IPC-2581/ODB++ sources; read {where}")
+    if board.name in ("", "pcb", "board", "job") and name:
+        board.name = re.sub(r"[-_](odb(pp)?|ipc-?2581)$", "", name, flags=re.I)
+    roles = {}
+    for k, w, _ in exchange:
+        roles[w] = "ipc2581" if k == "ipc2581" else "odb"
+    out = []
+    for rel in sorted(files):
+        role = roles.get(rel) or next(
+            (r for w, r in roles.items() if w == "." or rel.startswith(w.rstrip("/") + "/")), None
+        )
+        out.append(
+            m.SourceFile(
+                path=rel,
+                role=role or _ROLE.get(found[rel].kind, "other"),
+                sha256=hashlib.sha256(files[rel]).hexdigest(),
+            )
+        )
+    board.source.files = out
+    for layer in board.layers:
+        layer.files = [where]
+    board.warnings = warnings + board.warnings
+    return board
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # job file, layers, stackup
 
 
@@ -190,25 +281,6 @@ def _generator(job: dict) -> str | None:
     return " ".join(words) or None
 
 
-def layer_id(role: str, side: str, copper: int | None, count: int | None, *, plated: bool | None = None) -> str:
-    """KiCad's canonical layer name for a layer, where there is one ('F.Cu', 'In2.Cu', 'B.Mask', 'Edge.Cuts', 'PTH')."""
-    if role == "copper":
-        if copper == 1 or (copper is None and side == "top"):
-            return "F.Cu"
-        if (count and copper == count) or (copper is None and side == "bottom"):
-            return "B.Cu"
-        if copper:
-            return f"In{copper - 1}.Cu"
-        return "Cu"
-    if role == "outline":
-        return "Edge.Cuts"
-    if role == "drill":
-        return "PTH" if plated else "NPTH" if plated is False else "Drill"
-    if role in _KICAD_SUFFIX and side in _KICAD_PREFIX:
-        return f"{_KICAD_PREFIX[side]}.{_KICAD_SUFFIX[role]}"
-    return role
-
-
 def _layers(files: Mapping[str, bytes], found: dict, job: dict, warnings: list[str]) -> list[m.Layer]:
     specs = job.get("GeneralSpecs") if isinstance(job.get("GeneralSpecs"), dict) else {}
     attributes = {
@@ -217,7 +289,6 @@ def _layers(files: Mapping[str, bytes], found: dict, job: dict, warnings: list[s
     numbers = [c.copper_layer for c in found.values() if c.kind == FabFile.GERBER_COPPER and c.copper_layer]
     count = specs.get("LayerNumber") if isinstance(specs.get("LayerNumber"), int) else None
     count = count or (max(numbers) if numbers else None)
-    n = count or 0
 
     layers: list[m.Layer] = []
     seen: set[str] = set()
@@ -254,14 +325,7 @@ def _layers(files: Mapping[str, bytes], found: dict, job: dict, warnings: list[s
         while lid in seen:
             lid, k = f"{base}-{k}", k + 1
         seen.add(lid)
-        if role == "copper":
-            order = copper or (1 if side == "top" else n or 1)
-        elif role == "drill":
-            order = n + 1 + len(_DRAW_ORDER) + _AFTER_DRILLS.index("NPTH" if plated is False else "PTH")
-        elif role in ("fab", "user"):
-            order = n + 1 + len(_DRAW_ORDER) + _AFTER_DRILLS.index(role)
-        else:
-            order = n + 1 + _DRAW_ORDER.index(role)
+        order = layer_order(role, side, copper, count, plated=plated)
         layers.append(
             m.Layer(
                 id=lid,
