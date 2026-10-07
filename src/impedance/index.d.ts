@@ -268,3 +268,76 @@ export function fieldCalculate(
   params: Record<string, number>,
   opts?: FieldOptions,
 ): FieldResult & { model: FieldModelId; flags: [] };
+
+// ── along a route on a real board (route.js) ───────────────────────────────────────────────────────────────
+import type { Board } from '../model/board.js';
+import type { Copper, Track } from '../copper/copper.js';
+import type { ImpedanceAnalysis } from './result.js';
+export * from './result.js';
+
+/** boarddd/impedance@1 (schema/impedance.schema.json), as an object. */
+export const IMPEDANCE_SCHEMA: Record<string, unknown>;
+export const IMPEDANCE_SCHEMA_ID: 'boarddd/impedance@1';
+/** 'json/pointer: message' errors; empty when `doc` is a valid boarddd/impedance@1 document. */
+export function validateImpedance(doc: unknown): string[];
+
+/** A user override of a section's environment (per net or per track id). */
+export interface RouteOverride {
+  structure?: ImpedanceAnalysis['sections'][number]['structure'];
+  /** A copper layer to reference above / below, or false for none. */
+  refTop?: string | false;
+  refBottom?: string | false;
+  /** false: ignore coplanar grounds. */
+  coplanar?: false;
+}
+
+export interface RouteOptions {
+  /** Station spacing along the route, mm (default 0.25). */
+  step?: number;
+  /** 'field' (tier 2, default) or 'closedform' (tier 1 where it has a model, else tier 2). */
+  solver?: 'field' | 'closedform';
+  /** Tolerance when the target gives none, percent (default 10). */
+  tolerancePct?: number;
+  /** Half-width of the cut line, mm (default max(1, w/2 + 8 h)). */
+  window?: number | null;
+  /** A ground this close to the trace edge makes it coplanar, mm (default max(3 w, 5 h)). */
+  coplanarWindow?: number | null;
+  /** A pair partner this close (edge to edge) and parallel couples, mm (default max(0.5, 4 w)). */
+  pairWindow?: number | null;
+  /** Largest angle between a pair's tracks that still counts as parallel, degrees (default 20). */
+  parallelDeg?: number;
+  /** A reference plane must reach this many h beyond the trace edges (default 3). */
+  refMargin?: number;
+  /** 'ground': other nets' copper within the coplanar window is solved as grounded (default 'ignore'). */
+  neighbours?: 'ignore' | 'ground';
+  /** No reference plane: no Z ('skip', default) or a CPW between coplanar grounds ('solve'). */
+  noPlane?: 'skip' | 'solve';
+  /** Field solver options (default { level: -2, maxLevel: -1, tol: 0.05 }). */
+  fieldOptions?: FieldOptions;
+  /** The target, Ω (or with a tolerance); default the first net's class target. */
+  target?: number | { value: number; tolerance_pct?: number };
+  /** Nets to treat as ground besides zones, solid planes and GND-like names. */
+  groundNets?: string[];
+  overrides?: { net?: RouteOverride; tracks?: Record<string, RouteOverride> };
+  /** Solved cross-sections by geometry key, shared between calls (e.g. every net of a board). */
+  cache?: Map<string, unknown>;
+}
+
+export const ROUTE_DEFAULTS: Readonly<Required<Omit<RouteOptions, 'target' | 'groundNets' | 'overrides' | 'cache'>>>;
+
+/** One track of a route, oriented the way it is walked. */
+export interface RouteStep {
+  track: Track;
+  index: number;
+  forward: boolean;
+  s0: number;
+  s1: number;
+  run: number;
+  path: { len: number; at(s: number): { p: [number, number]; d: [number, number] } };
+}
+
+/** A net's tracks in route order (depth first from its lowest end). */
+export function netRoute(copper: Copper, net: string): RouteStep[];
+
+/** Impedance along a net's (or a pair's) route on a real board: a boarddd/impedance@1 document. */
+export function analyzeNet(board: Board, copper: Copper, net: string | [string, string], options?: RouteOptions): ImpedanceAnalysis;

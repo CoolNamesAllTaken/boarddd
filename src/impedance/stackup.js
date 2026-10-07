@@ -35,7 +35,7 @@ function side(layers, i, dir, ref, warnings) {
     const l = layers[j];
     if (isCopper(l)) {
       const name = l.layer ?? l.name;
-      if (ref == null || ref === name || ref === l.name) { refName = name; break; }
+      if (ref !== false && (ref == null || ref === name || ref === l.name)) { refName = name; break; }
       h += l.thickness ?? STACKUP_DEFAULTS.copper_thickness;   // a plane voided under the trace: filled with resin
       sum += (l.thickness ?? STACKUP_DEFAULTS.copper_thickness) / (layers[j - dir]?.epsilon_r ?? STACKUP_DEFAULTS.epsilon_r);
       continue;
@@ -53,10 +53,13 @@ function side(layers, i, dir, ref, warnings) {
       mask = { c, erc }; maskIndex = j;
     }
   }
-  if (ref != null && refName == null) throw new RangeError(`reference plane ${ref} not found ${dir < 0 ? 'above' : 'below'}`);
+  if (ref != null && ref !== false && refName == null) throw new RangeError(`reference plane ${ref} not found ${dir < 0 ? 'above' : 'below'}`);
   return { h, er: h > 0 ? h / sum : null, ref: refName, mask: refName == null ? mask : null,
     index: refName == null ? null : j, maskIndex: refName == null ? maskIndex : null };
 }
+
+/** The x0/x1 of an extent ({x0?, x1?}; null or missing ends run to the domain edge). */
+const span = (e) => ({ ...(e?.x0 != null && { x0: e.x0 }), ...(e?.x1 != null && { x1: e.x1 }) });
 
 /**
  * The real cross-section of signal copper i for the field solver: every layer between the reference planes with
@@ -69,7 +72,8 @@ function side(layers, i, dir, ref, warnings) {
 function stackupSection(layers, i, up, down, o, t, structure) {
   const seq = [];
   if (down.index != null) for (let j = down.index; j >= (up.index ?? 0); j--) seq.push(j);
-  else for (let j = up.index; j < layers.length; j++) seq.push(j);
+  else if (up.index != null) for (let j = up.index; j < layers.length; j++) seq.push(j);
+  else for (let j = layers.length - 1; j >= 0; j--) seq.push(j);   // no plane at all (a layout's CPW): bottom up
   const refs = new Set([up.index, down.index].filter((v) => v != null));
   const pair = o.kind === 'differential';
   const w = o.width, s = o.gap;
@@ -88,7 +92,8 @@ function stackupSection(layers, i, up, down, o, t, structure) {
     const d = thick(l);
     if (refs.has(j)) {
       // An ungrounded coplanar line has no plane under it: the dielectric ends in air.
-      if (!(structure === 'coplanar' && !inner)) conductors.push({ y0: y, y1: y + d, net: 'gnd' });
+      const ext = o.layout?.planes?.[j === up.index ? 'top' : 'bottom'];
+      if (!(structure === 'coplanar' && !inner)) conductors.push({ ...span(ext), y0: y, y1: y + d, net: 'gnd' });
     } else if (j === i) {
       slab = { y0: y, y1: y + d };
       if (inner) {
@@ -102,12 +107,16 @@ function stackupSection(layers, i, up, down, o, t, structure) {
     }
     y += d;
   }
-  const traces = pair
-    ? [{ x0: -s / 2 - w, x1: -s / 2, ...slab, net: 'p' }, { x0: s / 2, x1: s / 2 + w, ...slab, net: 'n' }]
-    : [{ x0: -w / 2, x1: w / 2, ...slab, net: 'sig' }];
+  const traces = o.layout ? o.layout.traces.map((b) => ({ x0: b.x0, x1: b.x1, ...slab, net: b.net }))
+    : pair
+      ? [{ x0: -s / 2 - w, x1: -s / 2, ...slab, net: 'p' }, { x0: s / 2, x1: s / 2 + w, ...slab, net: 'n' }]
+      : [{ x0: -w / 2, x1: w / 2, ...slab, net: 'sig' }];
   conductors.push(...traces.flatMap((b) => etched(b, o.etch)));
   const grounds = [];
-  if (structure.startsWith('coplanar')) {
+  if (o.layout) {
+    grounds.push(...(o.layout.grounds ?? []).map((g) => ({ ...span(g), ...slab, net: 'gnd' })));
+    conductors.push(...grounds);
+  } else if (structure.startsWith('coplanar')) {
     const e = (pair ? s / 2 + w : w / 2) + o.coplanarGap;
     grounds.push({ x1: -e, ...slab, net: 'gnd' }, { x0: e, ...slab, net: 'gnd' });
     conductors.push(...grounds);
@@ -139,6 +148,10 @@ function stackupSection(layers, i, up, down, o, t, structure) {
  * @param {boolean} [o.mask]  include the solder mask on an outer layer (default true)
  * @param {'closedform'|'field'} [o.solver]  'field' adds the cross-section for the tier-2 field solver
  * @param {number} [o.etch]  field solver: the trace top is this much narrower than `width` (trapezoid), mm
+ * @param {object} [o.layout]  field solver: the copper in the signal layer as found on a board (route.js):
+ *   `traces` [{x0, x1, net}], coplanar `grounds` [{x0?, x1?}] and the reference planes' extents
+ *   `planes: {top, bottom}` ({x0?, x1?}; a missing end runs to the domain edge). refTop/refBottom `false`
+ *   means no plane on that side (the dielectric runs to the board surface).
  */
 export function lineFromStackup(stackup, layer, o = {}) {
   const layers = stackup?.layers ?? [];
@@ -152,7 +165,8 @@ export function lineFromStackup(stackup, layer, o = {}) {
   const up = side(layers, i, -1, o.refTop, warnings), down = side(layers, i, +1, o.refBottom, warnings);
   const kind = o.kind ?? 'single';
   const outer = up.ref == null || down.ref == null;
-  if (up.ref == null && down.ref == null) throw new RangeError(`${layer} has no reference plane`);
+  // A layout (boarddd/impedance route.js) may describe a CPW with no plane at all: its coplanar grounds.
+  if (up.ref == null && down.ref == null && !(field && o.layout?.grounds?.length)) throw new RangeError(`${layer} has no reference plane`);
   const structure = o.structure ?? (outer ? 'microstrip' : 'stripline');
   const ref = up.ref == null ? down : up, open = up.ref == null ? up : down;
   const params = { w: o.width, t };

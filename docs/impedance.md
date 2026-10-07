@@ -5,6 +5,8 @@ Characteristic impedance of PCB transmission lines, the same code in JS (`src/im
 
 - **Tier 1: closed-form, quasi-static** formulas. They are instant, so they suit live hover, width synthesis
   and bulk checks (kipr).
+- **Along a route** (`analyzeNet`, [below](#along-a-route-on-a-real-board)): a net's real copper, section by
+  section, solved with tier 2.
 - **Tier 2: a 2D quasi-static field solver** (`solveCrossSection`, [below](#tier-2-the-field-solver)) for any
   cross-section built from rectangles: solder mask, etch, finite and coplanar grounds, plane voids, layered
   dielectrics, neighbouring traces. About 50–150 ms per typical line in the browser. It is boarddd's own (MIT); its
@@ -266,6 +268,151 @@ boarddd agrees with Kirschning-Jansen to 0.7 %. The test suite checks every row 
 The factorisation dominates (about 0.4 Gflop/s in JS); a multifrontal variant was tried and was slower on these
 small fronts. Results are deterministic, so the JS numbers in the fixtures are reproduced exactly.
 
+## Along a route on a real board
+
+`analyzeNet` / `analyze_net` take a board (`boarddd/board@1`: its stackup, nets, net classes) and its copper
+(`boarddd/copper@1`, [copper.md](copper.md)). They walk a net, or a differential pair, along its tracks and return
+the impedance section by section, as a `boarddd/impedance@1` document (`schema/impedance.schema.json`, typings in
+`src/impedance/result.d.ts`). The JS and Python versions are the same code and give the same document.
+
+```js
+import { analyzeNet } from 'boarddd/impedance';
+const doc = analyzeNet(board, copper, ['/CM5/ETH_PI.TRD0_P', '/CM5/ETH_PI.TRD0_N']);
+// doc.sections: [{ net, start, end, s0, s1, length, layer, structure: 'cpwg', kind: 'differential',
+//   geometry: { width: 0.13, gap: 0.252, coplanar_gap: [0.206, 0.206], h_bottom: 0.0994, ... },
+//   z: { Zdiff: 100.30, Zcommon: ..., error_pct: ..., solver: 'field' }, refs: [{ side: 'bottom', layer: 'In1.Cu',
+//   net: 'GND', h: 0.0994, extent: [null, null], skipped: [] }], flags: [], tracks: [...] }, ...]
+// doc.summary: { key: 'Zdiff', length, z_weighted: 101.2, z_min, z_max, out_of_tolerance_length, within, ... }
+// doc.discontinuities: [{ type: 'via' | 'ref_change' | 'plane_gap' | 'width_change' | 'uncoupled' | 'no_ref' | 'ref_edge', at, s, ... }]
+```
+
+```python
+from boarddd.impedance.route import analyze_net
+doc = analyze_net(board, copper, "/USB_C.D_P", target=90, solver="closedform")   # an ImpedanceAnalysis
+```
+
+**Method.**
+
+1. **Route.** The net's tracks are chained end to end (ends within 1 µm meet; vias join layers). The walk is
+   depth first from the end with the lowest (x, y). `s` is the distance from that end, and a branch continues
+   from its node. `netRoute` returns the walk.
+2. **Stations.** Each track is cut into equal bins of at most `step` (0.25 mm), with a station at each bin's
+   middle. Width and layer changes fall on track ends, so they are bin edges.
+3. **The cut.** At each station a line is cast across the trace, ±`window` (max(1 mm, w/2 + 8h), where h is the
+   nearest dielectric). It is intersected with the copper@1 items it meets: track capsules, via discs, pad and
+   zone polygons with their holes. A 1 mm grid index keeps this cheap.
+   - **Same layer, partner:** for a pair, the partner is its nearest parallel track (within 20°) whose edge is
+     within `pairWindow` (max(0.5 mm, 4w)). Where there is none, the stretch is `uncoupled`, and its Zdiff is
+     2 Z0 (the two lines independent).
+   - **Same layer, coplanar ground:** the nearest copper on each side that is a zone of any net, or a track or
+     pad of a ground net (solid-plane nets, GND-like names, `groundNets`), within `coplanarWindow`
+     (max(3w, 5h)). A ground at least max(2h, 2w, 0.2 mm) wide is solved as unbounded; a narrower strip
+     (a GND via pad, a short track) as it is.
+   - **Same layer, neighbours:** another signal closer than the ground is flagged `neighbour`. It is ignored by
+     default; `neighbours: 'ground'` solves it as a grounded conductor.
+   - **Reference planes:** going up and down the stackup, the first copper layer whose zones cover the trace
+     (both lines of a pair) is the reference. A layer that doesn't is skipped and listed in `refs[].skipped`;
+     in the solve it is resin. If that layer has a solid plane elsewhere, or some copper under the trace, the
+     station gets `plane_gap` (a split or void). A plane that ends within `refMargin` (3) × h of the trace
+     edge gets `ref_edge`, and its real extent goes into the solve.
+4. **Classify.**
+
+   | references | coplanar ground | layer | structure |
+   |---|---|---|---|
+   | none | yes / no | any | `cpw` / `none` (`no_ref`) |
+   | one | no | outer | `microstrip` (masked when the stackup has a mask) |
+   | one | no | inner | `embedded_microstrip` (the dielectric up to the surface, then the mask) |
+   | one or two | yes | any | `cpwg` |
+   | two | no | inner | `stripline`, or `offset_stripline` when the heights differ by more than 10 % |
+
+   Plus `kind: 'differential'` where the pair is coupled. `overrides` (`{ net: {...}, tracks: { id: {...} } }`
+   with `structure`, `refTop` / `refBottom` (a layer, or `false` for none) and `coplanar: false`) change a net's
+   or a track's environment; they add the `override` flag.
+5. **Solve.** The station's real cross-section goes to the tier-2 field solver: the board@1 stackup between its
+   references (`lineFromStackup` with a `layout`), the traces, the coplanar grounds with their gaps and widths,
+   the plane extents, and the mask. Gaps are quantised before solving:
+   - coplanar gaps on a 10 % geometric grid (≤ 1 % in Z);
+   - the pair gap on a 2 % grid;
+   - strip and plane ends to 0.1 mm.
+
+   A section and its mirror image share one solve. Each distinct geometry is solved once, cached by its key
+   (`cache` can share the Map between calls). A geometry that covers at least `shortLength` (1 mm) of the route
+   uses grid levels −1/0 (`fieldOptions`). A shorter one (breakouts, via transitions) uses −2/−1
+   (`shortFieldOptions`). With no reference plane there is no Z (`noPlane: 'skip'`): via antipads and voids
+   are 3D discontinuities, listed but not given a Z0 (`noPlane: 'solve'` solves the CPW). `solver:
+   'closedform'` uses tier 1 where it has a model: microstrip, (offset) stripline, single CPW/CPWG with the
+   smaller gap, and coupled microstrip/stripline. Elsewhere it falls back to tier 2.
+6. **Sections and summary.** Consecutive stations with the same geometry, on the same unbroken stretch, merge into
+   a section. A pair's coupled stretches are the first net's sections; the second net only adds its uncoupled
+   ones. The summary (first net) weights Z by length against the target: the net class's `ImpedanceTarget`, or
+   `target`. A class target of the other kind (`90ohm` written as single on a USB pair) is applied with a
+   warning. The tolerance is the target's, else `tolerancePct` (10 %). `out_of_tolerance_pct` counts length
+   outside tolerance and length without a Z.
+
+**Accuracy.** Against one finer solve per section (levels 0–3, tol 0.3 %) over 178 sections of royalblue's USB
+pair, CM5's Ethernet, HDMI, PCIe and USB pairs, a single-ended PCIe line, and the synthetic boards:
+
+| | worst |
+|---|---|
+| long sections | 0.74 % |
+| short sections | 3.2 % |
+| length-weighted Z | 0.41 % |
+
+`test/impedance/route.test.mjs` re-checks royalblue against one level finer.
+
+The synthetic boards agree with tier 1 where its assumptions hold:
+
+| board | analysis | tier 1 |
+|---|---|---|
+| microstrip | 49.74 Ω | within 1.5 % |
+| microstrip over a split, referencing In2 | 110.2 Ω | within 3 % |
+| CPWG at 0.15 / 0.4 mm gaps | 47.6 / 52.9 Ω | within 3 % |
+| offset stripline | 60.3 Ω | within 2 % |
+| 90 Ω coupled microstrip | 89.73 Ω | 90.00 Ω |
+
+KiCad's CM5 MINIMA demo against kipr's per-class check (infinite planes):
+
+| class | analysis | kipr |
+|---|---|---|
+| 100ohm, 0.13 / 0.25 mm coupled microstrip | 101.11 Ω | 101.17 Ω |
+| 90ohm, 0.14 mm microstrip | 52.50 Ω | 52.52 Ω |
+
+Where kipr's single number can't see it, the analysis shows the CPWG stretches (100.3 Ω), plane edges, breakouts
+and vias. The pair's length-weighted Zdiff is 101.2 Ω.
+
+**Speed** (node 22 / Chromium, one core), first analysis:
+
+| net | stations | geometries solved | time |
+|---|---|---|---|
+| royalblue USB pair | 202 | 50 | 1.1 s (Chromium 1.4 s) |
+| CM5 ETH TRD0 pair | 417 | 40 | 1.5 s |
+| CM5 HDMI D0 pair | 158 | 34 | 1.2 s |
+| CM5 PCIe TX pair | 488 | 41 | 1.7 s |
+| CM5 USB-C pair | 210 | 51 | 1.3 s |
+
+The field solves are ~85 % of the time. Most geometries are short breakout and via-transition stretches; a run
+along a plane is a handful of solves. With the cache shared, a second analysis of the same net takes 75–150 ms,
+and other nets reuse every cross-section they have in common. The Python twin takes 3–5 s for the same nets (the
+geometry loop is pure Python).
+
+**Thresholds** (`ROUTE_DEFAULTS`):
+
+| option | default |
+|---|---|
+| `step` | 0.25 mm |
+| `window` | max(1, w/2 + 8h) |
+| `coplanarWindow` | max(3w, 5h) |
+| `pairWindow` | max(0.5, 4w) |
+| `parallelDeg` | 20 |
+| `refMargin` | 3 |
+| `tolerancePct` | 10 |
+| `shortLength` | 1 mm |
+| `neighbours` | 'ignore' |
+| `noPlane` | 'skip' |
+
+Not modelled: broadside-coupled pairs (each line is analysed alone), floating neighbours, vias and pads
+themselves (3D), and frequency dependence (I9).
+
 ## Tests and fixtures
 
 - `fixtures/impedance/cases.json`, generated by `node fixtures/impedance/make_cases.mjs` (`--check` in CI):
@@ -290,6 +437,14 @@ small fronts. Results are deterministic, so the JS numbers in the fixtures are r
   (symmetry, L C0 = I/c²), tolerance-driven refinement, and (Python, when installed) live cross-checks against
   `scipy.special.ellipk` and scikit-rf. `test/browser/impedance-field.spec.mjs` runs the solver in Chromium on
   the main thread, in its worker and from a `file://` bundle, and prints the timings.
+- Along a route: `fixtures/impedance/route/` (`make_route_boards.py`, `--check` in CI). It holds four synthetic
+  boards (split, cpwg, inner, pair) and royalblue's USB pair with its nearby copper (`royalblue-usb.json.gz`).
+  There is also `fixtures/cm5_minima/` (KiCad's controlled-impedance demo).
+  - `python/tests/test_impedance_route.py`: the synthetic boards against tier 1 and direct solves, CM5 against
+    kipr, and the royalblue subset against the whole board. It also checks overrides, tier 1, the cache, the
+    schema, and Python = JS on all of them.
+  - `test/impedance/route.test.mjs`: the same in JS, plus accuracy and the cache on royalblue.
+  - `test/browser/impedance-route.spec.mjs`: times `analyzeNet` in Chromium.
 
 When a formula changes, run `node fixtures/impedance/make_cases.mjs`, port the change to the other language, and
 check that both test suites pass. When the field solver's numerics change, regenerate the sweeps and refit.

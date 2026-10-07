@@ -1,4 +1,5 @@
-"""Validate a board.json (boarddd/board@1) or copper.json (boarddd/copper@1) document (plain JSON values).
+"""Validate a board.json (boarddd/board@1), copper.json (boarddd/copper@1) or impedance analysis
+(boarddd/impedance@1) document (plain JSON values).
 
 A small checker for the JSON Schema subset ``boarddd._codegen`` emits, plus the model rules a schema
 can't express. src/model/index.js implements the same checks with the same messages; the shared
@@ -29,6 +30,15 @@ def copper_schema() -> dict[str, Any]:
     from . import _codegen, copper
 
     return _codegen.schema(copper.Copper)
+
+
+@cache
+def impedance_schema() -> dict[str, Any]:
+    """schema/impedance.schema.json (generated from boarddd.impedance.result)."""
+    from . import _codegen
+    from .impedance import result
+
+    return _codegen.schema(result.ImpedanceAnalysis)
 
 
 def _type_ok(t: str, v: Any) -> bool:
@@ -215,10 +225,33 @@ def validate_copper(data: Any) -> list[str]:
     return errors
 
 
+def _impedance_rules(d: dict[str, Any], errors: list[str]) -> None:
+    """impedance@1 rules beyond the schema: sections run forwards and belong to the document's nets."""
+    if d["kind"] == "differential" and len(d["nets"]) != 2:
+        errors.append("/nets: a differential analysis has two nets")
+    for i, s in enumerate(d["sections"]):
+        if s["net"] not in d["nets"]:
+            errors.append(f"/sections/{i}/net: '{s['net']}' is not in /nets")
+        if s["s1"] < s["s0"]:
+            errors.append(f"/sections/{i}/s1: must be >= s0")
+
+
+def validate_impedance(data: Any) -> list[str]:
+    """Return 'json/pointer: message' errors; empty when ``data`` is a valid boarddd/impedance@1 document."""
+    errors: list[str] = []
+    root = impedance_schema()
+    _check(root, data, "", root, errors)
+    if not errors:
+        _impedance_rules(data, errors)
+    return errors
+
+
 def validate(data: Any) -> list[str]:
-    """``validate_board`` or ``validate_copper``, by the document's ``schema``."""
+    """``validate_board``, ``validate_copper`` or ``validate_impedance``, by the document's ``schema``."""
     if isinstance(data, dict) and data.get("schema") == "boarddd/copper@1":
         return validate_copper(data)
+    if isinstance(data, dict) and data.get("schema") == "boarddd/impedance@1":
+        return validate_impedance(data)
     return validate_board(data)
 
 

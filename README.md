@@ -22,7 +22,9 @@ PR review) and gentoo (a PCB fab shop site). Framework-free ES modules, no build
 - **`boarddd/impedance`**: closed-form PCB transmission-line impedance (microstrip, solder mask,
   stripline, CPW/CPWG, edge-coupled pairs), width synthesis and validity flags, plus a 2D field solver for
   any cross-section (`solveCrossSection`, also in a Worker); the same code is `boarddd.impedance` in
-  Python (the solver needs the `field` extra). See [docs/impedance.md](docs/impedance.md).
+  Python (the solver needs the `field` extra). `analyzeNet` follows a net or pair over the real copper
+  (`boarddd/copper`) and returns its impedance section by section (`boarddd/impedance@1`: structure, references,
+  flags, discontinuities, a summary against the class target). See [docs/impedance.md](docs/impedance.md).
 - **`boarddd/copper`**: the copper model `boarddd/copper@1` (`copper.json`: tracks and arcs, vias, zone fills
   with holes, keepouts, pads as copper, net ties, plane coverage, all with nets): `validateCopper`, and
   `copperFromGerbers` for Gerber X2 uploads in the browser. Server side, `boarddd.io.kicad.read_kicad_copper`

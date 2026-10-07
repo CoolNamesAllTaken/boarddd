@@ -53,6 +53,7 @@
     },
     "./schema/board.schema.json": "./schema/board.schema.json",
     "./schema/copper.schema.json": "./schema/copper.schema.json",
+    "./schema/impedance.schema.json": "./schema/impedance.schema.json",
     "./package.json": "./package.json"
   },
   "files": [
