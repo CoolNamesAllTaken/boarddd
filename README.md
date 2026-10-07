@@ -184,6 +184,72 @@ relative to the module; a bundle that moves the files passes `wasmModuleUrl` (or
 </script>
 ```
 
+## Using boarddd in your project
+
+Consumers vendor boarddd at a git tag with `scripts/vendor.mjs` (Node ≥ 18, no dependencies; git for
+`--ref`). It copies the subpaths you choose, plus whatever they import (`board` brings `geom`,
+`gerber` and the vendored gerber core with its committed wasm under `third_party/`), with their
+`.d.ts` typings, and by default rewrites the bare `three` / `three/addons/...` imports to relative
+paths, so pages work from `file://`, under CSPs that forbid an inline importmap, and offline. It can
+fetch three.js and occt-import-js at pinned versions from the npm registry (sha512 checked against
+the registry's integrity) and writes `COMMIT` (commit, tag, subpaths, versions, the command) and a
+`README.md` into the output.
+
+```sh
+node <boarddd>/scripts/vendor.mjs --out <dir> [--ref vX.Y.Z] [--subpaths geom,board,...]
+     [--imports relative|bare] [--three <version>|--no-three] [--three-dir <dir>] [--addons a,b]
+     [--occt <version>|--no-occt] [--occt-dir <dir>] [--note <file.md>] [--check] [--force]
+```
+
+| option | |
+|---|---|
+| `--out <dir>` | boarddd goes here: `src/<subpath>/`, `third_party/...` if needed, `LICENSE`, `README.md`, `COMMIT`, `VENDORED.json` |
+| `--ref <tag\|sha>` | export that commit (`git archive`) of the checkout; without it the working tree is used and must be clean (`--allow-dirty` records `-dirty`) |
+| `--source <dir>` | the boarddd checkout (default: the one the script is in) |
+| `--subpaths` | exports to take (default all); what they import is added and reported |
+| `--imports` | `relative` (default): rewrite to `--three-dir`, which must then hold what boarddd imports (or `--no-three`); `bare`: leave them for an importmap or bundler. `.d.ts` files always keep `'three'` |
+| `--three <version\|.tgz>`, `--three-dir` | vendor three.js into `--three-dir` (default `<out>/three`): `three.module.js`, `three.core.js`, `LICENSE`, and in `addons/<dir>/` the addons boarddd imports plus what those import; `--addons exporters/GLTFExporter.js,...` adds more |
+| `--occt <version\|.tgz>`, `--occt-dir` | vendor occt-import-js (LGPL-2.1, unmodified `dist/*.js` + `.wasm` + licence) into `--occt-dir` (default `<out>/occt-import-js`); pass those URLs to `loadSTEP` |
+| `--note <file>` | Markdown appended to the generated README (how your pages load it) |
+| `--check` | write nothing; exit 1 listing missing, changed and stray files (three/occt dirs are checked offline against their manifest and version) |
+| `--force` | take over a directory the script didn't write, or discard local edits |
+
+Every directory it writes gets a `VENDORED.json` (file → sha256). Re-running with the same inputs
+changes nothing. A run that would overwrite or delete a file the manifest doesn't list, or one edited
+since, stops before writing anything; `--force` once adopts an older hand-made vendor directory.
+Files dropped from the selection are removed. Exit codes: 0 ok, 1 `--check` found differences, 2 error.
+
+**kipr** (`web/vendor/`, replaces `sync_vendor.bash` + `sync_vendored_renderer.bash`), from the kipr
+root with a boarddd clone at `../boarddd` (`git -C ../boarddd fetch --tags`):
+
+```sh
+node ../boarddd/scripts/vendor.mjs --ref v0.2.0 --out web/vendor/boarddd \
+  --three 0.185.1 --three-dir web/vendor/three \
+  --occt 0.0.23 --occt-dir web/vendor/occt-import-js
+# CI / before a release: same arguments plus --check (no network needed)
+```
+
+`web/vendor/{boarddd,three,occt-import-js}` keep their current layout (three's addons in
+`three/addons/<dir>/`), so the symlinks and esbuild bundles stay as they are. The first run needs
+`--force` to adopt the directories `sync_vendor.bash` made.
+
+**gentoo** (`fab/static/fab/vendor/boarddd`, replaces `scripts/sync_vendored_boarddd.bash`'s copy
+step), from `infrastructure/gentoo` with boarddd as the submodule `modules/boarddd` checked out at the
+tag (before the submodule exists: `--source <clone> --ref <sha>`):
+
+```sh
+node modules/boarddd/scripts/vendor.mjs \
+  --out python/gentoo_web/fab/static/fab/vendor/boarddd \
+  --subpaths geom,board,models,scene --imports bare --no-three \
+  --note scripts/boarddd_vendor_note.md    # the "How the page reaches it" section
+```
+
+gentoo keeps bare imports because its three.js is mapped file by file in
+`fab/templates/fab/_three_importmap.html` through `{% static %}` (fingerprinted by whitenoise), and
+manages `fab/vendor/three` itself. `board` now brings `gerber`, so the vendor dir also has
+`src/gerber/` and `third_party/wasm-gerber-renderer/core/` (static URLs such as the contour worker
+point there).
+
 ## Frames
 
 All geometry is in the **board frame**: millimetres, x right, y up (KiCad's y negated; Gerber
@@ -194,11 +260,14 @@ coordinates), z up out of the top copper, board bottom face at z = 0 and top fac
 
 - `npm test`: node tests: `boarddd/gerber` (layer roles, outlines, drills and zero-diameter tools, view
   math, frame backgrounds; ported from the fork), geometry (stadium slots, hole budget, every KiCad pad shape against pcbnew's
-  own polygons, kipr's pad-placement golden data), the board solid, the footprint reader/builder.
+  own polygons, kipr's pad-placement golden data), the board solid, the footprint reader/builder;
+  `scripts/vendor.mjs` (`test/vendor/`: a temp checkout vendored kipr- and gentoo-style, imports
+  resolving in node with no node_modules, idempotence, `--check`, refusals, sha512 against a local registry).
 - `npm run test:browser`: headless Chromium (SwiftShader WebGL2): slotted holes must show through as
   stadiums in a straight-down render of a footprint and of a Gerber-built board; copper diff colours;
   a blue STEP board reads blue from top and bottom; no frames while idle; view cube clicks; dispose;
-  `boarddd/gerber` pixel tests (`gerber-board-diff`, `gerber-drill-empty-tools`, ported from the fork).
+  `boarddd/gerber` pixel tests (`gerber-board-diff`, `gerber-drill-empty-tools`, ported from the fork);
+  a `vendor.mjs` output loaded with no importmap renders a board and loads the gerber wasm (`test/vendor/`).
   `PW_PORT` changes the server port (several checkouts at once).
 - `boarddd/model`: `validateBoard` against the shared cases in `fixtures/model/` (pytest runs the same
   file), and the royalblue54L_feather golden `board.json` against boarddd's own `.kicad_mod` parser and
