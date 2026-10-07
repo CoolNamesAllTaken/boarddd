@@ -63,6 +63,11 @@ scene.add(built.group);                     // userData.group: board, copper, ba
 const m = new THREE.Matrix4().fromArray(built.modelMatrix(fp.models[0]));   // where its STEP goes
 ```
 
+`faces: {top, bottom}` paints the board faces with pictures over `uvBounds` (e.g. kipr's per-layer
+renders composited), and `decals: {silk, fab, courtyard}` (each `{top, bottom}` pictures over the same
+bounds) adds them as transparent sheets in those groups: the way to show text, which the graphics
+sheets leave out.
+
 `parseKicadFootprint` reads pads, graphics (flattened to polylines) and models from a `.kicad_mod`
 (KiCad 6 to 10, and the old `module` form). Pad objects are also kipr's `geom.json` pads.
 Text is not drawn.
@@ -115,6 +120,7 @@ v.setView('top');             // bottom, front (side), back, left, right, iso, i
 v.fit();                      // refit from the current direction
 v.setTheme('dark');
 const png = v.capture({ width: 1200, height: 800, transparent: true });
+v.setPanes([[baseGroup], [headGroup]]);   // side by side with ONE camera (null: one view again)
 v.requestRender();            // after changing objects yourself
 v.dispose();                  // frees GL (content included) and removes the canvas
 ```
@@ -122,6 +128,8 @@ v.dispose();                  // frees GL (content included) and removes the can
 - Renders on demand: no animation loop; frames are drawn while the controls move and then stop.
 - KiCad-like look: neutral tone mapping, a generated room environment (no network), ambient + key +
   camera headlight, light/dark gradient backgrounds. Near/far are fitted to the content every frame.
+- Panes: each listed object shows only in its own pane; the rest shows in all. `fit()` uses a pane's
+  aspect and `pick()` reports the pane under the point and only hits what that pane shows.
 - The view cube (top right) shows the orientation; click a face to look from it (`on('cube', face => ...)`
   hears which); `cubeAt(clientX, clientY)` says whether a point is on the cube (for hosts with their own
   pointer handling). Bottom is mirrored
