@@ -5,7 +5,8 @@ test('every subpath imports in the browser and WebGL2 is available', async ({ pa
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/test/browser/pages/smoke.html');
   const smoke = await page.waitForFunction(() => window.smoke).then((h) => h.jsonValue());
-  expect(smoke.modules).toBe(5);
+  expect(smoke.modules).toBe(6);
+  expect(smoke.workerShapes).toBe(1);
   expect(smoke.webgl2).toBe(true);
   expect(errors).toEqual([]);
 });

@@ -1,7 +1,7 @@
 {
   "name": "boarddd",
-  "version": "0.1.0",
-  "description": "3D PCB rendering for the browser: board solids from Gerber/Excellon, KiCad footprints, GLB/STEP models, a small three.js viewer.",
+  "version": "0.2.0",
+  "description": "PCB rendering for the browser: 2D Gerber/Excellon rendering (wasm), board solids from Gerber/Excellon, KiCad footprints, GLB/STEP models, a small three.js viewer.",
   "license": "MIT",
   "type": "module",
   "repository": {
@@ -29,10 +29,19 @@
       "types": "./src/scene/index.d.ts",
       "default": "./src/scene/index.js"
     },
+    "./gerber": {
+      "types": "./src/gerber/index.d.ts",
+      "default": "./src/gerber/index.js"
+    },
+    "./gerber/contour-worker.js": "./src/gerber/contour-worker.js",
     "./package.json": "./package.json"
   },
   "files": [
     "src",
+    "third_party/wasm-gerber-renderer/core",
+    "third_party/wasm-gerber-renderer/LICENSE",
+    "third_party/wasm-gerber-renderer/README.md",
+    "third_party/wasm-gerber-renderer/FORK_COMMIT",
     "README.md",
     "LICENSE"
   ],
@@ -41,16 +50,12 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:browser": "playwright test",
     "serve": "node scripts/serve.mjs",
-    "typecheck": "tsc --noEmit --lib es2022,dom --moduleResolution bundler --module esnext src/geom/index.d.ts src/board/index.d.ts src/footprint/index.d.ts src/models/index.d.ts src/scene/index.d.ts"
+    "typecheck": "tsc --noEmit --lib es2022,dom --moduleResolution bundler --module esnext src/geom/index.d.ts src/board/index.d.ts src/footprint/index.d.ts src/models/index.d.ts src/scene/index.d.ts src/gerber/index.d.ts && tsc -p test/types/tsconfig.json",
+    "build:wasm": "bash scripts/build-wasm.sh",
+    "check:wasm": "bash scripts/build-wasm.sh --check"
   },
   "peerDependencies": {
-    "three": ">=0.160.0",
-    "wasm-gerber-renderer": ">=0.7.0"
-  },
-  "peerDependenciesMeta": {
-    "wasm-gerber-renderer": {
-      "optional": true
-    }
+    "three": ">=0.160.0"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",
