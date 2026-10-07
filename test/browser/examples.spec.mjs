@@ -8,6 +8,7 @@ test('examples/: the demo board builds, holes punched, no page errors', async ({
   const demo = await page.waitForFunction(() => window.demo, null, { timeout: 120_000 }).then((h) => h.jsonValue());
   expect(demo.error).toBeUndefined();
   expect(demo.holes).toBeGreaterThan(50);
+  expect(demo.matched).toBeGreaterThanOrEqual(10);   // the parts kicad-cli's GLB has models for
   await page.click('#diff');
   await page.waitForTimeout(500);
   expect(errors).toEqual([]);

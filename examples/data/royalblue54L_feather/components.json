@@ -1,0 +1,452 @@
+[
+{
+"ref": "C1",
+"value": "100nF",
+"footprint": "C_0402_1005Metric",
+"x": 151.14,
+"y": 105.69,
+"rot": -90.0,
+"side": "top"
+},
+{
+"ref": "C2",
+"value": "10uF",
+"footprint": "C_0603_1608Metric",
+"x": 148.86,
+"y": 108.67,
+"rot": 0.0,
+"side": "top"
+},
+{
+"ref": "C3",
+"value": "10uF",
+"footprint": "C_0603_1608Metric",
+"x": 145.84,
+"y": 108.67,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "C4",
+"value": "10uF",
+"footprint": "C_0603_1608Metric",
+"x": 148.58,
+"y": 98.82,
+"rot": 90.0,
+"side": "top"
+},
+{
+"ref": "C5",
+"value": "1uF",
+"footprint": "C_0603_1608Metric",
+"x": 147.01,
+"y": 98.82,
+"rot": 90.0,
+"side": "top"
+},
+{
+"ref": "C6",
+"value": "1uF",
+"footprint": "C_0603_1608Metric",
+"x": 144.88,
+"y": 98.82,
+"rot": 90.0,
+"side": "top"
+},
+{
+"ref": "C7",
+"value": "4.7uF",
+"footprint": "C_0402_1005Metric",
+"x": 140.44,
+"y": 105.94,
+"rot": 90.0,
+"side": "top"
+},
+{
+"ref": "C8",
+"value": "10uF",
+"footprint": "C_0603_1608Metric",
+"x": 150.37,
+"y": 110.93,
+"rot": 90.0,
+"side": "top"
+},
+{
+"ref": "C9",
+"value": "4.7uF",
+"footprint": "C_0402_1005Metric",
+"x": 160.26,
+"y": 100.39,
+"rot": 90.0,
+"side": "top"
+},
+{
+"ref": "C10",
+"value": "4.7uF",
+"footprint": "C_0402_1005Metric",
+"x": 140.44,
+"y": 107.76,
+"rot": -90.0,
+"side": "top"
+},
+{
+"ref": "C11",
+"value": "2.2uF",
+"footprint": "C_0603_1608Metric",
+"x": 150.82,
+"y": 100.59,
+"rot": 0.0,
+"side": "top"
+},
+{
+"ref": "C12",
+"value": "100nF",
+"footprint": "C_0402_1005Metric",
+"x": 160.21,
+"y": 109.62,
+"rot": -90.0,
+"side": "top"
+},
+{
+"ref": "C13",
+"value": "300pF",
+"footprint": "C_0402_1005Metric",
+"x": 128.79,
+"y": 111.855,
+"rot": 0.0,
+"side": "top"
+},
+{
+"ref": "C14",
+"value": "300pF",
+"footprint": "C_0402_1005Metric",
+"x": 126.83,
+"y": 111.855,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "C15",
+"value": "1uF",
+"footprint": "C_0402_1005Metric",
+"x": 139.07,
+"y": 111.69,
+"rot": 0.0,
+"side": "top"
+},
+{
+"ref": "C16",
+"value": "100nF",
+"footprint": "C_0402_1005Metric",
+"x": 133.96,
+"y": 111.71,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "C17",
+"value": "100nF",
+"footprint": "C_0402_1005Metric",
+"x": 135.39,
+"y": 104.4,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "C18",
+"value": "12pF",
+"footprint": "C_0402_1005Metric",
+"x": 129.93,
+"y": 109.3,
+"rot": -90.0,
+"side": "top"
+},
+{
+"ref": "C19",
+"value": "100nF",
+"footprint": "C_0402_1005Metric",
+"x": 140.44,
+"y": 110.53,
+"rot": -90.0,
+"side": "top"
+},
+{
+"ref": "C20",
+"value": "12pF",
+"footprint": "C_0402_1005Metric",
+"x": 131.69,
+"y": 112.06,
+"rot": 0.0,
+"side": "top"
+},
+{
+"ref": "C21",
+"value": "100pF",
+"footprint": "C_0402_1005Metric",
+"x": 132.3,
+"y": 107.74,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "C22",
+"value": "1uF",
+"footprint": "C_0402_1005Metric",
+"x": 132.78,
+"y": 106.78,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "C23",
+"value": "4.7uF",
+"footprint": "C_0402_1005Metric",
+"x": 139.4,
+"y": 104.57,
+"rot": 0.0,
+"side": "top"
+},
+{
+"ref": "C24",
+"value": "100nF",
+"footprint": "C_0402_1005Metric",
+"x": 158.06,
+"y": 102.94,
+"rot": 90.0,
+"side": "top"
+},
+{
+"ref": "C25",
+"value": "100nF",
+"footprint": "C_0402_1005Metric",
+"x": 153.71,
+"y": 101.81,
+"rot": 0.0,
+"side": "top"
+},
+{
+"ref": "D1",
+"value": "LED_Small",
+"footprint": "LED_0603_1608Metric",
+"x": 164.85,
+"y": 111.65,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "D3",
+"value": "LED_ARGB",
+"footprint": "LED_Wurth_150044M155260",
+"x": 142.88,
+"y": 104.98,
+"rot": 0.0,
+"side": "top"
+},
+{
+"ref": "J3",
+"value": "USB_C_Receptacle_USB2.0_16P",
+"footprint": "USB_C_Receptacle_HRO_TYPE-C-31-M-12",
+"x": 121.36,
+"y": 104.98,
+"rot": -90.0,
+"side": "top"
+},
+{
+"ref": "J4",
+"value": "Conn_01x02_MountingPin",
+"footprint": "JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal",
+"x": 136.88,
+"y": 98.458,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "J5",
+"value": "Conn_01x04_MountingPin",
+"footprint": "JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal",
+"x": 127.99,
+"y": 96.633,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "J6",
+"value": "Conn_01x05_MountingPin",
+"footprint": "CONN-SMD_5P-P0.50_HCTL_HC-FPC-05-09-5RLTAG",
+"x": 127.81,
+"y": 114.53,
+"rot": 0.0,
+"side": "top"
+},
+{
+"ref": "L1",
+"value": "2.2uH",
+"footprint": "L_0603_1608Metric",
+"x": 148.86,
+"y": 110.93,
+"rot": 90.0,
+"side": "top"
+},
+{
+"ref": "R1",
+"value": "100kR",
+"footprint": "R_0402_1005Metric",
+"x": 155.76,
+"y": 108.04,
+"rot": 0.0,
+"side": "top"
+},
+{
+"ref": "R2",
+"value": "10kR",
+"footprint": "R_0402_1005Metric",
+"x": 127.103416,
+"y": 100.845058,
+"rot": 90.0,
+"side": "top"
+},
+{
+"ref": "R3",
+"value": "10kR",
+"footprint": "R_0402_1005Metric",
+"x": 128.043416,
+"y": 100.845058,
+"rot": 90.0,
+"side": "top"
+},
+{
+"ref": "R4",
+"value": "330kR",
+"footprint": "R_0402_1005Metric",
+"x": 151.2,
+"y": 102.29,
+"rot": 90.0,
+"side": "top"
+},
+{
+"ref": "R5",
+"value": "10kR",
+"footprint": "R_0402_1005Metric",
+"x": 169.7,
+"y": 112.07,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "R6",
+"value": "470R",
+"footprint": "R_0402_1005Metric",
+"x": 167.45,
+"y": 111.65,
+"rot": 0.0,
+"side": "top"
+},
+{
+"ref": "R7",
+"value": "10kR",
+"footprint": "R_0402_1005Metric",
+"x": 169.7,
+"y": 111.13,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "R8",
+"value": "100kR",
+"footprint": "R_0402_1005Metric",
+"x": 143.11,
+"y": 107.52,
+"rot": -90.0,
+"side": "top"
+},
+{
+"ref": "SW1",
+"value": "SW_Push",
+"footprint": "SW_Push_1P1T_NO_Vertical_Wuerth_434133025816",
+"x": 155.76,
+"y": 110.53,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "SW2",
+"value": "SW_Push",
+"footprint": "SW_Push_1P1T_NO_Vertical_Wuerth_434133025816",
+"x": 155.76,
+"y": 99.43,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "U1",
+"value": "BM15x",
+"footprint": "BM15x-LGA-45_15.8x10mm",
+"x": 169.12,
+"y": 104.98,
+"rot": -90.0,
+"side": "top"
+},
+{
+"ref": "U2",
+"value": "nPM1300-QEXX",
+"footprint": "QFN-32-1EP_5x5mm_P0.5mm_EP3.6x3.6mm_ThermalVias",
+"x": 147.58,
+"y": 104.46,
+"rot": 90.0,
+"side": "top"
+},
+{
+"ref": "U3",
+"value": "TPD3E001DRLR",
+"footprint": "SOT-553",
+"x": 128.61,
+"y": 104.9725,
+"rot": 0.0,
+"side": "top"
+},
+{
+"ref": "U4",
+"value": "W25Q16JVUXIQ",
+"footprint": "Winbond_USON-8-1EP_3x2mm_P0.5mm_EP0.2x1.6mm",
+"x": 159.46,
+"y": 106.53,
+"rot": -90.0,
+"side": "top"
+},
+{
+"ref": "U5",
+"value": "nRF52833-QDXX",
+"footprint": "QFN-40-1EP_5x5mm_P0.4mm_EP3.6x3.6mm_ThermalVias",
+"x": 136.88,
+"y": 108.13,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "U6",
+"value": "TXB0106RGY",
+"footprint": "Texas_RGY_R-PVQFN-N16_EP2.05x2.55mm",
+"x": 155.2,
+"y": 104.92,
+"rot": 0.0,
+"side": "top"
+},
+{
+"ref": "Y1",
+"value": "32.768KHz",
+"footprint": "Crystal_SMD_3215-2Pin_3.2x1.5mm",
+"x": 161.09,
+"y": 98.23,
+"rot": 180.0,
+"side": "top"
+},
+{
+"ref": "Y2",
+"value": "32MHz",
+"footprint": "Crystal_SMD_2016-4Pin_2.0x1.6mm",
+"x": 131.69,
+"y": 110.2,
+"rot": -90.0,
+"side": "top"
+}
+]

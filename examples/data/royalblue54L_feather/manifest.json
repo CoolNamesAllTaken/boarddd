@@ -13,5 +13,6 @@
   "RoyalBlue54L-Feather-NPTH.drl",
   "RoyalBlue54L-Feather-PTH.drl"
  ],
- "glb": "board.glb"
+ "glb": "board.glb",
+ "components": "components.json"
 }

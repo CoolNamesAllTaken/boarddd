@@ -4,7 +4,9 @@
 
 - `index.html` + `demo.js`: KiCad's own demo board `royalblue54L_feather` (**KiCad demo data**, from
   KiCad's `demos/` folder, shipped with KiCad) built from its Gerbers and drill files with
-  `boarddd/board`, and its copper diff (Δ). `examples/data/` was exported with
-  `scripts/export-demo.sh` (kicad-cli 10.0.6); `board.glb` is there for `boarddd/models`.
+  `boarddd/board`, its components from kicad-cli's GLB matched to their reference designators with
+  `boarddd/models` (`components.json`: the placements, from `kicad-cli pcb export pos`), shown in
+  `boarddd/scene`'s viewer; ▣ toggles the components, Δ the copper diff. `examples/data/` was exported
+  with `scripts/export-demo.sh` (kicad-cli 10.0.6).
 - The peers come from `importmap.js`: `three` from `node_modules`, our wasm-gerber-renderer fork from
   `vendor/` (a dev copy).

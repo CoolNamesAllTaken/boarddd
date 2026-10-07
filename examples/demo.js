@@ -1,12 +1,13 @@
-// boarddd demo: a KiCad demo board built from its Gerbers + drill files (boarddd/board), with the
-// copper diff against an edited copy one click away. The viewer here is a placeholder until
-// boarddd/scene's createViewer lands.
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+// boarddd demo: KiCad's royalblue54L_feather demo board, the board built from its Gerbers + drill
+// files (boarddd/board), the components from kicad-cli's GLB matched to their reference designators
+// (boarddd/models), in boarddd/scene's viewer. Δ swaps the faces for a copper diff.
+import { createViewer } from 'boarddd/scene/index.js';
+import { loadGLB, prepareModel } from 'boarddd/models/index.js';
 import { buildGerberBoard, readFabFiles, paintCopperDiff } from 'boarddd/board/index.js';
 
 const DATA = new URL('./data/royalblue54L_feather/', import.meta.url);
 const status = document.getElementById('status');
+const say = (t) => { status.textContent = t; };
 
 async function gerberApi() {
   const mods = await Promise.all(['index', 'board', 'diff', 'drills', 'layers', 'outline', 'raster'].map((m) => import(`wasm-gerber-renderer/${m}.js`)));
@@ -19,77 +20,54 @@ async function gerberApi() {
   });
   return { api, renderer };
 }
+const fetchText = async (url) => (await fetch(url)).text();
 
-async function files(dir) {
-  const m = await (await fetch(new URL('manifest.json', dir))).json();
-  return { manifest: m, files: await Promise.all(m.files.map(async (name) => ({ name, text: await (await fetch(new URL(name, dir))).text() }))) };
-}
-
-// --- placeholder viewer: board frame is z-up
-const stage = document.getElementById('stage');
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(devicePixelRatio);
-stage.append(renderer.domElement);
-const scene = new THREE.Scene();
-scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.6));
-const sun = new THREE.DirectionalLight(0xffffff, 1.5);
-scene.add(sun);
-const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 5000);
-camera.up.set(0, 0, 1);
-const controls = new OrbitControls(camera, renderer.domElement);
-const draw = () => renderer.render(scene, camera);
-controls.addEventListener('change', draw);
-function resize() {
-  renderer.setSize(innerWidth, innerHeight);
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  draw();
-}
-addEventListener('resize', resize);
-
-let box;
-function view(name) {
-  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
-  const d = Math.max(s.x, s.y) * 2.2;
-  const dir = { top: [0, -0.001, 1], bottom: [0, -0.001, -1], iso: [0.35, -0.75, 0.7] }[name];
-  camera.position.copy(c).add(new THREE.Vector3(...dir).normalize().multiplyScalar(d));
-  sun.position.copy(camera.position).add(new THREE.Vector3(-20, 0, 40));
-  controls.target.copy(c);
-  controls.update();
-  draw();
-}
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+const viewer = createViewer(document.getElementById('stage'), { theme: dark ? 'dark' : 'light', viewCube: true });
 
 try {
-  const bg = getComputedStyle(document.body).backgroundColor;
-  scene.background = new THREE.Color(bg);
-  const { api, renderer: gr } = await gerberApi();
-  const head = await files(DATA);
-  const board = await buildGerberBoard(api, gr, head.files, { thickness: 1.6 });
-  scene.add(board.group);
-  box = new THREE.Box3().setFromObject(board.group);
-  resize();
-  view('iso');
-  const h = board.holes;
-  status.textContent = `KiCad demo data: royalblue54L_feather (KiCad's demos/). ${h.kept.length} holes punched`
-    + (h.rejected ? `, ${h.rejected} left painted (on the edge)` : '') + '.';
-  window.demo = { ok: true, holes: h.kept.length };
+  const manifest = await (await fetch(new URL('manifest.json', DATA))).json();
+  const files = await Promise.all(manifest.files.map(async (name) => ({ name, text: await fetchText(new URL(name, DATA)) })));
+  const components = await (await fetch(new URL(manifest.components, DATA))).json();
+  say('Painting the board from its Gerbers…');
+  const { api, renderer } = await gerberApi();
+  const board = await buildGerberBoard(api, renderer, files, { thickness: 1.6 });
+  viewer.add(board.group);
+  viewer.setView('iso');
 
-  // Copper diff: there is no second revision of KiCad's demo, so the base is the same board without its
-  // NPTH drill file; those holes show as added (green), everything else as unchanged.
+  say('Loading the components (GLB)…');
+  const { minX, maxX, minY, maxY } = board.painted.bounds;
+  const model = prepareModel(await loadGLB(new URL(manifest.glb, DATA).href), components, {
+    boardSize: [maxX - minX - 1, maxY - minY - 1], boardOrigin: [minX + 0.5, -(maxY - 0.5)],
+  });
+  // the GLB's own board would sit inside ours: keep its components only
+  for (const list of Object.values(model.parts)) for (const p of list) p.visible = false;
+  viewer.add(model.root);
+  viewer.fit('iso');
+
+  const r = model.report, h = board.holes;
+  say(`KiCad demo data: royalblue54L_feather (KiCad's demos/). Board from Gerbers: ${h.kept.length} holes punched`
+    + `${h.rejected ? `, ${h.rejected} on the edge left painted` : ''}. Components: ${r.matched}/${r.expected} matched`
+    + ` (${r.byName} by name, ${r.byPosition} by position).`);
+  window.demo = { ok: true, holes: h.kept.length, matched: r.matched, expected: r.expected };
+
   let diff = null;
   document.getElementById('diff').addEventListener('change', async (e) => {
     if (e.target.checked) {
-      diff ??= await paintCopperDiff(api, gr, {
-        base: readFabFiles(api, head.files.filter((f) => !/NPTH/.test(f.name))), head: board.fab,
+      // There is no second revision of KiCad's demo: the base is the same board without its NPTH
+      // drill file, so those holes show as added (green) and everything else as unchanged.
+      diff ??= await paintCopperDiff(api, renderer, {
+        base: readFabFiles(api, files.filter((f) => !/NPTH/.test(f.name))), head: board.fab,
       }, board.painted);
       board.setFaces({ top: diff.top, bottom: diff.bottom });
     } else {
       board.setFaces({ top: board.textures.top, bottom: board.textures.bottom });
     }
-    draw();
+    viewer.requestRender();
   });
+  document.getElementById('parts').addEventListener('change', (e) => { model.root.visible = e.target.checked; viewer.requestRender(); });
 } catch (e) {
-  status.textContent = `Failed: ${e.message}`;
+  say(`Failed: ${e.message}`);
   window.demo = { ok: false, error: String(e.stack || e) };
 }
-for (const b of document.querySelectorAll('[data-view]')) b.addEventListener('click', () => view(b.dataset.view));
+for (const b of document.querySelectorAll('[data-view]')) b.addEventListener('click', () => viewer.setView(b.dataset.view));
