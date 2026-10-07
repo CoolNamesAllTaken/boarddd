@@ -25,6 +25,30 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run typecheck
+  python:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python: ["3.11", "3.12"]
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -e ".[dev]"
+      - run: ruff check . ../fixtures
+      - run: ruff format --check . ../fixtures
+      - name: Generated schema and JS typings are up to date
+        run: python -m boarddd.model --check
+      - name: Golden board.json is reproducible
+        run: python ../fixtures/royalblue54L_feather/make_board.py --check
+      - run: pytest
   browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
