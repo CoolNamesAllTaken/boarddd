@@ -1,6 +1,6 @@
 """Regenerate golden.json: pcbnew's own view of fixtures/royalblue54L_feather (KiCad 10's pcbnew module).
 
-    /workspace/projects/kipr-tools/bin/kicad-python python/tests/kicad/fixtures/royalblue54L_pcbnew/make_golden.py
+    python3 python/tests/kicad/fixtures/royalblue54L_pcbnew/make_golden.py   # a Python with KiCad's pcbnew (e.g. KiCad's own)
 
 Per pad (board frame of KiCad: mm, y down): reference, number, position, orientation, copper centre (shape
 offset), copper bbox, hole centre and size, net. Per net: its effective net class (pcbnew reads the

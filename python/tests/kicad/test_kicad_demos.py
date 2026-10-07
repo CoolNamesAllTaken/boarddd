@@ -1,5 +1,5 @@
-"""Every KiCad demo board reads and validates (local check: needs KiCad's demos folder, e.g. KICAD_DEMOS=
-/workspace/projects/kipr-tools/kicad10-rootfs/usr/share/kicad/demos; skipped when it isn't there)."""
+"""Every KiCad demo board reads and validates (local check: set KICAD_DEMOS to KiCad's demos folder, e.g.
+/usr/share/kicad/demos, the default; skipped when it isn't there)."""
 
 import os
 from pathlib import Path
@@ -9,7 +9,7 @@ import pytest
 from boarddd.io.kicad import read_kicad_pcb
 from boarddd.validate import validate_board
 
-DEMOS = Path(os.environ.get("KICAD_DEMOS", "/workspace/projects/kipr-tools/kicad10-rootfs/usr/share/kicad/demos"))
+DEMOS = Path(os.environ.get("KICAD_DEMOS", "/usr/share/kicad/demos"))
 BOARDS = sorted(p for p in DEMOS.rglob("*.kicad_pcb") if p.stat().st_size < 10_000_000) if DEMOS.is_dir() else []
 
 

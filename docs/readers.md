@@ -118,7 +118,7 @@ Tests (`python/tests/kicad/`): kipr's pcbnew golden set (`fixtures/pad_placement
 holes, models, trapezoid corners), `test/fixtures/pad_shapes` (area, bbox, effective hole of every shape), a
 pcbnew golden of the royalblue board (`fixtures/royalblue54L_pcbnew`: all 428 pads placed through the model's
 transform, net classes), the stackup kicad-cli wrote into the gbrjob, hand-written KiCad 5 and 10 boards,
-project/tuning-profile cases, and every KiCad demo board when `KICAD_DEMOS` (or the kipr-tools rootfs) is
+project/tuning-profile cases, and every KiCad demo board when `KICAD_DEMOS` (default `/usr/share/kicad/demos`) is
 there. Each golden folder has its `make_golden.py` (`kicad-python`, KiCad 10.0.6).
 
 ## Tests and fixtures
