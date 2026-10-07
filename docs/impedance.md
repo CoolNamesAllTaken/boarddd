@@ -112,7 +112,7 @@ own field solver: `fixtures/impedance/field-sweep.json` and, for the mask on CPW
 | coupled stripline thickness | Cohn 1955 thin-strip corrections | −6.4 … +6.5 % | the same edge model on Cohn's exact modes, ψ(s/(b−t)) | −0.9 … +0.8 % |
 | offset stripline | two symmetric lines in parallel (Wadell §3.5.3) | up to +6.5 % at h2/h1 = 4 | Cohn's centred strip moved off centre by two exact limits (wide: offset half-plane fringing; narrow: the image series, Z + (η/2π) ln sin(πa/b)), blended by w/min(a, c) | −1.7 … +1.2 % |
 | solder mask on microstrip | none for a conformal coating (Bahl-Stuchly, Svačina and Wan-Hoorfar treat a planar cover) | ignoring the mask reads 0.2–18 % high | εeff rises by the air share (1 − q) × the share F of that air field inside the coating, fitted on 162 field solutions | −0.3 … +0.3 % |
-| solder mask on CPWG and coupled microstrip | none | ignoring it reads up to 9 % high (JLC's calculator, below) | the same form per mode, F = 1 − exp(−k u^−a (c/h)^p (1 + b h/s)), s the gap or the pair spacing; k, a, p, b per mode | mask/bare ratio: CPWG max 1.3 %, even max 0.6 %, odd max 2.1 % (rms ≤ 0.5 %) |
+| solder mask on CPWG and coupled microstrip | none | ignoring it reads 2–30 % high (field-mask-sweep.json, c/h ≤ 0.25) | the same form per mode, F = 1 − exp(−k u^−a (c/h)^p (1 + b h/s)), s the gap or the pair spacing; k, a, p, b per mode | mask/bare ratio: CPWG max 1.3 %, even max 0.6 %, odd max 2.1 % (rms ≤ 0.5 %) |
 
 **History.** Until I4 these constants were fitted to `qs-sweep.json`, the same 886 geometries solved by hforsten's
 solver (GPL-3.0, run locally as a tool; numbers only). That file now stays only as a cross-reference: boarddd's own
@@ -164,12 +164,6 @@ t ≥ 18 µm, inside the flags):
 The tests hold it to max 2 % and rms 0.6 % per model, and the mask terms (masked/bare ratio, field-mask-sweep.json)
 to max 2.5 % and rms 0.6 %. Zero-thickness Cohn values agree with scipy's elliptic integrals to 1e-13, and
 microstrip/CPW agree with scikit-rf's independent implementation to 1e-4 %.
-
-**Against JLCPCB's calculator** (5 published calculator outputs on JLC04161H-7628, from the t-0279 cross-check;
-the dataset is private and is not in this repository). With JLC's own assumptions (1.6 mil finished outer copper,
-trapezoid top 0.7 mil narrower, mask 1.2 mil over laminate and between traces and 0.6 mil over copper at εr 3.8),
-tier 2 gives JLC's target at JLC's width to within −0.4 … +1.0 % (median 0.1 %). Tier 1 with the mask terms
-(c = 0.6 mil) is within +1.0 … +2.7 %; before them it read +3.5 … +9.2 % high.
 
 Remember what the formulas cannot see: fab tolerance is ±10 %, Er at frequency, pressed prepreg thickness, mask
 thickness over the trace (thinner than over laminate) and etch shape usually matter more than any of these errors.
