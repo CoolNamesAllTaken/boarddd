@@ -960,7 +960,9 @@ def _pad(
             continue
         if not front:
             continue
-        if kind == "Cu" and copper is None:
+        if kind == "Cu" and (copper is None or math.dist(at, center) < math.dist(copper[3], center)):
+            # boarddd: the copper feature nearest the pin, not the first listed (a thermal via pin of an
+            # exposed pad lists the pad's copper too)
             copper = (shape, offset, rot, at)
         elif kind == "Paste":
             paste.append(
@@ -1020,7 +1022,15 @@ def _pad(
         center = (round(at[0], 6), round(at[1], 6))
         if fids:
             warnings.append(f"{ref} pin {pin.name}: shape from the package outline")
-    shape, offset, rotation, _ = copper
+    shape, offset, rotation, copper_at = copper
+    if drill is not None and shape.shape != "polygon" and fids and math.dist(copper_at, center) > 1e-3:
+        # boarddd fix: copper drawn away from its hole (KiCad's (drill (offset)), e.g. a pin header's
+        # offset rect pads). The pin is the hole; keep the copper where the feature is and record the hole
+        # as the drill's offset from it, in the pad frame (magpie put the copper on the hole).
+        dx, dy = center[0] - copper_at[0], center[1] - copper_at[1]
+        c, s = math.cos(math.radians(rotation)), math.sin(math.radians(rotation))
+        drill = replace(drill, offset=(round(dx * c + dy * s, 6), round(-dx * s + dy * c, 6)))
+        center = (round(copper_at[0], 6), round(copper_at[1], 6))
     if drill is not None and drill.shape == "oblong":
         drill = replace(drill, rotation=round((drill.rotation - rotation) % 360.0, 6) % 360.0)
     if drill is None and pin.type == "T" and pin.fhs > 0:
