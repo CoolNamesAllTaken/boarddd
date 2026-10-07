@@ -17,12 +17,13 @@ PY = {"maxLevel": "max_level"}
 
 
 def close(actual, expected, path="", tol=1e-9):
-    """Numbers within `tol` relative (1e-15 absolute for exact zeros: homogeneous εeff error estimates)."""
+    """Numbers within `tol` relative (1e-12 absolute below 1e-12), everything else equal."""
     if isinstance(expected, bool) or expected is None or isinstance(expected, str):
         assert actual == expected, path
     elif isinstance(expected, int | float):
         assert isinstance(actual, int | float), path
-        ok = abs(actual) < 1e-15 if expected == 0 else actual == expected or rel(actual, expected) < tol
+        tiny = abs(expected) < 1e-12  # roundoff-level error estimates (homogeneous εeff): absolute
+        ok = abs(actual - expected) < 1e-12 if tiny else actual == expected or rel(actual, expected) < tol
         assert ok, f"{path}: {actual} != {expected}"
     elif isinstance(expected, list):
         assert len(actual) == len(expected), f"{path} length"
