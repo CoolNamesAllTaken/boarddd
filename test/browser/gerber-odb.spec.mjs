@@ -154,38 +154,37 @@ for (const [odbName, gerberName, minIou, minNear] of [
 test("renderBoard draws the ODB++ job and the Gerbers as the same board", async ({ page }, testInfo) => {
   const results = {};
   for (const side of ["top", "bottom"]) {
-    const pixels = {};
     for (const label of ["gerber", "odb"]) {
-      pixels[label] = await page.evaluate(
+      await page.evaluate(
         async ({ label, side }) => {
           const { api, renderer, canvas, fabFiles, odbLayers } = window.t;
           const files =
             label === "odb"
               ? odbLayers.map((l) => ({ name: l.name, content: l.source }))
               : fabFiles.map((f) => ({ ...f, content: f.name.endsWith(".drl") ? api.withoutEmptyTools(f.content) : f.content }));
-          const board = api.groupBoardLayers(files);
-          await api.renderBoard(renderer, board, { side, width: 1200, height: 520, padding: 1, background: "#202020" });
+          await api.renderBoard(renderer, api.groupBoardLayers(files), { side, width: 1200, height: 520, padding: 1, background: "#202020" });
           const { width, height } = renderer.lastFrame;
           const gl = canvas.getContext("webgl2");
           const data = new Uint8Array(width * height * 4);
           gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, data);
-          return Array.from(data);
+          window.t[label] = data;
         },
         { label, side },
       );
       await testInfo.attach(`${label}-${side}`, { body: await page.locator("canvas").screenshot(), contentType: "image/png" });
     }
-    const a = pixels.gerber;
-    const b = pixels.odb;
-    let same = 0;
-    let board = 0;
-    for (let i = 0; i < a.length; i += 4) {
-      const background = (r, g, bl) => r === 0x20 && g === 0x20 && bl === 0x20;
-      if (background(b[i], b[i + 1], b[i + 2])) continue;
-      board += 1;
-      if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) < 24) same += 1;
-    }
-    results[side] = { board, same: same / Math.max(board, 1) };
+    // Pixels of the ODB++ board (not background) whose colour matches the Gerber render's.
+    results[side] = await page.evaluate(() => {
+      const { gerber: a, odb: b } = window.t;
+      let same = 0;
+      let board = 0;
+      for (let i = 0; i < a.length; i += 4) {
+        if (b[i] === 0x20 && b[i + 1] === 0x20 && b[i + 2] === 0x20) continue;
+        board += 1;
+        if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) < 24) same += 1;
+      }
+      return { board, same: same / Math.max(board, 1) };
+    });
   }
   testInfo.annotations.push({ type: "pixels", description: JSON.stringify(results) });
   for (const side of ["top", "bottom"]) {
