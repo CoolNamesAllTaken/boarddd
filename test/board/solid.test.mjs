@@ -71,3 +71,10 @@ test('buildBoard: groups tagged, faces as colours, dispose', () => {
   b.dispose();
   assert.throws(() => buildBoard({ outline: { board: [[0, 0]] } }));
 });
+
+test('withoutEmptyTools drops a zero-diameter tool and its hits, keeps everything else', async () => {
+  const { withoutEmptyTools } = await import('../../src/board/gerber.js');
+  const drl = ['M48', 'METRIC', 'T1C0.000', 'T2C0.600', '%', 'G90', 'T1', 'X1Y1', 'X2Y2', 'T2', 'X3Y3', 'M30'].join('\n');
+  assert.equal(withoutEmptyTools(drl), ['M48', 'METRIC', 'T2C0.600', '%', 'G90', 'T2', 'X3Y3', 'M30'].join('\n'));
+  assert.equal(withoutEmptyTools('M48\nT1C0.3\n%\nT1\nX1Y1\nM30'), 'M48\nT1C0.3\n%\nT1\nX1Y1\nM30');
+});

@@ -49,6 +49,8 @@ export interface PaintedFaces {
 }
 export const FACE_PX_PER_MM: number;
 export const MAX_FACE_PX: number;
+/** An Excellon file without zero-diameter tools (and their hits), which the renderer rejects. */
+export function withoutEmptyTools(text: string): string;
 export function readFabFiles(gerber: GerberApi, files: FabFile[], board?: { size_mm?: [number, number]; origin_mm?: [number, number] }): Fab;
 export function faceBounds(outlines: (Outline | null)[], pad?: number): Bounds;
 export function paintFaces(gerber: GerberApi, renderer: GerberRenderer, fab: Fab, options?: {
