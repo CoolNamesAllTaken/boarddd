@@ -187,8 +187,9 @@ def _edge_shapes(tree: Node):
     return opened, closed
 
 
-def _chain(segs: list[list], tol: float = 1e-4) -> tuple[list[list], int]:
-    """Join open polylines end to end into closed loops; returns (loops, number of segments left open)."""
+def _chain(segs: list[list], tol: float = 0.01) -> tuple[list[list], int]:
+    """Join open polylines end to end into closed loops (ends within ``tol`` mm meet: designs leave micron gaps,
+    e.g. 3.5 um in KiCad's NFC antenna demo); returns (loops, number of segments left open)."""
     loops = []
     segs = [list(s) for s in segs]
     left = 0
@@ -420,13 +421,24 @@ def read_components(tree: Node, warnings: list[str] | None = None) -> tuple[dict
     nodes = [c for c in tree.children() if c.name in ("footprint", "module")]
     # top-side instances first, so the definition is the library (unflipped) one when there is one
     order = sorted(range(len(nodes)), key=lambda i: str(nodes[i].value("layer", "F.Cu")).startswith("B."))
+    # logos, graphics and unannotated parts share references ('', 'G***', 'REF**'): number the repeats
+    refs, seen, renamed = [], {}, []
+    for fp in nodes:
+        ref = _properties(fp).get("Reference", "")
+        n = seen[ref] = seen.get(ref, 0) + 1
+        refs.append(f"{ref}#{n}" if n > 1 else ref)
+        if n > 1:
+            renamed.append(ref)
+    if renamed:
+        warnings.append(
+            f"{len(renamed)} component(s) repeat a reference and got a '#n' suffix (the original is in "
+            f"attributes.Reference): {', '.join(sorted(set(renamed), key=_natural))}"
+        )
     key_of: dict[int, str] = {}
     edited = []
     for i in order:
         fp = nodes[i]
         name = str(fp.arg(0, ""))
-        props = _properties(fp)
-        ref = props.get("Reference", "")
         lib = read_footprint(fp, name=name, board=True)
         if name not in defs:
             defs[name] = lib
@@ -434,11 +446,11 @@ def read_components(tree: Node, warnings: list[str] | None = None) -> tuple[dict
         elif _same_footprint(lib, defs[name]):
             key_of[i] = name
         else:
-            key = f"{name}#{ref}"
+            key = f"{name}#{refs[i]}"
             lib.name = key
             defs[key] = lib
             key_of[i] = key
-            edited.append(ref)
+            edited.append(refs[i])
     if edited:
         warnings.append(
             f"{len(edited)} footprint(s) differ from the first instance of their library id and got their own "
@@ -452,9 +464,12 @@ def read_components(tree: Node, warnings: list[str] | None = None) -> tuple[dict
         attr = [str(a) for a in attr_node.atoms()] if attr_node is not None else []
         x, y = to_board(av[:2] if len(av) >= 2 else (0.0, 0.0))
         mpn = props.get("MPN") or props.get("Manufacturer Part Number")
+        attributes = {k: v for k, v in sorted(props.items()) if k not in ("Reference", "Value", "Footprint") and v}
+        if refs[i] != props.get("Reference", ""):
+            attributes["Reference"] = props.get("Reference", "")
         comps.append(
             m.Component(
-                ref=props.get("Reference", ""),
+                ref=refs[i],
                 side="bottom" if str(fp.value("layer", "F.Cu")).startswith("B.") else "top",
                 x=x,
                 y=y,
@@ -467,23 +482,8 @@ def read_components(tree: Node, warnings: list[str] | None = None) -> tuple[dict
                 in_pos="exclude_from_pos_files" not in attr,
                 mpn=[m.PartNumber(mpn=mpn, manufacturer=props.get("Manufacturer"))] if mpn else [],
                 models=[_model_ref(md) for md in fp.children("model")],
-                attributes={
-                    k: v for k, v in sorted(props.items()) if k not in ("Reference", "Value", "Footprint") and v
-                },
+                attributes=attributes,
             )
-        )
-    seen: dict[str, int] = {}
-    renamed = []
-    for c in comps:  # logos, graphics and unannotated parts share references ('', 'G***', 'REF**')
-        n = seen[c.ref] = seen.get(c.ref, 0) + 1
-        if n > 1:
-            c.attributes["Reference"] = c.ref
-            renamed.append(c.ref)
-            c.ref = f"{c.ref}#{n}"
-    if renamed:
-        warnings.append(
-            f"{len(renamed)} component(s) repeat a reference and got a '#n' suffix (the original is in "
-            f"attributes.Reference): {', '.join(sorted(set(renamed), key=_natural))}"
         )
     return dict(sorted(defs.items())), sorted(comps, key=lambda c: _natural(c.ref))
 

@@ -89,7 +89,7 @@ symbols = read_kicad_sym("Device.kicad_sym")    # {name: Symbol}, parse only
 | module | reads | source |
 |---|---|---|
 | `io.kicad.sexpr` | the s-expression parser: spans, `Atom` vs quoted strings, `\|base64\|` data, `dumps` | kipr `common/sexpr.py` (magpie's tokenizer dropped) |
-| `io.kicad.pcb` | `read_kicad_pcb` → `Board`: outline (Edge.Cuts incl. footprint cut-outs, 72 segments per turn), stackup, origins, footprints, components, drills (pad holes, oval holes as slots, vias), nets with diff pairs; `load` → kipr's item view for diffs (tracks, vias, zones, keys, boxes) | kipr `project/pcb.py` + `geom.py`, magpie `pcb/kicad_pcb.read_board`, `make_board.py` |
+| `io.kicad.pcb` | `read_kicad_pcb` → `Board`: outline (Edge.Cuts incl. footprint cut-outs, ends within 10 µm joined, 72 segments per turn), stackup, origins, footprints, components, drills (pad holes, oval holes as slots, vias), nets with diff pairs; `load` → kipr's item view for diffs (tracks, vias, zones, keys, boxes) | kipr `project/pcb.py` + `geom.py`, magpie `pcb/kicad_pcb.read_board`, `make_board.py` |
 | `io.kicad.footprint` | `read_kicad_mod`, `read_footprint` → model `Footprint` (library form: bottom instances flipped back, pad angles relative); castellated shape offsets (`Pad.offset`), heatsink pads, drawn paste openings; `KicadFootprint`, kipr's raw parse for renderers | `make_board.py` (= the JS parser), magpie `kicad_pcb.read_footprint`, kipr `library/render/fp.py` |
 | `io.kicad.project` | `.kicad_pro` net classes: explicit assignments, patterns (wildcards or regex), priority, values inherited from Default; impedance targets | new (I1) |
 | `io.kicad.symbol` | `.kicad_sym`: symbols, units, De Morgan, pins, graphics, `extends` | kipr `library/render/sym.py` (parse half) |

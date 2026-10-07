@@ -234,3 +234,31 @@ def test_symbols():
     derived = lib["OPAMP2"]
     assert derived.extends == "OPAMP" and len(derived.pins) == 3 and derived.properties["Value"] == "OPAMP2"
     assert op.stats()["pin_count"] == 3
+
+
+REPEATS = """
+(kicad_pcb (version 20241229) (generator "pcbnew") (generator_version "9.0")
+  (footprint "Logo" (layer "F.Cu") (at 1 1) (property "Reference" "G***")
+    (pad "1" smd rect (at 0 0) (size 1 1) (layers "F.Cu")))
+  (footprint "Logo" (layer "F.Cu") (at 5 1) (property "Reference" "G***")
+    (pad "1" smd rect (at 0 0) (size 2 2) (layers "F.Cu")))
+  (footprint "Logo" (layer "F.Cu") (at 9 1) (property "Reference" "G***")
+    (pad "1" smd rect (at 0 0) (size 3 3) (layers "F.Cu")))
+  (gr_line (start 0 0) (end 10 0) (layer "Edge.Cuts"))
+  (gr_line (start 10.0035 0) (end 10 10) (layer "Edge.Cuts"))
+  (gr_line (start 10 10) (end 0 10) (layer "Edge.Cuts"))
+  (gr_line (start 0 10) (end 0 0.002) (layer "Edge.Cuts"))
+)
+"""
+
+
+def test_repeated_references_and_micro_gaps():
+    """Logos share a reference (and differ): unique refs and footprint keys; an outline with micron gaps closes."""
+    b = read_kicad_pcb(REPEATS)
+    assert validate_board(b.to_dict()) == []
+    assert [(c.ref, c.footprint, c.attributes.get("Reference")) for c in b.components] == [
+        ("G***", "Logo", None),
+        ("G***#2", "Logo#G***#2", "G***"),
+        ("G***#3", "Logo#G***#3", "G***"),
+    ]
+    assert not b.outline.approximate and len(b.outline.board) == 4 and len(b.warnings) == 2
