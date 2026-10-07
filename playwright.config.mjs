@@ -8,7 +8,7 @@ const args = (process.env.PW_CHROMIUM_ARGS || '--use-angle=swiftshader --enable-
 
 export default defineConfig({
   testDir: 'test',
-  testMatch: ['browser/**/*.spec.mjs', 'vendor/**/*.spec.mjs'],
+  testMatch: ['browser/**/*.spec.mjs', 'vendor/**/*.spec.mjs', 'impedance-ui/**/*.spec.mjs'],
   timeout: 120_000,
   fullyParallel: true,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',

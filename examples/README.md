@@ -11,5 +11,9 @@
 - `view2d.html` + `view2d.js`: `boarddd/view2d` on pic_programmer base vs head (KiCad demo; head moves
   mounting hole P101 and edits copper), royalblue54L with placement ticks, and a pic_programmer schematic
   sheet (R7 10K → 4.7K) as an ink diff. Every compare mode, measure, hole picking; the view is kept in the URL.
+- `impedance.html` + `impedance.js`: `boarddd/impedance/ui`. royalblue54L comes from its Gerber X2 export (copper by
+  `copperFromGerbers` in the browser, stackup from the gbrjob, a 90 Ω target entered for the USB pair). CM5 MINIMA
+  comes from its copper@1 (`fixtures/impedance/route/cm5.json.gz`). Click a trace; `#b=cm5` opens CM5, and
+  `#select=0` starts with nothing selected.
 - The peers come from `importmap.js`: `three` from `node_modules`. The Gerber faces use `boarddd/gerber`
   and its committed wasm (no renderer to inject).

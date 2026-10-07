@@ -357,7 +357,7 @@ test('the CLI exits 2 with a message on errors, 1 when --check finds differences
 test('model: the board-model validator (schema.js) vendors alone, needs no three', async () => {
   const v = fresh();
   assert.equal((await vendor('--ref', 'v9.9.9', '--out', v, '--subpaths', 'model')).code, 0);
-  assert.deepEqual(files(`${v}/src`), ['model/board.d.ts', 'model/check.js', 'model/index.d.ts', 'model/index.js', 'model/schema.js']);
+  assert.deepEqual(files(`${v}/src`), ['model/board.d.ts', 'model/check.js', 'model/gbrjob.js', 'model/index.d.ts', 'model/index.js', 'model/schema.js']);
   assert.ok(!fs.existsSync(`${v}/three`));
   assertSelfContained(v);
   const probe = path.join(v, 'probe.mjs');

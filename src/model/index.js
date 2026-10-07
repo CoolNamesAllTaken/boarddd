@@ -76,3 +76,4 @@ export function footprintToBoard(component, [fx, fy]) {
   const c = Math.cos(a), s = Math.sin(a);
   return [component.x + c * qx - s * qy, component.y + s * qx + c * qy];
 }
+export { stackupFromJob } from './gbrjob.js';
