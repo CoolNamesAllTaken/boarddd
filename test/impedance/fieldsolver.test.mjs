@@ -78,20 +78,6 @@ test('field-sweep.json vs qs-sweep.json (the GPL reference it replaced): same ro
   });
 });
 
-test('tier 1 is within its documented envelope of the field-solver sweep', () => {
-  const errs = {};
-  for (const [model, args, ref] of sweep.rows) {
-    const r = z.calculate(model, args);
-    if (r.flags.length || args.t < 0.018) continue;   // real copper, inside the validity range
-    for (const [k, v] of Object.entries(ref)) (errs[model] ??= []).push((100 * (r[k] - v)) / v);
-  }
-  assert.equal(Object.keys(errs).length, 6);
-  for (const [model, e] of Object.entries(errs)) {
-    const rms = Math.sqrt(e.reduce((s, x) => s + x * x, 0) / e.length);
-    assert.ok(Math.max(...e.map(Math.abs)) < 2 && rms < 1, `${model}: max ${Math.max(...e.map(Math.abs)).toFixed(2)} %, rms ${rms.toFixed(2)} %`);
-  }
-});
-
 test('mirror symmetry gives the full-domain answer', () => {
   for (const [model, p] of [['coupled_microstrip', { w: 0.15, s: 0.2, h: 0.2, t: 0.035, er: 4.4 }], ['coated_microstrip', { w: 0.3, h: 0.2, t: 0.035, er: 4.4, c: 0.02, erc: 3.5 }]]) {
     const a = z.fieldCalculate(model, p), b = z.fieldCalculate(model, p, { symmetry: false });

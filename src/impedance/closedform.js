@@ -16,11 +16,11 @@ export const ETA0 = 376.730313668;
 // boarddd's fitted constants (marked "boarddd" below; docs/impedance.md). fixtures/impedance/fit_corrections.py
 // refits them on fixtures/impedance/field-sweep.json (boarddd's own field solver); the Python twin has the same table.
 const FIT = {
-  mask: { k: 2.66, a: 0.316, p: 0.848, b: 0.606, kappa: 0.076 },
-  coplanar: { corner: 0.1, backing: 0.05 },
-  coupledMicrostrip: { even: 1, odd: 0.8 },
-  coupledStripline: { decay: 2.8 },
-  offset: { lo: 0.2, span: 30 },
+  mask: { k: 2.52, a: 0.333, p: 0.829, b: 0.655, kappa: 0.0753 },
+  coplanar: { corner: 0.0949, backing: 0.12 },
+  coupledMicrostrip: { even: 0.95, odd: 0.915 },
+  coupledStripline: { decay: 3.04 },
+  offset: { lo: 0.193, span: 30 },
 };
 
 // ── elliptic integrals ──────────────────────────────────────────────────────────────────────────────────────
@@ -121,13 +121,13 @@ export function microstrip(p) {
 // ── coated microstrip (solder mask) ────────────────────────────────────────────────────────────────────────
 // A conformal coating of thickness c and permittivity εc over the trace and the laminate only adds dielectric
 // where the bare line has air, so Cair (and the H-J air impedance) is unchanged and εeff rises:
-//   εeff = εeff,bare + (1 - q) F (εc - 1) / (1 + 0.076 (εc - 1)),   q = (εeff,bare - 1)/(εr - 1)
-//   F = 1 - exp(-2.66 u^-0.316 (c/h)^0.848 (1 - 0.606 t/h))
+//   εeff = εeff,bare + (1 - q) F (εc - 1) / (1 + 0.0753 (εc - 1)),   q = (εeff,bare - 1)/(εr - 1)
+//   F = 1 - exp(-2.52 u^-0.333 (c/h)^0.829 (1 - 0.655 t/h))
 // (1 - q) is the air's share of the bare line's field (Wheeler's filling factor); F is the share of that air
 // field inside the coating, and the denominator its partly series (normal-field) character. The form is
 // boarddd's: the published covered-microstrip models (Bahl-Stuchly 1980, Svačina 1992, Wan-Hoorfar 2000) are for
 // a planar cover, not a conformal mask, and the constants are fitted to 180 quasi-static field solutions with a
-// conformal mask (0.3 <= u <= 3, 0.006 <= c/h <= 0.4, t/h <= 0.35, εc 3.3-4): within 0.65 % of Z0 there.
+// conformal mask (0.3 <= u <= 3, 0.006 <= c/h <= 0.4, t/h <= 0.35, εc 3.3-4): within 0.35 % of Z0 there.
 
 /**
  * Microstrip under a conformal solder-mask coating (boarddd approximation on Hammerstad-Jensen).
@@ -169,8 +169,8 @@ export function coatedMicrostrip(p) {
 //     added as capacitance to the centred line;
 //   narrow strips: the exact image-series result for a thin conductor between planes,
 //     Z_off = Z_centred + (η0 / 2π√εr) ln sin(πa/b);
-//   weighted by a smoothstep in log(w / min(a, c)) from 0.2 (narrow) to 6 (wide), a boarddd choice checked
-//   against quasi-static field solutions (within 1.5 % up to h_max/h_min = 4).
+//   weighted by a smoothstep in log(w / min(a, c)) from 0.193 (narrow) to 5.8 (wide), a boarddd choice checked
+//   against quasi-static field solutions (within 1.8 % up to h_max/h_min = 4).
 function cohnStripline0(w, b) {
   const a = (PI * w) / (2 * b);
   return (ETA0 / 4) * ellipticRatio(1 / cosh(a), tanh(a));   // K(k)/K(k'), k = sech(a), k' = tanh(a)
@@ -252,7 +252,7 @@ export function stripline(p) {
 // 0.1-0.4 mm gaps, because Δ approaches the gap. boarddd instead adds the thickness as air capacitance above the
 // t = 0 map (per 2ε0): the gaps' sidewalls as parallel plates, t/g, plus corner and backing terms fitted to
 // quasi-static field solutions (CPWG, 0.25 <= h/g <= 10, t/g <= 0.7):
-//   ΔC = t/g + 0.1 √(t/w) [+ 0.05 √(t/h) g/h with a backing plane].
+//   ΔC = t/g + 0.0949 √(t/w) [+ 0.12 √(t/h) g/h with a backing plane].
 
 /** k = tanh(a)/tanh(b) (b > a > 0) and its exact complement k' = sqrt(1-k²). */
 function tanhRatio(a, b) {
@@ -315,7 +315,7 @@ export const cpwg = (p) => coplanar(p, true);
 // field solver for the odd mode of 1 oz pairs with s ~ t, so boarddd adds thickness as capacitance on top of the
 // t = 0 modes, as for coupled stripline below: ΔCs (C and Cair) is the single line's H-J thickness increase,
 // shared by its two edges; even: ΔCe = ΔCs (1 - ψe/2), odd: ΔCo = ΔCs + ψo 2t/s (air, a parallel plate across
-// the gap). ψe = (1 + g) exp(-g) and ψo = (1 + g) exp(-0.8g) are boarddd's fit to quasi-static field solutions
+// the gap). ψe = (1 + g) exp(-0.95g) and ψo = (1 + g) exp(-0.915g) are boarddd's fit to quasi-static field solutions
 // (0.2 <= g <= 3, t/h <= 0.35).
 
 function kjEven(u, g, er) {
@@ -398,7 +398,7 @@ export function coupledMicrostrip(p) {
 // capacitance (C/ε0 = η0/Z_air) on top of Cohn's exact t = 0 modes:
 //   ΔCs   thickness increase of one strip alone (Cohn + Wheeler above),
 //   e     its share per edge: (ΔCs - ΔCpp)/2, ΔCpp = 4w/(b-t) - 4w/b the parallel-plate part,
-//   ψ     the part of the inner edge that couples to the other strip, (1 + 2x) exp(-2.8x), x = s/(b-t),
+//   ψ     the part of the inner edge that couples to the other strip, (1 + 2x) exp(-3.04x), x = s/(b-t),
 //   even: ΔCe = ΔCs - ψ e        (the inner sidewall faces a magnetic wall),
 //   odd:  ΔCo = ΔCs + ψ 2t/s     (the inner sidewalls form a parallel plate across the gap, electric wall at s/2).
 // ψ is boarddd's own fit to quasi-static field solutions (0.2 <= x <= 1.1, t/b <= 0.12); it gives the exact

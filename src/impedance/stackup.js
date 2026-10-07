@@ -231,7 +231,7 @@ export function evaluateTarget(stackup, target, o = {}) {
         width = params.w;
         result = solveCrossSection(line.section, o.fieldOptions);
       }
-      result = { model: line.model, ...result };
+      result = { model: line.model, ...result, flags: [] };
     } else {
       if (synthesized) ({ params, result } = synthesize(line.model, params, target.target, { key }));
       else result = calculate(line.model, params);

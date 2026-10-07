@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import math
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import Any
 
 C_LIGHT = 299792458.0
@@ -62,7 +62,7 @@ class FieldResult:
     levels: list[dict[str, Any]]
     ms: float
     model: str | None = None
-    flags: list = field(default_factory=list)
+    flags: list | None = None
     Z0: float | None = None
     eps_eff: float | None = None
     C: float | None = None
@@ -77,8 +77,8 @@ class FieldResult:
 
     def to_dict(self) -> dict:
         d = {k: v for k, v in asdict(self).items() if v is not None}
-        if self.model is None:
-            d.pop("flags")
+        if self.flags is not None and self.model is None:
+            d["model"] = None  # a field-only structure from evaluate_target
         return d
 
 
@@ -532,9 +532,7 @@ def solve_cross_section(
         error=error,
         error_pct=100 * max([worst, *error.values()]),
         symmetry=sym or "none",
-        levels=[
-            {"level": lv["level"], **{k: lv[k] for k in KEYS if k in lv}, "grid": lv["grid"]} for lv in levels
-        ],
+        levels=[{"level": lv["level"], **{k: lv[k] for k in KEYS if k in lv}, "grid": lv["grid"]} for lv in levels],
         ms=1000 * (time.perf_counter() - t0),
         **est,
     )

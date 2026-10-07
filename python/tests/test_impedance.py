@@ -154,7 +154,7 @@ def test_against_scikit_rf():
 
 def test_accuracy_envelope_against_the_field_solver_sweep():
     errs: dict[str, list[float]] = {}
-    for model, args, ref in load("impedance/qs-sweep.json")["rows"]:
+    for model, args, ref, _ in load("impedance/field-sweep.json")["rows"]:
         r = z.calculate(model, args)
         if r.flags or args["t"] < 0.018:  # real copper, inside the validity range
             continue
@@ -163,7 +163,7 @@ def test_accuracy_envelope_against_the_field_solver_sweep():
     assert len(errs) == 6
     for model, e in errs.items():
         rms = math.sqrt(sum(x * x for x in e) / len(e))
-        assert max(map(abs, e)) < 2.5 and rms < 1, model
+        assert max(map(abs, e)) < 2 and rms < 0.6, model
 
 
 @pytest.mark.parametrize("c", CASES["stackup_lines"], ids=lambda c: f"{c['stackup']}-{c['layer']}")

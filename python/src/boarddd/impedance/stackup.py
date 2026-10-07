@@ -359,7 +359,7 @@ def evaluate_target(stackup, target, *, field_options: dict | None = None, **opt
             else:
                 width = params["w"]
                 result = solve_cross_section(line.section, **(field_options or {}))
-            result = dataclasses.replace(result, model=line.model)
+            result = dataclasses.replace(result, model=line.model, flags=[])
         else:
             if synthesized:
                 syn = synthesize(line.model, params, target["target"], key=key)

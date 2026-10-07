@@ -119,8 +119,8 @@ test('elliptic integrals', () => {
   assert.ok(rel(z.ellipticRatio(Math.SQRT1_2), 1) < 1e-15);
 });
 
-test('accuracy envelope against the quasi-static field-solver sweep (fixtures/impedance/qs-sweep.json)', () => {
-  const sweep = JSON.parse(readFileSync(new URL('../../fixtures/impedance/qs-sweep.json', import.meta.url), 'utf8'));
+test("accuracy envelope against boarddd's field-solver sweep (fixtures/impedance/field-sweep.json)", () => {
+  const sweep = JSON.parse(readFileSync(new URL('../../fixtures/impedance/field-sweep.json', import.meta.url), 'utf8'));
   const errs = {};
   for (const [model, args, ref] of sweep.rows) {
     const r = z.calculate(model, args);
@@ -130,7 +130,7 @@ test('accuracy envelope against the quasi-static field-solver sweep (fixtures/im
   assert.deepEqual(Object.keys(errs).sort(), ['coated_microstrip', 'coupled_microstrip', 'coupled_stripline', 'cpwg', 'microstrip', 'stripline']);
   for (const [model, e] of Object.entries(errs)) {
     const max = Math.max(...e.map(Math.abs)), rms = Math.sqrt(e.reduce((s, x) => s + x * x, 0) / e.length);
-    assert.ok(max < 2.5 && rms < 1, `${model}: max ${max.toFixed(2)} %, rms ${rms.toFixed(2)} % over ${e.length}`);
+    assert.ok(max < 2 && rms < 0.6, `${model}: max ${max.toFixed(2)} %, rms ${rms.toFixed(2)} % over ${e.length}`);
   }
 });
 

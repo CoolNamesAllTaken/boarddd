@@ -2,18 +2,36 @@
 golden references, JS parity of generic sections, tier-1 models and stackup lines, and a sample of the sweep."""
 
 import pytest
+from test_impedance import rel
+
+from boarddd import impedance as z
+
+from conftest import load
 
 pytest.importorskip("scipy")
-
-from boarddd import impedance as z  # noqa: E402
-
-from conftest import load  # noqa: E402
-from test_impedance import close, rel  # noqa: E402
 
 CASES = load("impedance/field-cases.json")
 TIER1 = load("impedance/cases.json")
 SWEEP_OPTS = {"level": 2, "max_level": 3, "tol": 1}  # fixtures/impedance/make_field_sweep.mjs SWEEP_OPTS
 PY = {"maxLevel": "max_level"}
+
+
+def close(actual, expected, path="", tol=1e-9):
+    """Numbers within `tol` relative (1e-15 absolute for exact zeros: homogeneous εeff error estimates)."""
+    if isinstance(expected, bool) or expected is None or isinstance(expected, str):
+        assert actual == expected, path
+    elif isinstance(expected, int | float):
+        assert isinstance(actual, int | float), path
+        ok = abs(actual) < 1e-15 if expected == 0 else actual == expected or rel(actual, expected) < tol
+        assert ok, f"{path}: {actual} != {expected}"
+    elif isinstance(expected, list):
+        assert len(actual) == len(expected), f"{path} length"
+        for i, (a, e) in enumerate(zip(actual, expected, strict=True)):
+            close(a, e, f"{path}[{i}]", tol)
+    else:
+        assert sorted(actual) == sorted(expected), path
+        for k in expected:
+            close(actual[k], expected[k], f"{path}.{k}", tol)
 
 
 def lean(r) -> dict:
@@ -54,7 +72,10 @@ def test_stackup_target_parity(c):
         d = {k: getattr(r, k) for k in r.__dataclass_fields__}
         d["result"] = lean(r.result)
         got.append(d)
-    close(got, c["expect"], "rows", 1e-8)
+    expect = [dict(e) for e in c["expect"]]
+    for g, e in zip(got, expect, strict=True):  # ~0 after synthesis: compare absolutely
+        assert abs(g.pop("deviation_pct") - e.pop("deviation_pct")) < 1e-6
+    close(got, expect, "rows", 1e-8)
 
 
 def test_sweep_sample():
