@@ -4,31 +4,58 @@
   "description": "3D PCB rendering for the browser: board solids from Gerber/Excellon, KiCad footprints, GLB/STEP models, a small three.js viewer.",
   "license": "MIT",
   "type": "module",
-  "repository": { "type": "git", "url": "https://github.com/CoolNamesAllTaken/boarddd.git" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CoolNamesAllTaken/boarddd.git"
+  },
   "exports": {
-    "./geom": { "types": "./src/geom/index.d.ts", "default": "./src/geom/index.js" },
-    "./board": { "types": "./src/board/index.d.ts", "default": "./src/board/index.js" },
-    "./footprint": { "types": "./src/footprint/index.d.ts", "default": "./src/footprint/index.js" },
-    "./models": { "types": "./src/models/index.d.ts", "default": "./src/models/index.js" },
-    "./scene": { "types": "./src/scene/index.d.ts", "default": "./src/scene/index.js" },
+    "./geom": {
+      "types": "./src/geom/index.d.ts",
+      "default": "./src/geom/index.js"
+    },
+    "./board": {
+      "types": "./src/board/index.d.ts",
+      "default": "./src/board/index.js"
+    },
+    "./footprint": {
+      "types": "./src/footprint/index.d.ts",
+      "default": "./src/footprint/index.js"
+    },
+    "./models": {
+      "types": "./src/models/index.d.ts",
+      "default": "./src/models/index.js"
+    },
+    "./scene": {
+      "types": "./src/scene/index.d.ts",
+      "default": "./src/scene/index.js"
+    },
     "./package.json": "./package.json"
   },
-  "files": ["src", "README.md", "LICENSE"],
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "sideEffects": false,
   "scripts": {
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:browser": "playwright test",
-    "serve": "node scripts/serve.mjs"
+    "serve": "node scripts/serve.mjs",
+    "typecheck": "tsc --noEmit --lib es2022,dom --moduleResolution bundler --module esnext src/geom/index.d.ts src/board/index.d.ts src/footprint/index.d.ts"
   },
   "peerDependencies": {
     "three": ">=0.160.0",
     "wasm-gerber-renderer": ">=0.7.0"
   },
   "peerDependenciesMeta": {
-    "wasm-gerber-renderer": { "optional": true }
+    "wasm-gerber-renderer": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",
-    "three": "0.185.0"
+    "@types/three": "^0.185.0",
+    "three": "0.185.0",
+    "typescript": "^5.9.3"
   }
 }

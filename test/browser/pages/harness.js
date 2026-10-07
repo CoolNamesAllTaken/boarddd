@@ -7,22 +7,11 @@
 import * as THREE from 'three';
 import { buildFootprint, parseKicadFootprint } from '/src/footprint/index.js';
 import { buildGerberBoard } from '/src/board/index.js';
+import { gerberApi } from '/test/browser/pages/harness-gerber.js';
 
 const q = new URLSearchParams(location.search);
 const W = +(q.get('w') || 800), H = +(q.get('h') || 600);
 const BG = q.get('bg') || '#ff00ff';   // magenta: what shows through a hole
-
-export async function gerberApi() {
-  const base = '/vendor/wasm-gerber-renderer/';
-  const mods = await Promise.all(['index.js', 'board.js', 'diff.js', 'drills.js', 'layers.js', 'outline.js', 'raster.js'].map((m) => import(base + m)));
-  const glue = await import(base + 'wasm/wasm_gerber_processor.js');
-  const api = Object.assign({}, ...mods);
-  const renderer = await api.createGerberRenderer(document.createElement('canvas'), {
-    wasmModule: glue, wasmInitInput: { module_or_path: new URL(base + 'wasm/wasm_gerber_processor_bg.wasm', location.href) },
-    contextAttributes: { preserveDrawingBuffer: true },
-  });
-  return { api, renderer };
-}
 
 async function main() {
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
