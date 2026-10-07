@@ -7,6 +7,10 @@
 //
 // No continuous animation loop: a frame is requested only when something changed (controls,
 // resize, content, a call), and the loop stops as soon as the controls are still.
+//
+// Panes (setPanes): the canvas split into side-by-side views drawn with the ONE camera, e.g. a
+// base and a head revision, so the two can never drift apart and a drag anywhere turns both
+// (kipr web/project/pcba3d/viewer.js and web/library/js/view3d.js side-by-side modes).
 
 import * as THREE from 'three';
 import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
@@ -57,12 +61,12 @@ function makeControls(kind, camera, el) {
 export function createViewer(el, opts = {}) {
   const {
     controls: controlsKind = 'trackball', fov = 30, viewCube = true, environment = true,
-    antialias = true, onPick = null, onRender = null,
+    antialias = true, onPick = null, onRender = null, preserveDrawingBuffer = false,
   } = opts;
   let theme = opts.theme === 'dark' ? 'dark' : 'light';
   let backgroundSpec = opts.background === undefined ? 'theme' : opts.background;
 
-  const renderer = new THREE.WebGLRenderer({ antialias, alpha: true });
+  const renderer = new THREE.WebGLRenderer({ antialias, alpha: true, preserveDrawingBuffer });
   renderer.setPixelRatio(opts.pixelRatio || Math.min(globalThis.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -110,6 +114,25 @@ export function createViewer(el, opts = {}) {
   let width = 1, height = 1;
   let frame = 0, dirty = true, disposed = false;
   let controls = null;
+  let panes = null;              // null, or [[Object3D, ...], ...]: what only that pane shows
+
+  /** Pane i's rectangle in CSS px (x from the left), or the whole canvas. */
+  function paneRect(i) {
+    if (!panes) return { x: 0, width };
+    const x0 = Math.round((i * width) / panes.length), x1 = Math.round(((i + 1) * width) / panes.length);
+    return { x: x0, width: Math.max(1, x1 - x0) };
+  }
+  const aspect = () => paneRect(0).width / height;
+  /** Show only pane i's own objects (plus everything not in any pane); returns a restore function. */
+  function showPane(i) {
+    if (!panes) return () => {};
+    const saved = [];
+    panes.forEach((list, k) => {
+      if (k === i) return;
+      for (const o of list) if (!panes[i].includes(o)) { saved.push([o, o.visible]); o.visible = false; }
+    });
+    return () => { for (const [o, v] of saved) o.visible = v; };
+  }
 
   function requestRender() {
     if (disposed) return;
@@ -141,13 +164,29 @@ export function createViewer(el, opts = {}) {
   function draw({ cubeToo = true } = {}) {
     renderer.setScissorTest(false);
     renderer.setViewport(0, 0, width, height);
-    camera.aspect = width / height;
     const { near, far } = clipPlanes(camera.position.toArray(), contentSphere());
     camera.near = near;
     camera.far = far;
-    camera.updateProjectionMatrix();
     lights.update(camera, controls.target);
-    renderer.render(scene, camera);
+    if (!panes) {
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
+    } else {
+      renderer.setScissorTest(true);
+      panes.forEach((_, i) => {
+        const r = paneRect(i);
+        renderer.setViewport(r.x, 0, r.width, height);
+        renderer.setScissor(r.x, 0, r.width, height);
+        camera.aspect = r.width / height;
+        camera.updateProjectionMatrix();
+        const restore = showPane(i);
+        renderer.render(scene, camera);
+        restore();
+      });
+      renderer.setScissorTest(false);
+      renderer.setViewport(0, 0, width, height);
+    }
     if (cube && cubeToo) cube.draw(renderer, camera, controls.target, width, height);
     stats.frames++;
     onRender?.();
@@ -266,7 +305,7 @@ export function createViewer(el, opts = {}) {
       const b = box || new THREE.Box3().setFromObject(content);
       if (b.isEmpty()) b.setFromCenterAndSize(new THREE.Vector3(), new THREE.Vector3(50, 50, 2));
       const view = v || { dir: camera.position.clone().sub(controls.target).toArray(), up: camera.up.toArray() };
-      const f = fitCamera({ min: b.min.toArray(), max: b.max.toArray() }, view, camera.fov, width / height, pad);
+      const f = fitCamera({ min: b.min.toArray(), max: b.max.toArray() }, view, camera.fov, aspect(), pad);
       controls.target.set(...f.target);
       camera.position.set(...f.position);
       camera.up.set(...f.up);
@@ -286,20 +325,47 @@ export function createViewer(el, opts = {}) {
     setBackground(spec) { backgroundSpec = spec; applyBackground(); requestRender(); },
     setControls,
 
-    /** Content object under a client point: {object, ref, point} (ref: nearest userData.ref up the tree) or null. */
-    pick(clientX, clientY) {
+    /**
+     * Content object under a client point: {object, ref, point, pane} (ref: nearest userData.ref up
+     * the tree; pane: the index of the pane under the point, 0 without panes) or null. Only what that
+     * pane shows can be hit. `filter(object)` may narrow the candidates further.
+     */
+    pick(clientX, clientY, { filter = null } = {}) {
       const r = canvas.getBoundingClientRect();
-      const ndc = new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+      const px = ((clientX - r.left) / Math.max(r.width, 1)) * width;
+      let pane = 0;
+      if (panes) while (pane < panes.length - 1 && px >= paneRect(pane + 1).x) pane++;
+      const pr = paneRect(pane);
+      const ndc = new THREE.Vector2(((px - pr.x) / pr.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+      camera.aspect = pr.width / height;
+      camera.updateProjectionMatrix();
       raycaster.setFromCamera(ndc, camera);
+      const restore = showPane(pane);
       const hit = raycaster.intersectObject(content, true).find((h) => {
         for (let o = h.object; o; o = o.parent) if (!o.visible) return false;
-        return true;
+        return !filter || filter(h.object);
       });
+      restore();
       if (!hit) return null;
       let ref = null;
       for (let o = hit.object; o && ref === null; o = o.parent) ref = o.userData?.ref ?? null;
-      return { object: hit.object, ref, point: hit.point.toArray() };
+      return { object: hit.object, ref, point: hit.point.toArray(), pane };
     },
+
+    /**
+     * Split the view into side-by-side panes drawn with the one camera: `list` is an array (left to
+     * right) of arrays of content objects that only that pane shows; objects in no pane show in
+     * every pane. null (or fewer than two panes) goes back to one view. Keeps the camera; call fit()
+     * to reframe for the new aspect.
+     */
+    setPanes(list) {
+      panes = Array.isArray(list) && list.length > 1 ? list.map((l) => (Array.isArray(l) ? l.filter(Boolean) : [l].filter(Boolean))) : null;
+      requestRender();
+      return api;
+    },
+    get panes() { return panes ? panes.map((l) => l.slice()) : null; },
+    /** Pane i's rectangle in canvas CSS px: {x, y, width, height}. */
+    paneRect(i = 0) { const r = paneRect(i); return { x: r.x, y: 0, width: r.width, height }; },
 
     /**
      * The view cube under a client point: a face name ('top', ...), '' for the cube's corner but not

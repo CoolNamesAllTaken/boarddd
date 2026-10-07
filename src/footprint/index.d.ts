@@ -31,5 +31,7 @@ export interface BuiltFootprint {
 }
 export function buildFootprint(fp: Footprint, options?: {
   thickness?: number; margin?: number; outline?: Outline; faces?: { top?: Face; bottom?: Face }; uvBounds?: Bounds;
+  /** Layer pictures over uvBounds drawn as transparent sheets in the silk / fab / courtyard groups. */
+  decals?: Partial<Record<'silk' | 'fab' | 'courtyard', { top?: Face; bottom?: Face }>>;
   colors?: Partial<{ mask: number; fr4: number; copper: number; silk: number; fab: number; courtyard: number }>;
 }): BuiltFootprint;

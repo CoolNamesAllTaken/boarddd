@@ -84,3 +84,32 @@ test('buildFootprint: an NPTH without copper ring gets a hole but no copper and 
   assert.equal(b.meshes.barrels.length, 0);
   assert.ok(b.meshes.board.geometry.attributes.position.count > 100);   // the hole's wall is there
 });
+
+test('buildFootprint decals: layer pictures become transparent sheets in their group, top above the copper, bottom under it', () => {
+  const fp = parseKicadFootprint(read('pad_placement/R_0603_1608Metric.kicad_mod'));
+  const pic = () => new THREE.DataTexture(new Uint8Array(4 * 4 * 4), 4, 4);
+  const silkTop = pic(), fabBottom = pic();
+  const uvBounds = { minX: -3, maxX: 3, minY: -2, maxY: 2 };
+  const built = buildFootprint({ ...fp, graphics: [] }, {
+    outline: { board: [[-3, -2], [3, -2], [3, 2], [-3, 2]] }, uvBounds, decals: { silk: { top: silkTop }, fab: { bottom: fabBottom } },
+  });
+  assert.equal(built.meshes.silk.length, 1);
+  assert.equal(built.meshes.fab.length, 1);
+  const [s] = built.meshes.silk, [f] = built.meshes.fab;
+  assert.equal(s.userData.group, 'silk');
+  assert.equal(f.userData.group, 'fab');
+  assert.equal(s.material.map, silkTop);
+  assert.ok(s.material.transparent && !s.material.depthWrite);
+  assert.equal(f.material.side, THREE.BackSide);
+  s.geometry.computeBoundingBox(); f.geometry.computeBoundingBox();
+  assert.ok(s.geometry.boundingBox.min.z > BOARD_THICKNESS + COPPER_THICKNESS);
+  assert.ok(f.geometry.boundingBox.max.z < -COPPER_THICKNESS);
+  // UVs follow uvBounds: the corner (-3, -2) maps to (0, 0), (3, 2) to (1, 1)
+  const uv = s.geometry.attributes.uv, pos = s.geometry.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    assert.ok(Math.abs(uv.getX(i) - (pos.getX(i) + 3) / 6) < 1e-6);
+    assert.ok(Math.abs(uv.getY(i) - (pos.getY(i) + 2) / 4) < 1e-6);
+  }
+  built.dispose();
+  assert.equal(silkTop.source.data !== null, true);   // the caller's textures are not disposed by us
+});
