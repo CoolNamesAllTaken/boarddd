@@ -152,27 +152,45 @@ for (const [odbName, gerberName, minIou, minNear] of [
 }
 
 test("renderBoard draws the ODB++ job and the Gerbers as the same board", async ({ page }, testInfo) => {
-  const shots = {};
-  for (const [label, side] of [
-    ["gerber", "top"],
-    ["odb", "top"],
-    ["gerber", "bottom"],
-    ["odb", "bottom"],
-  ]) {
-    await page.evaluate(
-      async ({ label, side }) => {
-        const { api, renderer, fabFiles, odbLayers } = window.t;
-        const files = label === "odb" ? odbLayers.map((l) => ({ name: l.name, content: l.source })) : fabFiles;
-        const board = api.groupBoardLayers(
-          files.map((f) => ({ ...f, content: f.name.endsWith(".drl") && label === "gerber" ? api.withoutEmptyTools(f.content) : f.content })),
-        );
-        await api.renderBoard(renderer, board, { side, width: 1200, height: 520, padding: 1, background: "#202020" });
-      },
-      { label, side },
-    );
-    const shot = await page.locator("canvas").screenshot();
-    shots[`${label}-${side}`] = shot;
-    await testInfo.attach(`${label}-${side}`, { body: shot, contentType: "image/png" });
+  const results = {};
+  for (const side of ["top", "bottom"]) {
+    const pixels = {};
+    for (const label of ["gerber", "odb"]) {
+      pixels[label] = await page.evaluate(
+        async ({ label, side }) => {
+          const { api, renderer, canvas, fabFiles, odbLayers } = window.t;
+          const files =
+            label === "odb"
+              ? odbLayers.map((l) => ({ name: l.name, content: l.source }))
+              : fabFiles.map((f) => ({ ...f, content: f.name.endsWith(".drl") ? api.withoutEmptyTools(f.content) : f.content }));
+          const board = api.groupBoardLayers(files);
+          await api.renderBoard(renderer, board, { side, width: 1200, height: 520, padding: 1, background: "#202020" });
+          const { width, height } = renderer.lastFrame;
+          const gl = canvas.getContext("webgl2");
+          const data = new Uint8Array(width * height * 4);
+          gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, data);
+          return Array.from(data);
+        },
+        { label, side },
+      );
+      await testInfo.attach(`${label}-${side}`, { body: await page.locator("canvas").screenshot(), contentType: "image/png" });
+    }
+    const a = pixels.gerber;
+    const b = pixels.odb;
+    let same = 0;
+    let board = 0;
+    for (let i = 0; i < a.length; i += 4) {
+      const background = (r, g, bl) => r === 0x20 && g === 0x20 && bl === 0x20;
+      if (background(b[i], b[i + 1], b[i + 2])) continue;
+      board += 1;
+      if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) < 24) same += 1;
+    }
+    results[side] = { board, same: same / Math.max(board, 1) };
   }
-  expect(Object.keys(shots)).toHaveLength(4);
+  testInfo.annotations.push({ type: "pixels", description: JSON.stringify(results) });
+  for (const side of ["top", "bottom"]) {
+    // the board fills most of the frame, and draws (substrate, copper, mask, finish, silk, holes) as the Gerbers do
+    expect(results[side].board).toBeGreaterThan(400_000);
+    expect(results[side].same).toBeGreaterThan(0.99); // the rest: the 4 slots drawn round, and edges
+  }
 });

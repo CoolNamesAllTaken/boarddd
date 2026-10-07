@@ -111,3 +111,23 @@ test("a zip that is not an ODB++ job, a damaged entry and a zip slip are refused
   slip.set(new TextEncoder().encode("../"), infoAt + 46);
   assert.throws(() => createZipBytesJobTree(slip, { archiveName: "slip.zip" }), /slip\.zip ZIP entry \d+ has an unsafe path/);
 });
+
+test("ODB++ envelopes: hasGeometry, layerRole and groupBoardLayers know them", async () => {
+  const { hasGeometry, layerRole, groupBoardLayers } = await import("../../src/gerber/layers.js");
+  const layers = (await loadOdbJob(ZIP)).map((l) => ({ name: l.name, content: l.source }));
+  assert.ok(layers.every((l) => hasGeometry(l.content)));
+  assert.equal(hasGeometry("%ODB++LAYER%\nkind=signal\nname=X\n%ODB++FILE features%\nUNITS=MM\nF 0\n%ODB++END%\n"), false);
+  // the envelope decides, not the Gerber-style name (which reads as copper for `..._top_layer-bottom_layer.drl`)
+  const roles = Object.fromEntries(layers.map((l) => [l.name, layerRole(l.name, l.content)]));
+  assert.deepEqual(roles["drill_plated_top_layer-bottom_layer.drl"], { role: "drill", side: null, plated: true });
+  assert.deepEqual(roles["drill_non-plated_top_layer-bottom_layer.drl"], { role: "drill", side: null, plated: false });
+  assert.deepEqual(roles["profile.gko"], { role: "outline", side: null });
+  const board = groupBoardLayers(layers);
+  assert.equal(board.outline.name, "profile.gko");
+  assert.deepEqual([board.top.copper.name, board.bottom.copper.name], ["top_layer.gtl", "bottom_layer.gbl"]);
+  assert.deepEqual(board.drills.map((d) => [d.name, d.plated]), [
+    ["drill_non-plated_top_layer-bottom_layer.drl", false],
+    ["drill_plated_top_layer-bottom_layer.drl", true],
+  ]);
+  assert.deepEqual(board.other, []);
+});

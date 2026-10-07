@@ -190,8 +190,10 @@ The upstream ODB++ loader (`js/src/odb` of the fork at `FORK_COMMIT`) is vendore
 the platform `DecompressionStream("deflate-raw")` (upstream's ZIP reader needs `node:zlib`). TAR/TGZ and folders use
 upstream's readers; `.Z` members use the renderer's wasm. Each layer comes back as `{ name, kind, source }`, the
 source an `%ODB++LAYER%` envelope the wasm reads like Gerber/Excellon text, named Gerber-style (`f.cu.gtl`) so name
-classification works. `test/browser/gerber-odb.spec.mjs` draws royalblue's ODB++ copper and mask over its Gerbers
-(identical within 2 px). Known renderer limit: the wasm draws an ODB++ oval drill pad (a KiCad slot) as a round hole.
+classification works; `groupBoardLayers` / `renderBoard` take them like Gerbers (`hasGeometry`, `layerRole` and
+`renderBoard`'s empty-drill check read the envelopes). `test/browser/gerber-odb.spec.mjs` draws royalblue's ODB++
+copper and mask over its Gerbers (identical within 2 px) and the whole board both ways (99.7 % of board pixels
+equal). Known renderer limit: the wasm draws an ODB++ oval drill pad (a KiCad slot) as a round hole.
 
 ## Tests and fixtures
 
