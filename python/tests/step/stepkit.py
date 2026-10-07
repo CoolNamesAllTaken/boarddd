@@ -22,7 +22,7 @@ REPO = HERE.parents[2]
 ROYALBLUE_GZ = REPO / "fixtures" / "generated" / "step" / "royalblue54L_feather.step.gz"
 ROYALBLUE_POS = REPO / "fixtures" / "royalblue54L_feather" / "fab" / "pos.csv"
 #: Set in CI's step job: a missing extra (or node for the JS parity test) fails instead of skipping.
-REQUIRED = bool(os.environ.get("BOARDDD_REQUIRE_STEP"))
+REQUIRED = os.environ.get("BOARDDD_REQUIRE_STEP", "") not in ("", "0")
 
 
 def require_occ() -> None:
