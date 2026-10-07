@@ -5,7 +5,7 @@
 #     bash fixtures/generated/profile/make.sh
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
-cli=${KICAD_CLI:-/workspace/projects/kipr-tools/bin/kicad-cli}
+cli=${KICAD_CLI:-kicad-cli}
 pcb=$here/../../royalblue54L_feather/kicad/RoyalBlue54L-Feather.kicad_pcb
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT

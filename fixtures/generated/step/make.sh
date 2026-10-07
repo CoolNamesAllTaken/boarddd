@@ -3,13 +3,14 @@
 #   royalblue54L_feather-excerpt.step  a few components of KiCad's royalblue54L_feather demo, exported
 #                                      with KiCad's stock 3D models, cut down by make_excerpt.py
 # The demo board names its models ${KICAD8_3DMODEL_DIR}/....wrl; a temporary copy points them at the
-# STEP models of the kicad-cli install (kipr-tools' KiCad 10 rootfs) so the export carries bodies.
+# STEP models of KiCad's stock 3D library so the export carries bodies. KICAD_3DMODEL_DIR (else
+# KICAD10_3DMODEL_DIR, else /usr/share/kicad/3dmodels) is that library; KICAD_CLI the kicad-cli to run.
 #     bash fixtures/generated/step/make.sh
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/../../.." && pwd)
-cli=${KICAD_CLI:-/workspace/projects/kipr-tools/bin/kicad-cli}
-models=${KICAD_3DMODEL_DIR:-$(dirname "$(readlink -f "$cli")")/../kicad10-rootfs/usr/share/kicad/3dmodels}
+cli=${KICAD_CLI:-kicad-cli}
+models=${KICAD_3DMODEL_DIR:-${KICAD10_3DMODEL_DIR:-/usr/share/kicad/3dmodels}}
 models=$(cd "$models" && pwd)
 python=${PYTHON:-python3}
 tmp=$(mktemp -d)

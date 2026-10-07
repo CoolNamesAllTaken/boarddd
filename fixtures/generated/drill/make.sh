@@ -7,7 +7,7 @@
 #     bash fixtures/generated/drill/make.sh
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
-cli=${KICAD_CLI:-/workspace/projects/kipr-tools/bin/kicad-cli}
+cli=${KICAD_CLI:-kicad-cli}
 pcb=$here/../../../test/fixtures/slots-board/slots.kicad_pcb
 export_drill() { # dir, extra args...
   local dir=$here/$1; shift

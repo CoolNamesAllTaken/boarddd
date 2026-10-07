@@ -1,6 +1,6 @@
 """Regenerate golden.json: KiCad's own copper polygon of every pad in Pad_Shapes_boarddd.kicad_mod.
 
-    /workspace/projects/kipr-tools/bin/kicad-python test/fixtures/pad_shapes/make_golden.py
+    python3 test/fixtures/pad_shapes/make_golden.py   # a Python with KiCad's pcbnew (e.g. KiCad's own)
 
 Needs KiCad 10's `pcbnew` module. Per pad: area (mm^2) and bbox (KiCad mm, y down) of
 PAD.GetEffectivePolygon(F_Cu), hole centre and its effective hole (slot) length and width.
