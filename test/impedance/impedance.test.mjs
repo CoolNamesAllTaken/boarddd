@@ -133,3 +133,26 @@ test('accuracy envelope against the quasi-static field-solver sweep (fixtures/im
     assert.ok(max < 2.5 && rms < 1, `${model}: max ${max.toFixed(2)} %, rms ${rms.toFixed(2)} % over ${e.length}`);
   }
 });
+
+test('stackup lines and ImpedanceTarget evaluation (shared cases)', () => {
+  for (const c of cases.stackup_lines) close(JSON.parse(JSON.stringify(z.lineFromStackup(cases.stackups[c.stackup], c.layer, c.opts))), c.expect, `${c.stackup} ${c.layer}`);
+  for (const c of cases.stackup_targets) {
+    const rows = z.evaluateTarget(cases.stackups[c.stackup], c.target);
+    close(JSON.parse(JSON.stringify(rows)), c.expect, `${c.stackup} ${c.target.kind} ${c.target.target}`);
+    for (const r of rows.filter((x) => x.synthesized)) assert.ok(Math.abs(r.deviation_pct) < 1e-6);
+  }
+});
+
+test('stackup: structure and model mapping, refusals', () => {
+  assert.equal(z.modelFor('microstrip', 'single'), 'microstrip');
+  assert.equal(z.modelFor('microstrip', 'single', { coated: true }), 'coated_microstrip');
+  assert.equal(z.modelFor('stripline', 'differential'), 'coupled_stripline');
+  assert.equal(z.modelFor('coplanar_grounded', 'single'), 'cpwg');
+  assert.equal(z.modelFor('coplanar', 'differential'), null);
+  const s = cases.stackups.royalblue;
+  assert.throws(() => z.lineFromStackup(s, 'F.Cu', { width: 0.1, structure: 'stripline' }), /outer layer/);
+  assert.throws(() => z.lineFromStackup(s, 'In1.Cu', { width: 0.1, structure: 'microstrip' }), /inner layer/);
+  assert.throws(() => z.lineFromStackup(s, 'F.Cu', { width: 0.1, kind: 'differential', gap: 0.1, structure: 'coplanar_grounded', coplanarGap: 0.1 }), /no differential coplanar_grounded/);
+  assert.throws(() => z.lineFromStackup(s, 'In9.Cu', { width: 0.1 }), /no copper layer/);
+  assert.throws(() => z.lineFromStackup(s, 'In2.Cu', { width: 0.1, refTop: 'B.Cu' }), /not found above/);
+});

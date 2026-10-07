@@ -1,6 +1,8 @@
 """boarddd.impedance against fixtures/impedance/cases.json (the JS tests run the same file): golden references,
 JS parity, synthesis, validity flags; plus live cross-checks against scipy and scikit-rf when installed."""
 
+import dataclasses
+import json
 import math
 
 import pytest
@@ -162,3 +164,26 @@ def test_accuracy_envelope_against_the_field_solver_sweep():
     for model, e in errs.items():
         rms = math.sqrt(sum(x * x for x in e) / len(e))
         assert max(map(abs, e)) < 2.5 and rms < 1, model
+
+
+@pytest.mark.parametrize("c", CASES["stackup_lines"], ids=lambda c: f"{c['stackup']}-{c['layer']}")
+def test_stackup_line_parity(c):
+    line = z.line_from_stackup(CASES["stackups"][c["stackup"]], c["layer"], **c["py_opts"])
+    close(dataclasses.asdict(line), c["expect"], c["layer"])
+
+
+@pytest.mark.parametrize("c", CASES["stackup_targets"], ids=lambda c: f"{c['stackup']}-{c['target']['target']}")
+def test_stackup_target_parity(c):
+    rows = z.evaluate_target(CASES["stackups"][c["stackup"]], c["target"])
+    close([dataclasses.asdict(r) for r in rows], c["expect"], "rows", 1e-8)
+
+
+def test_stackup_from_model_dataclasses():
+    from boarddd.model import Board
+
+    board = Board.from_json(json.dumps(load("royalblue54L_feather/board.json")))
+    line = z.line_from_stackup(board.stackup, "In1.Cu", width=0.1)
+    assert line.model == "stripline" and line.params["h1"] == 0.1 and line.params["h2"] == 0.3
+    assert z.model_for("coplanar", "differential") is None
+    with pytest.raises(ValueError, match="outer layer"):
+        z.line_from_stackup(board.stackup, "F.Cu", width=0.1, structure="stripline")

@@ -3140,5 +3140,1092 @@
     }
    }
   }
+ ],
+ "stackups": {
+  "royalblue": {
+   "thickness": 1.6,
+   "copper_layers": 8,
+   "finish": "ENIG",
+   "mask_color": {
+    "top": "Blue",
+    "bottom": "Blue"
+   },
+   "silk_color": {
+    "top": "White",
+    "bottom": "White"
+   },
+   "layers": [
+    {
+     "name": "F.SilkS",
+     "kind": "silk",
+     "side": "top",
+     "thickness": null,
+     "material": null,
+     "color": "White",
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "F.Silkscreen",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "F.Paste",
+     "kind": "paste",
+     "side": "top",
+     "thickness": null,
+     "material": null,
+     "color": null,
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "F.Paste",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "F.Mask",
+     "kind": "mask",
+     "side": "top",
+     "thickness": 0.01,
+     "material": null,
+     "color": "Blue",
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "F.Mask",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "F.Cu",
+     "kind": "copper",
+     "side": "top",
+     "thickness": 0.035,
+     "material": null,
+     "color": null,
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "F.Cu",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "dielectric 1",
+     "kind": "dielectric",
+     "side": "inner",
+     "thickness": 0.1,
+     "material": "FR4",
+     "color": null,
+     "epsilon_r": 4.5,
+     "loss_tangent": 0.02,
+     "layer": null,
+     "dielectric": "prepreg",
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "In1.Cu",
+     "kind": "copper",
+     "side": "inner",
+     "thickness": 0.035,
+     "material": null,
+     "color": null,
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "In1.Cu",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "dielectric 2",
+     "kind": "dielectric",
+     "side": "inner",
+     "thickness": 0.3,
+     "material": "FR4",
+     "color": null,
+     "epsilon_r": 4.5,
+     "loss_tangent": 0.02,
+     "layer": null,
+     "dielectric": "core",
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "In2.Cu",
+     "kind": "copper",
+     "side": "inner",
+     "thickness": 0.035,
+     "material": null,
+     "color": null,
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "In2.Cu",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "dielectric 3",
+     "kind": "dielectric",
+     "side": "inner",
+     "thickness": 0.1,
+     "material": "FR4",
+     "color": null,
+     "epsilon_r": 4.5,
+     "loss_tangent": 0.02,
+     "layer": null,
+     "dielectric": "prepreg",
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "In3.Cu",
+     "kind": "copper",
+     "side": "inner",
+     "thickness": 0.035,
+     "material": null,
+     "color": null,
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "In3.Cu",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "dielectric 4",
+     "kind": "dielectric",
+     "side": "inner",
+     "thickness": 0.3,
+     "material": "FR4",
+     "color": null,
+     "epsilon_r": 4.5,
+     "loss_tangent": 0.02,
+     "layer": null,
+     "dielectric": "core",
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "In4.Cu",
+     "kind": "copper",
+     "side": "inner",
+     "thickness": 0.035,
+     "material": null,
+     "color": null,
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "In4.Cu",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "dielectric 5",
+     "kind": "dielectric",
+     "side": "inner",
+     "thickness": 0.1,
+     "material": "FR4",
+     "color": null,
+     "epsilon_r": 4.5,
+     "loss_tangent": 0.02,
+     "layer": null,
+     "dielectric": "prepreg",
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "In5.Cu",
+     "kind": "copper",
+     "side": "inner",
+     "thickness": 0.035,
+     "material": null,
+     "color": null,
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "In5.Cu",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "dielectric 6",
+     "kind": "dielectric",
+     "side": "inner",
+     "thickness": 0.3,
+     "material": "FR4",
+     "color": null,
+     "epsilon_r": 4.5,
+     "loss_tangent": 0.02,
+     "layer": null,
+     "dielectric": "core",
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "In6.Cu",
+     "kind": "copper",
+     "side": "inner",
+     "thickness": 0.035,
+     "material": null,
+     "color": null,
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "In6.Cu",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "dielectric 7",
+     "kind": "dielectric",
+     "side": "inner",
+     "thickness": 0.1,
+     "material": "FR4",
+     "color": null,
+     "epsilon_r": 4.5,
+     "loss_tangent": 0.02,
+     "layer": null,
+     "dielectric": "prepreg",
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "B.Cu",
+     "kind": "copper",
+     "side": "bottom",
+     "thickness": 0.035,
+     "material": null,
+     "color": null,
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "B.Cu",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "B.Mask",
+     "kind": "mask",
+     "side": "bottom",
+     "thickness": 0.01,
+     "material": null,
+     "color": "Blue",
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "B.Mask",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "B.Paste",
+     "kind": "paste",
+     "side": "bottom",
+     "thickness": null,
+     "material": null,
+     "color": null,
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "B.Paste",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    },
+    {
+     "name": "B.SilkS",
+     "kind": "silk",
+     "side": "bottom",
+     "thickness": null,
+     "material": null,
+     "color": "White",
+     "epsilon_r": null,
+     "loss_tangent": null,
+     "layer": "B.Silkscreen",
+     "dielectric": null,
+     "sublayers": [],
+     "frequency": null,
+     "dielectric_model": null,
+     "locked": null,
+     "tolerance": null,
+     "finished_thickness": null,
+     "roughness_rq": null,
+     "conductivity": null,
+     "etch_factor": null,
+     "thickness_over_copper": null
+    }
+   ],
+   "impedance_controlled": false
+  },
+  "synthetic": {
+   "layers": [
+    {
+     "name": "Top Solder Mask",
+     "kind": "mask",
+     "side": "top",
+     "thickness": 0.02,
+     "thickness_over_copper": 0.012,
+     "epsilon_r": 3.6
+    },
+    {
+     "name": "L1",
+     "kind": "copper",
+     "side": "top",
+     "thickness": 0.035,
+     "layer": "F.Cu"
+    },
+    {
+     "name": "PP1",
+     "kind": "dielectric",
+     "side": "inner",
+     "thickness": 0.21,
+     "epsilon_r": 4.2,
+     "dielectric": "prepreg"
+    },
+    {
+     "name": "L2",
+     "kind": "copper",
+     "side": "inner",
+     "thickness": 0.018,
+     "layer": "In1.Cu"
+    },
+    {
+     "name": "Core1",
+     "kind": "dielectric",
+     "side": "inner",
+     "thickness": 0.15,
+     "epsilon_r": 4.6,
+     "dielectric": "core"
+    },
+    {
+     "name": "L3",
+     "kind": "copper",
+     "side": "inner",
+     "thickness": null,
+     "layer": "In2.Cu"
+    },
+    {
+     "name": "PP2",
+     "kind": "dielectric",
+     "side": "inner",
+     "thickness": 0.3,
+     "epsilon_r": null,
+     "dielectric": "prepreg"
+    },
+    {
+     "name": "L4",
+     "kind": "copper",
+     "side": "inner",
+     "thickness": 0.018,
+     "layer": "In3.Cu"
+    },
+    {
+     "name": "Core2",
+     "kind": "dielectric",
+     "side": "inner",
+     "thickness": 0.2,
+     "epsilon_r": 4.4
+    },
+    {
+     "name": "L5",
+     "kind": "copper",
+     "side": "bottom",
+     "thickness": 0.035,
+     "layer": "B.Cu"
+    },
+    {
+     "name": "Bottom Solder Mask",
+     "kind": "mask",
+     "side": "bottom",
+     "thickness": null,
+     "epsilon_r": null
+    }
+   ]
+  }
+ },
+ "stackup_lines": [
+  {
+   "stackup": "royalblue",
+   "layer": "F.Cu",
+   "opts": {
+    "width": 0.15
+   },
+   "py_opts": {
+    "width": 0.15
+   },
+   "expect": {
+    "model": "coated_microstrip",
+    "structure": "microstrip",
+    "params": {
+     "w": 0.15,
+     "t": 0.035,
+     "h": 0.1,
+     "er": 4.5,
+     "c": 0.01,
+     "erc": 3.3
+    },
+    "warnings": [
+     "F.Mask: no epsilon_r, using 3.3"
+    ]
+   }
+  },
+  {
+   "stackup": "royalblue",
+   "layer": "In1.Cu",
+   "opts": {
+    "width": 0.1
+   },
+   "py_opts": {
+    "width": 0.1
+   },
+   "expect": {
+    "model": "stripline",
+    "structure": "stripline",
+    "params": {
+     "w": 0.1,
+     "t": 0.035,
+     "h1": 0.1,
+     "h2": 0.3,
+     "er": 4.5
+    },
+    "warnings": []
+   }
+  },
+  {
+   "stackup": "royalblue",
+   "layer": "In2.Cu",
+   "opts": {
+    "width": 0.1,
+    "kind": "differential",
+    "gap": 0.12
+   },
+   "py_opts": {
+    "width": 0.1,
+    "kind": "differential",
+    "gap": 0.12
+   },
+   "expect": {
+    "model": "coupled_stripline",
+    "structure": "stripline",
+    "params": {
+     "w": 0.1,
+     "t": 0.035,
+     "h1": 0.3,
+     "h2": 0.1,
+     "er": 4.5,
+     "s": 0.12
+    },
+    "warnings": []
+   }
+  },
+  {
+   "stackup": "royalblue",
+   "layer": "B.Cu",
+   "opts": {
+    "width": 0.2,
+    "kind": "differential",
+    "gap": 0.15
+   },
+   "py_opts": {
+    "width": 0.2,
+    "kind": "differential",
+    "gap": 0.15
+   },
+   "expect": {
+    "model": "coupled_microstrip",
+    "structure": "microstrip",
+    "params": {
+     "w": 0.2,
+     "t": 0.035,
+     "h": 0.1,
+     "er": 4.5,
+     "s": 0.15
+    },
+    "warnings": [
+     "B.Mask: no epsilon_r, using 3.3",
+     "microstrip differential: the solder mask is not modelled (tier 1)"
+    ]
+   }
+  },
+  {
+   "stackup": "royalblue",
+   "layer": "F.Cu",
+   "opts": {
+    "width": 0.3,
+    "structure": "coplanar_grounded",
+    "coplanarGap": 0.15
+   },
+   "py_opts": {
+    "width": 0.3,
+    "structure": "coplanar_grounded",
+    "coplanar_gap": 0.15
+   },
+   "expect": {
+    "model": "cpwg",
+    "structure": "coplanar_grounded",
+    "params": {
+     "w": 0.3,
+     "t": 0.035,
+     "h": 0.1,
+     "er": 4.5,
+     "gap": 0.15
+    },
+    "warnings": [
+     "F.Mask: no epsilon_r, using 3.3",
+     "coplanar_grounded single: the solder mask is not modelled (tier 1)"
+    ]
+   }
+  },
+  {
+   "stackup": "royalblue",
+   "layer": "F.Cu",
+   "opts": {
+    "width": 0.15,
+    "mask": false
+   },
+   "py_opts": {
+    "width": 0.15,
+    "mask": false
+   },
+   "expect": {
+    "model": "microstrip",
+    "structure": "microstrip",
+    "params": {
+     "w": 0.15,
+     "t": 0.035,
+     "h": 0.1,
+     "er": 4.5
+    },
+    "warnings": [
+     "F.Mask: no epsilon_r, using 3.3"
+    ]
+   }
+  },
+  {
+   "stackup": "synthetic",
+   "layer": "F.Cu",
+   "opts": {
+    "width": 0.36
+   },
+   "py_opts": {
+    "width": 0.36
+   },
+   "expect": {
+    "model": "coated_microstrip",
+    "structure": "microstrip",
+    "params": {
+     "w": 0.36,
+     "t": 0.035,
+     "h": 0.21,
+     "er": 4.2,
+     "c": 0.012,
+     "erc": 3.6
+    },
+    "warnings": []
+   }
+  },
+  {
+   "stackup": "synthetic",
+   "layer": "In1.Cu",
+   "opts": {
+    "width": 0.1
+   },
+   "py_opts": {
+    "width": 0.1
+   },
+   "expect": {
+    "model": "stripline",
+    "structure": "stripline",
+    "params": {
+     "w": 0.1,
+     "t": 0.018,
+     "h1": 0.21,
+     "h2": 0.15,
+     "er": 4.433333333333333
+    },
+    "warnings": []
+   }
+  },
+  {
+   "stackup": "synthetic",
+   "layer": "In2.Cu",
+   "opts": {
+    "width": 0.12
+   },
+   "py_opts": {
+    "width": 0.12
+   },
+   "expect": {
+    "model": "stripline",
+    "structure": "stripline",
+    "params": {
+     "w": 0.12,
+     "t": 0.035,
+     "h1": 0.15,
+     "h2": 0.3,
+     "er": 4.566666666666666
+    },
+    "warnings": [
+     "In2.Cu: no thickness, using 0.035 mm",
+     "PP2: no epsilon_r, using 4.5"
+    ]
+   }
+  },
+  {
+   "stackup": "synthetic",
+   "layer": "In2.Cu",
+   "opts": {
+    "width": 0.12,
+    "refTop": "F.Cu"
+   },
+   "py_opts": {
+    "width": 0.12,
+    "ref_top": "F.Cu"
+   },
+   "expect": {
+    "model": "stripline",
+    "structure": "stripline",
+    "params": {
+     "w": 0.12,
+     "t": 0.035,
+     "h1": 0.378,
+     "h2": 0.3,
+     "er": 4.4419664695157195
+    },
+    "warnings": [
+     "In2.Cu: no thickness, using 0.035 mm",
+     "PP2: no epsilon_r, using 4.5"
+    ]
+   }
+  },
+  {
+   "stackup": "synthetic",
+   "layer": "B.Cu",
+   "opts": {
+    "width": 0.2
+   },
+   "py_opts": {
+    "width": 0.2
+   },
+   "expect": {
+    "model": "coated_microstrip",
+    "structure": "microstrip",
+    "params": {
+     "w": 0.2,
+     "t": 0.035,
+     "h": 0.2,
+     "er": 4.4,
+     "c": 0.01,
+     "erc": 3.3
+    },
+    "warnings": [
+     "Bottom Solder Mask: no thickness, using 0.01 mm",
+     "Bottom Solder Mask: no epsilon_r, using 3.3"
+    ]
+   }
+  },
+  {
+   "stackup": "synthetic",
+   "layer": "B.Cu",
+   "opts": {
+    "width": 0.2,
+    "structure": "coplanar",
+    "coplanarGap": 0.2
+   },
+   "py_opts": {
+    "width": 0.2,
+    "structure": "coplanar",
+    "coplanar_gap": 0.2
+   },
+   "expect": {
+    "model": "cpw",
+    "structure": "coplanar",
+    "params": {
+     "w": 0.2,
+     "t": 0.035,
+     "h": 0.2,
+     "er": 4.4,
+     "gap": 0.2
+    },
+    "warnings": [
+     "Bottom Solder Mask: no thickness, using 0.01 mm",
+     "Bottom Solder Mask: no epsilon_r, using 3.3",
+     "coplanar single: the solder mask is not modelled (tier 1)"
+    ]
+   }
+  }
+ ],
+ "stackup_targets": [
+  {
+   "stackup": "royalblue",
+   "target": {
+    "kind": "differential",
+    "target": 90,
+    "tolerance_pct": 10,
+    "common_mode": null,
+    "structure": "microstrip",
+    "source": "name",
+    "layers": [
+     {
+      "layer": "F.Cu",
+      "width": 0.15,
+      "gap": 0.15,
+      "ref_top": null,
+      "ref_bottom": null
+     },
+     {
+      "layer": "B.Cu",
+      "width": null,
+      "gap": 0.15,
+      "ref_top": null,
+      "ref_bottom": null
+     }
+    ]
+   },
+   "expect": [
+    {
+     "layer": "F.Cu",
+     "model": "coupled_microstrip",
+     "key": "Zdiff",
+     "value": 91.26061296595172,
+     "target": 90,
+     "deviation_pct": 1.4006810732796913,
+     "ok": true,
+     "width": 0.15,
+     "synthesized": false,
+     "result": {
+      "model": "coupled_microstrip",
+      "method": "Kirschning-Jansen 1984 + boarddd thickness",
+      "Zdiff": 91.26061296595172,
+      "Zcommon": 28.812574909084578,
+      "Zodd": 45.63030648297586,
+      "Zeven": 57.625149818169156,
+      "eps_eff_odd": 2.7716567391824447,
+      "eps_eff_even": 3.3434282099087875,
+      "flags": [
+       {
+        "code": "t/h",
+        "value": 0.35000000000000003,
+        "min": 0,
+        "max": 0.35,
+        "message": "t/h = 0.35 is outside 0..0.35 (boarddd coupled thickness)"
+       }
+      ]
+     },
+     "warnings": [
+      "F.Mask: no epsilon_r, using 3.3",
+      "microstrip differential: the solder mask is not modelled (tier 1)"
+     ]
+    },
+    {
+     "layer": "B.Cu",
+     "model": "coupled_microstrip",
+     "key": "Zdiff",
+     "value": 90.00000001310872,
+     "target": 90,
+     "deviation_pct": 1.4565241852121996e-8,
+     "ok": true,
+     "width": 0.1545114192643856,
+     "synthesized": true,
+     "result": {
+      "model": "coupled_microstrip",
+      "method": "Kirschning-Jansen 1984 + boarddd thickness",
+      "Zdiff": 90.00000001310872,
+      "Zcommon": 28.361189460463205,
+      "Zodd": 45.00000000655436,
+      "Zeven": 56.72237892092641,
+      "eps_eff_odd": 2.7820555377138487,
+      "eps_eff_even": 3.3549889981603593,
+      "flags": [
+       {
+        "code": "t/h",
+        "value": 0.35000000000000003,
+        "min": 0,
+        "max": 0.35,
+        "message": "t/h = 0.35 is outside 0..0.35 (boarddd coupled thickness)"
+       }
+      ]
+     },
+     "warnings": [
+      "B.Mask: no epsilon_r, using 3.3",
+      "microstrip differential: the solder mask is not modelled (tier 1)"
+     ]
+    }
+   ]
+  },
+  {
+   "stackup": "royalblue",
+   "target": {
+    "kind": "single",
+    "target": 50,
+    "tolerance_pct": null,
+    "common_mode": null,
+    "structure": null,
+    "source": "user",
+    "layers": [
+     {
+      "layer": "In2.Cu",
+      "width": 0.1,
+      "gap": null,
+      "ref_top": "In1.Cu",
+      "ref_bottom": "In4.Cu"
+     },
+     {
+      "layer": "In1.Cu",
+      "width": null,
+      "gap": null,
+      "ref_top": null,
+      "ref_bottom": null
+     }
+    ]
+   },
+   "expect": [
+    {
+     "layer": "In2.Cu",
+     "model": "stripline",
+     "key": "Z0",
+     "value": 70.6172612319393,
+     "target": 50,
+     "deviation_pct": 41.23452246387859,
+     "ok": null,
+     "width": 0.1,
+     "synthesized": false,
+     "result": {
+      "model": "stripline",
+      "method": "Cohn 1954 + Wheeler 1978 thickness + boarddd offset",
+      "Z0": 70.6172612319393,
+      "eps_eff": 4.5,
+      "flags": []
+     },
+     "warnings": []
+    },
+    {
+     "layer": "In1.Cu",
+     "model": "stripline",
+     "key": "Z0",
+     "value": 50.000000004225335,
+     "target": 50,
+     "deviation_pct": 8.450669497506169e-9,
+     "ok": null,
+     "width": 0.09057500587161178,
+     "synthesized": true,
+     "result": {
+      "model": "stripline",
+      "method": "Cohn 1954 + Wheeler 1978 thickness + boarddd offset",
+      "Z0": 50.000000004225335,
+      "eps_eff": 4.5,
+      "flags": []
+     },
+     "warnings": []
+    }
+   ]
+  },
+  {
+   "stackup": "synthetic",
+   "target": {
+    "kind": "single",
+    "target": 50,
+    "tolerance_pct": 5,
+    "common_mode": null,
+    "structure": "stripline",
+    "source": "tuning_profile",
+    "layers": [
+     {
+      "layer": "In2.Cu",
+      "width": 0.12,
+      "gap": null,
+      "ref_top": null,
+      "ref_bottom": null
+     }
+    ]
+   },
+   "expect": [
+    {
+     "layer": "In2.Cu",
+     "model": "stripline",
+     "key": "Z0",
+     "value": 51.617975097358716,
+     "target": 50,
+     "deviation_pct": 3.2359501947174323,
+     "ok": true,
+     "width": 0.12,
+     "synthesized": false,
+     "result": {
+      "model": "stripline",
+      "method": "Cohn 1954 + Wheeler 1978 thickness + boarddd offset",
+      "Z0": 51.617975097358716,
+      "eps_eff": 4.566666666666666,
+      "flags": []
+     },
+     "warnings": [
+      "In2.Cu: no thickness, using 0.035 mm",
+      "PP2: no epsilon_r, using 4.5"
+     ]
+    }
+   ]
+  }
  ]
 }

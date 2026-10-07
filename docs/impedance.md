@@ -23,6 +23,29 @@ calculate("cpwg", {"w": 0.3, "gap": 0.15, "h": 0.3, "t": 0.035, "er": 4.5}).to_d
 synthesize("stripline", {"h1": 0.2, "h2": 0.3, "t": 0.018, "er": 4.1}, 50).value
 ```
 
+## From the board model
+
+`lineFromStackup` / `line_from_stackup` turn a signal layer of a `boarddd/board@1` stackup into a model and its
+parameters, and `evaluateTarget` / `evaluate_target` check a net class's `ImpedanceTarget` (see docs/model.md):
+
+```js
+import { lineFromStackup, evaluateTarget, calculate } from 'boarddd/impedance';
+const line = lineFromStackup(board.stackup, 'F.Cu', { width: 0.15 });
+// { model: 'coated_microstrip', structure: 'microstrip', params: { w, t, h, er, c, erc }, warnings: ['F.Mask: no epsilon_r, using 3.3'] }
+calculate(line.model, line.params).Z0;
+for (const nc of board.net_classes) if (nc.impedance) evaluateTarget(board.stackup, nc.impedance);
+// [{ layer, model, key: 'Z0' | 'Zdiff', value, target, deviation_pct, ok, width, synthesized, result, warnings }]
+```
+
+| | |
+|---|---|
+| Structure | `ImpedanceTarget.structure` → model: `microstrip` → `microstrip` (`coated_microstrip` when the layer is under a mask), `coupled_microstrip`; `stripline` → `stripline`, `coupled_stripline`; `coplanar` → `cpw`; `coplanar_grounded` → `cpwg`. Differential coplanar has no tier-1 model (`modelFor` returns null; `lineFromStackup` throws). With no structure: microstrip on an outer layer, stripline on an inner one |
+| Heights | the dielectric layers between the trace and its reference copper: the nearest copper on each side, or `ImpedanceLayer.ref_top` / `ref_bottom` (planes skipped in between count as resin-filled voids) |
+| εr | the series value of the layers on each side, as the model does for sublayers. A stripline with different εr above and below gets εr weighted by each side's plane capacitance, (ε₁/h₁ + ε₂/h₂)/(1/h₁ + 1/h₂) |
+| Mask | an outer single-ended microstrip includes the mask (`thickness_over_copper`, else `thickness`; `epsilon_r`). Other outer structures warn that tier 1 ignores it |
+| Missing data | copper thickness 0.035 mm, dielectric εr 4.5, mask 0.01 mm and εr 3.3 (`STACKUP_DEFAULTS`, KiCad's defaults), each with a warning. A dielectric with no thickness throws |
+| Targets | `key` is `Zdiff` for differential targets and `Z0` otherwise; `ok` compares `deviation_pct` with `tolerance_pct` (null without one); a layer with no `width` gets the width synthesized for the target (`synthesized: true`) |
+
 ## Conventions
 
 | | |
@@ -143,6 +166,8 @@ thickness over the trace (thinner than over laminate) and etch shape usually mat
   - `parity`: 72 inputs across every model, inside and outside the flags, with the JS results. Python must match
     every number to 1e-9 and every flag message exactly.
   - `synthesis`: 8 solves (width, spacing, `Zcommon`) with their JS results.
+  - `stackups`, `stackup_lines`, `stackup_targets`: the royalblue54L_feather golden stackup and a synthetic one
+    (mixed εr, a skipped plane, missing values), with the JS lines and target evaluations.
 - `fixtures/impedance/qs-sweep.json`: the field-solver sweep the boarddd constants were fitted on, used for the
   accuracy envelope test (and as a validation set for tier 2).
 - `test/impedance/impedance.test.mjs` and `python/tests/test_impedance.py` run all of it, plus flags, input

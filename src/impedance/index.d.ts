@@ -100,3 +100,61 @@ export function synthesize(
   target: number,
   opts?: SynthesisOptions,
 ): { value: number; params: Record<string, number>; result: LineResult | CoupledResult | ComparisonResult; iterations: number };
+
+// ── from the board model (stackup.js) ──────────────────────────────────────────────────────────────────────
+import type { ImpedanceTarget, Stackup } from '../model/board.js';
+
+export type Structure = NonNullable<ImpedanceTarget['structure']>;
+
+/** What a stackup leaves out is taken from here (KiCad's defaults), with a warning. */
+export const STACKUP_DEFAULTS: { copper_thickness: number; epsilon_r: number; mask_thickness: number; mask_epsilon_r: number };
+
+/** The closed-form model for an ImpedanceTarget structure and kind; null when tier 1 has none (differential coplanar). */
+export function modelFor(structure: Structure, kind?: 'single' | 'differential', opts?: { coated?: boolean }): ModelId | null;
+
+export interface LineFromStackupOptions {
+  /** Track width, mm. */
+  width: number;
+  kind?: 'single' | 'differential';
+  /** Differential pair gap, mm. */
+  gap?: number;
+  /** Default: microstrip on an outer layer, stripline on an inner one. */
+  structure?: Structure;
+  /** Gap to the coplanar ground, mm (coplanar structures). */
+  coplanarGap?: number;
+  /** Reference planes (ImpedanceLayer ref_top / ref_bottom); default the nearest copper. */
+  refTop?: string;
+  refBottom?: string;
+  /** Model the solder mask on an outer single-ended microstrip (default true). */
+  mask?: boolean;
+}
+
+/** A signal layer of a boarddd/board@1 stackup as a closed-form line. */
+export function lineFromStackup(
+  stackup: Pick<Stackup, 'layers'>,
+  layer: string,
+  opts: LineFromStackupOptions,
+): { model: ModelId; structure: Structure; params: Record<string, number>; warnings: string[] };
+
+export interface TargetEvaluation {
+  layer: string;
+  model: ModelId;
+  key: 'Z0' | 'Zdiff';
+  value: number;
+  target: number;
+  deviation_pct: number;
+  /** Within tolerance_pct; null when the target has no tolerance. */
+  ok: boolean | null;
+  /** The layer's width, or the synthesized one when the target gives none. */
+  width: number;
+  synthesized: boolean;
+  result: LineResult | CoupledResult;
+  warnings: string[];
+}
+
+/** Evaluate a net class's ImpedanceTarget on a stackup, one row per target layer. */
+export function evaluateTarget(
+  stackup: Pick<Stackup, 'layers'>,
+  target: ImpedanceTarget,
+  opts?: Omit<LineFromStackupOptions, 'width' | 'kind'>,
+): TargetEvaluation[];
