@@ -1,0 +1,117 @@
+#version 300 es
+precision highp float;
+in highp vec2 vPosition;
+in highp float vRadius;
+in highp float vStartAngle;
+in highp float vSweepAngle;
+in highp float vThickness;
+in highp float vOutlineThickness;
+in highp float vWorldPerPixel;
+uniform lowp vec4 color;
+uniform float anti_aliasing;
+out lowp vec4 fragColor;
+
+const float PI = 3.14159265359;
+const float TWO_PI = 6.28318530718;
+
+float normalizeAngle(float angle) {
+    float normalized = mod(angle, TWO_PI);
+    if (normalized < 0.0) {
+        normalized += TWO_PI;
+    }
+    return normalized;
+}
+
+void main() {
+    if (vThickness <= 0.0 && vOutlineThickness <= 0.0) {
+        discard;
+    }
+
+    float dist = length(vPosition);
+    float angle = atan(vPosition.y, vPosition.x);
+
+    angle = normalizeAngle(angle);
+    float startAngle = normalizeAngle(vStartAngle);
+    float endAngle = normalizeAngle(startAngle + vSweepAngle);
+
+    float innerRadius = vRadius - vThickness * 0.5;
+    float outerRadius = vRadius + vThickness * 0.5;
+
+    bool inRange;
+    if (vSweepAngle > 0.0) {
+        if (endAngle > startAngle) {
+            inRange = angle >= startAngle && angle <= endAngle;
+        } else {
+            inRange = angle >= startAngle || angle <= endAngle;
+        }
+    } else {
+        if (endAngle < startAngle) {
+            inRange = angle <= startAngle && angle >= endAngle;
+        } else {
+            inRange = angle <= startAngle || angle >= endAngle;
+        }
+    }
+
+    // Analytic edge coverage (see circle.frag.glsl) across the stroke's
+    // inner and outer radius and around the round caps; the angular limits
+    // stay hard because the caps cover them. Without anti-aliasing the
+    // tests are the original hard ones.
+    bool antiAliased = anti_aliasing > 0.5;
+    float radialEdge = vWorldPerPixel;
+    // A stroke at least as thick as its diameter has no inner edge (the
+    // arc is filled to its centre), so only a real inner boundary fades.
+    float innerAlpha = innerRadius > 0.0
+        ? clamp((dist - innerRadius) / radialEdge + 0.5, 0.0, 1.0)
+        : 1.0;
+    float radialAlpha = antiAliased
+        ? innerAlpha * clamp((outerRadius - dist) / radialEdge + 0.5, 0.0, 1.0)
+        : (dist >= innerRadius && dist <= outerRadius ? 1.0 : 0.0);
+    float bodyAlpha = inRange ? radialAlpha : 0.0;
+    bool hasCaps = abs(vSweepAngle) < TWO_PI - 0.001;
+    float capAlpha = 0.0;
+    bool inOutline = false;
+    if (hasCaps) {
+        float halfThickness = vThickness * 0.5;
+        vec2 startPoint = vec2(cos(vStartAngle), sin(vStartAngle)) * vRadius;
+        vec2 endPoint = vec2(cos(vStartAngle + vSweepAngle), sin(vStartAngle + vSweepAngle)) * vRadius;
+        float startDistance = length(vPosition - startPoint);
+        float endDistance = length(vPosition - endPoint);
+        capAlpha = antiAliased
+            ? max(
+                clamp((halfThickness - startDistance) / vWorldPerPixel + 0.5, 0.0, 1.0),
+                clamp((halfThickness - endDistance) / vWorldPerPixel + 0.5, 0.0, 1.0))
+            : (startDistance <= halfThickness || endDistance <= halfThickness ? 1.0 : 0.0);
+        if (vOutlineThickness > 0.0) {
+            float innerCapRadius = max(halfThickness - vOutlineThickness, 0.0);
+            inOutline = (startDistance >= innerCapRadius && startDistance <= halfThickness)
+                || (endDistance >= innerCapRadius && endDistance <= halfThickness);
+        }
+    }
+
+    if (vOutlineThickness > 0.0) {
+        bool hasInnerBoundary = innerRadius > 0.0;
+        bool nearOuter = dist >= max(outerRadius - vOutlineThickness, innerRadius)
+            && dist <= outerRadius;
+        bool nearInner = hasInnerBoundary
+            && dist >= innerRadius
+            && dist <= min(innerRadius + vOutlineThickness, outerRadius);
+        inOutline = inOutline || (inRange && (nearOuter || nearInner));
+    }
+
+    if (vOutlineThickness > 0.0) {
+        if (!inOutline) {
+            discard;
+        }
+        fragColor = color;
+        return;
+    }
+
+    float alpha = max(bodyAlpha, capAlpha);
+    if (alpha <= 0.0) {
+        discard;
+    }
+    // Per-sample coverage: this pass runs with SAMPLE_ALPHA_TO_COVERAGE, so
+    // alpha selects the samples and the colour is the value they take, white
+    // for a dark sublayer and black for a clear one.
+    fragColor = vec4(color.rgb, alpha);
+}

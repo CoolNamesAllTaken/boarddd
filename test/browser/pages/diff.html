@@ -6,14 +6,13 @@
 <script type="module">
   // Paint test/fixtures/slots-board (head) and its copper diff against slots-board-base (no H1);
   // window.diff = {sample(face, x, y) -> [r, g, b], ...} in board mm.
-  import { gerberApi } from '/test/browser/pages/harness-gerber.js';
   import { readFabFiles, paintFaces, paintCopperDiff, faceBounds } from '/src/board/index.js';
   try {
     const load = async (dir) => {
       const m = await (await fetch(dir + 'manifest.json')).json();
       return Promise.all(m.files.map(async (name) => ({ name, text: await (await fetch(dir + name)).text() })));
     };
-    const { api, renderer } = await gerberApi();
+    const api = null, renderer = null;   // boarddd/gerber and its shared default renderer
     const head = readFabFiles(api, await load('/test/fixtures/slots-board/'));
     const base = readFabFiles(api, await load('/test/fixtures/slots-board-base/'));
     const painted = await paintFaces(api, renderer, head, { bounds: faceBounds([head.outline, base.outline]) });

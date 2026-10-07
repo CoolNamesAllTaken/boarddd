@@ -3,6 +3,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Rebuild the wasm and commit it to this branch (not main) if the crate changed
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -42,3 +48,51 @@ jobs:
             playwright-report
             test-results
           retention-days: 7
+  wasm:
+    # The committed wasm (third_party/wasm-gerber-renderer/core/wasm) must match the crate: BUILD.json's source
+    # hash is checked first, then the crate is built with the pinned toolchain so it is known to build.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: ${{ github.event_name == 'workflow_dispatch' && inputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - id: check
+        run: bash scripts/build-wasm.sh --check
+        continue-on-error: true
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/wasm-pack
+            ~/.cache/.wasm-pack
+            third_party/wasm-gerber-renderer/crate/target
+          key: wasm-${{ runner.os }}-${{ hashFiles('third_party/wasm-gerber-renderer/crate/Cargo.lock', 'third_party/wasm-gerber-renderer/crate/rust-toolchain.toml', 'scripts/build-wasm.sh') }}
+          restore-keys: wasm-${{ runner.os }}-
+      - run: bash scripts/build-wasm.sh
+      - name: Compare with the committed build (informational; builds are not byte-reproducible)
+        run: git diff --stat -- third_party/wasm-gerber-renderer/core/wasm || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wasm
+          path: third_party/wasm-gerber-renderer/core/wasm
+          retention-days: 7
+      - name: Commit the rebuilt wasm
+        if: github.event_name == 'workflow_dispatch' && inputs.commit && steps.check.outcome == 'failure' && github.ref_name != 'main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add third_party/wasm-gerber-renderer/core/wasm
+          git commit -m "third_party: rebuild the wasm for $(cut -c1-7 third_party/wasm-gerber-renderer/FORK_COMMIT)"
+          git push origin HEAD:${{ github.ref_name }}
+      - name: Fail on a stale committed wasm
+        if: steps.check.outcome == 'failure' && !(github.event_name == 'workflow_dispatch' && inputs.commit)
+        run: |
+          echo "::error::third_party/wasm-gerber-renderer/core/wasm does not match the crate: run scripts/build-wasm.sh and commit, or run this workflow with commit=true"
+          exit 1

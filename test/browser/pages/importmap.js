@@ -6,8 +6,6 @@ document.currentScript.after(Object.assign(document.createElement('script'), {
     imports: {
       three: '/node_modules/three/build/three.module.js',
       'three/addons/': '/node_modules/three/examples/jsm/',
-      'wasm-gerber-renderer': '/vendor/wasm-gerber-renderer/index.js',
-      'wasm-gerber-renderer/': '/vendor/wasm-gerber-renderer/',
       'boarddd/': '/src/',
     },
   }),

@@ -5,7 +5,15 @@
 <canvas id="c" width="64" height="64"></canvas>
 <script type="module">
   import * as THREE from 'three';
-  const mods = await Promise.all(['geom', 'board', 'footprint', 'models', 'scene'].map((m) => import(`/src/${m}/index.js`)));
+  const mods = await Promise.all(['geom', 'board', 'footprint', 'models', 'scene', 'gerber'].map((m) => import(`/src/${m}/index.js`)));
   const gl = document.getElementById('c').getContext('webgl2');
-  window.smoke = { three: THREE.REVISION, modules: mods.length, webgl2: !!gl };
+  // boarddd/gerber's contour worker traces one 2x2 ink square in a 4x4 RGBA raster.
+  const px = new Uint8Array(4 * 4 * 4);
+  for (const [x, y] of [[1, 1], [2, 1], [1, 2], [2, 2]]) px.set([255, 255, 255, 255], (y * 4 + x) * 4);
+  const worker = new Worker('/src/gerber/contour-worker.js', { type: 'module' });
+  const workerShapes = await new Promise((resolve) => {
+    worker.onmessage = ({ data }) => resolve(data.shapes?.length ?? data.error);
+    worker.postMessage({ id: 1, buffer: px.buffer, width: 4, height: 4, fromBrightness: true, minArea: 1 }, [px.buffer]);
+  });
+  window.smoke = { three: THREE.REVISION, modules: mods.length, webgl2: !!gl, workerShapes };
 </script>
