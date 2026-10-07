@@ -26,6 +26,7 @@ export const STAGE_CSS = `
 .bd2-pane{position:relative;flex:1 1 0;min-width:0;overflow:hidden;touch-action:none;user-select:none;cursor:grab}
 .bd2-pane.bd2-grabbing{cursor:grabbing}
 .bd2-pane.bd2-measuring{cursor:crosshair}
+.bd2-pane.bd2-static{pointer-events:none;cursor:auto}
 .bd2-slot{position:absolute;inset:0;pointer-events:none}
 .bd2-slot canvas{position:absolute;left:0;top:0;transform-origin:0 0}
 .bd2-overlay{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
@@ -61,7 +62,7 @@ export function measureText(m) {
 
 export function createStage(container, options = {}) {
   const opt = {
-    padding: 0.02, settleMs: 180, maxEdge: 4096, maxPixels: 16e6, minScale: MIN_SCALE, maxScale: MAX_SCALE,
+    padding: 0.02, paddingPx: 0, interactive: true, settleMs: 180, maxEdge: 4096, maxPixels: 16e6, minScale: MIN_SCALE, maxScale: MAX_SCALE,
     background: null, measureLabel: true, injectCss: true, ...options,
   };
   let bounds = opt.bounds || null;
@@ -128,7 +129,7 @@ export function createStage(container, options = {}) {
     const old = panes.flatMap((p) => p.slots);
     for (const p of panes) p.el.remove();
     panes = specs.map((spec, index) => {
-      const pane = { index, spec, side: spec.side ?? null, el: el('div', `bd2-pane${spec.className ? ` ${spec.className}` : ''}`, root) };
+      const pane = { index, spec, side: spec.side ?? null, el: el('div', `bd2-pane${opt.interactive ? '' : ' bd2-static'}${spec.className ? ` ${spec.className}` : ''}`, root) };
       if (spec.side) pane.el.dataset.side = spec.side;
       if (opt.background) pane.el.style.background = opt.background;
       if (tool === 'measure') pane.el.classList.add('bd2-measuring');
@@ -168,7 +169,7 @@ export function createStage(container, options = {}) {
   function fitNow() {
     if (!bounds) return;
     const { pw, ph } = size();
-    view = fitBounds(bounds, pw, ph, opt.padding);
+    view = fitBounds(bounds, pw, ph, opt.padding, opt.paddingPx);
     autoFit = true;
     requestFrame();
   }
@@ -375,6 +376,7 @@ export function createStage(container, options = {}) {
 
   // --- pointer: drag pans, wheel / pinch zoom, a press that did not move is a click, dblclick fits
   function attach(pane) {
+    if (!opt.interactive) return; // a picture: pointer events go to what is under the stage
     const p = pane.el;
     const pointers = new Map();
     let pinch = 0;
