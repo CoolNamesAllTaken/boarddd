@@ -9,3 +9,8 @@
 - `slots-board/`: both footprints on a 35 x 20 mm board (`slots.kicad_pcb`), with its Gerbers, drills and
   GLB from `scripts/export-demo.sh` (KiCad 10.0.6). `slots-board-base/`: the same board without H1, for
   the copper-diff test.
+- `blue_board.step`: from kipr (`tests/library/fixtures/color/`): one solid with the RP2040-Zero board
+  colour (0.090/0.224/0.420), for the STEP colour check.
+- `royalblue54L_components.json`: KiCad demo data (`demos/royalblue54L_feather`), placements from
+  `kicad-cli pcb export pos` (KiCad 10.0.6), y flipped back to KiCad's y-down; pairs with
+  `examples/data/royalblue54L_feather/board.glb`.
