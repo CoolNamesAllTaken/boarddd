@@ -5,6 +5,8 @@ PR review) and gentoo (a PCB fab shop site). Framework-free ES modules, no build
 
 - **`boarddd/gerber`**: the 2D Gerber/Excellon renderer (WebGL2 + wasm): realistic board faces, layer
   and drill diffs, layer roles, board outlines, view math, contour tracing.
+- **`boarddd/view2d`**: the 2D board stage on `boarddd/gerber`: pan/zoom, synced panes, layer stack,
+  compare modes (side by side, diff, onion, swipe), ink diff of SVG sheets, measure, overlays, picking.
 - **`boarddd/geom`**: pure geometry, no three.js: coordinate frames, outlines and winding, round
   holes and stadium slots, hole budget, KiCad pad shapes (shape offset, rotation, roundrect, ...).
 - **`boarddd/board`**: the board solid from an outline and drills (plated barrels, caps, UVs), face
@@ -52,6 +54,34 @@ and are boarddd's own. The wasm is built by `scripts/build-wasm.sh` (Rust from t
 with `BUILD.json`; CI checks that its source hash matches the crate and that the crate builds. Consumers
 need no Rust. To update: `bash scripts/sync-fork.sh [fork checkout] [ref]`, `bash scripts/build-wasm.sh`,
 commit `third_party/` (or run the CI workflow by hand with `commit` on a branch).
+
+### `boarddd/view2d`
+
+```js
+import { createStage, createCompare, face, faceBoard, layers, layerStack, image } from 'boarddd/view2d';
+const stage = createStage(el, { renderer, bounds });             // world = board mm, y up; flip: true mirrors x
+const cmp = createCompare(stage, { base: face(faceBoard(baseFiles, 'top')), head: face(faceBoard(headFiles, 'top')), mode: 'side' });
+cmp.setMode('swipe'); cmp.setSwipe(0.3);                          // side, diff, onion, swipe, base, head
+const s = formatViewState(cmp.getState());                        // { z, mode, sw, op }: keep it in the URL
+```
+
+| | |
+|---|---|
+| `createStage(el, opts)` | panes sharing one view; wheel / drag / pinch, double-click fits; `setScene`, `setView` / `setRegion` / `zoomTo` / `fit`, `toScreen` / `toWorld`, `setTool('measure')`, `addOverlay`, `on(view / click / move / measure / render / error)`, `ready`, `capture` |
+| `face`, `layers`, `diff`, `image`, `inkdiff`, `draw` | pane content: a realistic face, single-colour layers, the GPU layer diff, an SVG / image over a mm rect, its ink diff, app drawing |
+| `createCompare(stage, { base, head, diff?, underlay? })` | compare modes; the diff defaults to the layer diff of layer stacks or the ink diff of images |
+| `layerStack`, `faceBoard`, `layerColor`, `sortLayers` | files → paint order, KiCad colours, default visibility; files → a face for `face()` |
+| `addOverlay({ space: 'world' \| 'screen', draw })` | app markers: an SVG group in mm moved with the view, or in pane px redrawn per view |
+| `createHitIndex`, `segmentShape`, `rectShape`, `circleShape`, `polygonShape` | picking: `index.at(e.x, e.y, 4 * stage.mmPerPx())` in a click handler |
+| `formatViewState`, `parseViewState`, `formatRegion`, `sameRegion` | view state as short strings |
+| `inkDiff`, `inkMask`, `regions`, ...; `fitBounds`, `zoomAt`, `regionOf`, ... | the pure pieces (pixel diff, view maths) |
+
+Render on demand: a pan or zoom moves drawn tiles with a CSS transform; content is redrawn only after the
+view settles and its resolution is off by more than ~15 % (whole bounds within a pixel budget, plus the
+visible area when zoomed further). One frame per renderer at a time (`inTurn`). No fetch, workers or
+`import.meta`: inputs are text / images, so a classic-script bundle works from file://. Demo:
+`examples/view2d.html`. Ported from kipr (`panzoom.js`, `compare.js`, `inkdiff.js`, `viewstate.js`,
+`layout.js`, `board.js`) and gentoo (`guide/stage.js`, `viewer.js`).
 
 ### `boarddd/geom` (pure, no three.js)
 
@@ -262,19 +292,24 @@ coordinates), z up out of the top copper, board bottom face at z = 0 and top fac
   math, frame backgrounds; ported from the fork), geometry (stadium slots, hole budget, every KiCad pad shape against pcbnew's
   own polygons, kipr's pad-placement golden data), the board solid, the footprint reader/builder;
   `scripts/vendor.mjs` (`test/vendor/`: a temp checkout vendored kipr- and gentoo-style, imports
-  resolving in node with no node_modules, idempotence, `--check`, refusals, sha512 against a local registry).
+  resolving in node with no node_modules, idempotence, `--check`, refusals, sha512 against a local registry);
+  `boarddd/view2d` pan/zoom maths, view state, ink diff, hit-testing, layer stack (`test/view2d/`).
 - `npm run test:browser`: headless Chromium (SwiftShader WebGL2): slotted holes must show through as
   stadiums in a straight-down render of a footprint and of a Gerber-built board; copper diff colours;
   a blue STEP board reads blue from top and bottom; no frames while idle; view cube clicks; dispose;
   `boarddd/gerber` pixel tests (`gerber-board-diff`, `gerber-drill-empty-tools`, ported from the fork);
-  a `vendor.mjs` output loaded with no importmap renders a board and loads the gerber wasm (`test/vendor/`).
+  a `vendor.mjs` output loaded with no importmap renders a board and loads the gerber wasm (`test/vendor/`);
+  `boarddd/view2d` pixel tests from real screenshots (faces, layer stack, every compare mode on
+  pic_programmer base/head and royalblue54L, ink diff of schematic sheets, measure, pick, overlays, view
+  state round trip, resharpen / render on demand), the same from an esbuild bundle over file://, and
+  `examples/view2d.html`. `V2_SHOTS=dir` saves their screenshots.
   `PW_PORT` changes the server port (several checkouts at once).
 - `boarddd/model`: `validateBoard` against the shared cases in `fixtures/model/` (pytest runs the same
   file), and the royalblue54L_feather golden `board.json` against boarddd's own `.kicad_mod` parser and
   the drill files.
 - Python: `cd python && pip install -e ".[dev]" && pytest` (model, validator, golden board), `ruff`,
   `python -m boarddd.model --check` (generated schema/typings up to date).
-- `npm run typecheck`: the `.d.ts` files, plus `test/types/` (type-level use of `boarddd/gerber`).
+- `npm run typecheck`: the `.d.ts` files, plus `test/types/` (type-level use of `boarddd/gerber` and `boarddd/view2d`).
 - Fixtures: `fixtures/` is shared golden data for node, Playwright and pytest (licences in
   `fixtures/LICENSES.md`); `test/fixtures/` holds JS-only inputs (see the READMEs there for sources); `examples/data/` is KiCad demo data
   (KiCad's `demos/royalblue54L_feather`), exported with `scripts/export-demo.sh`.
