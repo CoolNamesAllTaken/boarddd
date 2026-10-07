@@ -79,6 +79,10 @@ const s = formatViewState(cmp.getState());                        // { z, mode, 
 | `formatViewState`, `parseViewState`, `formatRegion`, `sameRegion` | view state as short strings |
 | `inkDiff`, `inkMask`, `regions`, ...; `fitBounds`, `zoomAt`, `regionOf`, ... | the pure pieces (pixel diff, view maths) |
 
+Strict CSP (`style-src 'self'`): `createStage(el, { injectCss: false })` and ship `STAGE_CSS` in the
+page's stylesheet. `on('busy')` says when a re-render is scheduled or running (a pan that needs none is
+not busy); `PaneSpec.className` and `data-side` are hooks for app CSS.
+
 Render on demand: a pan or zoom moves drawn tiles with a CSS transform; content is redrawn only after the
 view settles and its resolution is off by more than ~15 % (whole bounds within a pixel budget, plus the
 visible area when zoomed further). One frame per renderer at a time (`inTurn`). No fetch, workers or
