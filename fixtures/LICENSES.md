@@ -27,6 +27,10 @@ Python-only goldens live next to their tests: `python/tests/kicad/fixtures/pad_p
 the footprints are KiCad library footprints, CC-BY-SA 4.0 with the KiCad libraries exception, plus kipr's own
 `RP2040-Zero_Castellated` and `Trapezoid_Delta`) and `python/tests/kicad/fixtures/royalblue54L_pcbnew/` (pcbnew's
 numbers for the board above: CERN-OHL-P v2).
+| `royalblue54L_feather/exchange/` | IPC-2581 (rev C, mm, gzipped) and ODB++ (zip) exports of that board | `make_exchange.sh`, kicad-cli 10.0.6 | derived from royalblue54L_feather: CERN-OHL-P v2 |
+| `pic_programmer/kicad/pic_programmer.kicad_pcb` | KiCad demo board (`demos/pic_programmer`, 2 layers, 63 footprints) | KiCad 10.0.6's `demos/` folder, unmodified | KiCad demo data: the folder has no licence file of its own; it ships in KiCad's source tree (GPL-3.0-or-later). The same demo's Gerbers are in `test/fixtures/pic_programmer/` |
+| `pic_programmer/exchange/` | IPC-2581 (gzipped) and ODB++ (zip) exports of that board | `make_exchange.sh`, kicad-cli 10.0.6 | derived from the board above |
+| `make_exchange.sh` | script | written for boarddd | MIT (this repository) |
 
 The `[step]` extra's own fixtures live next to its tests: `python/tests/step/fixtures_occ/tiny.step` and
 `tiny-pos.csv` (magpie's synthetic board, `make_board.py`, of KiCad stock footprints and 3D models) and
