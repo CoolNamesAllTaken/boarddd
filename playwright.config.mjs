@@ -7,8 +7,8 @@ const args = (process.env.PW_CHROMIUM_ARGS || '--use-angle=swiftshader --enable-
   .split(' ').filter(Boolean);
 
 export default defineConfig({
-  testDir: 'test/browser',
-  testMatch: '**/*.spec.mjs',
+  testDir: 'test',
+  testMatch: ['browser/**/*.spec.mjs', 'vendor/**/*.spec.mjs'],
   timeout: 120_000,
   fullyParallel: true,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
