@@ -277,6 +277,18 @@ test('ink diff of SVG sheets: R7 10K -> 4.7K is red and green, in one region', a
   await shotFor(page, testInfo, 'inkdiff');
   expect(await countIn(page, r, (p) => p[0] > 180 && p[1] < 90)).toBeGreaterThan(10);
   expect(await countIn(page, r, (p) => p[1] > 130 && p[0] < 90)).toBeGreaterThan(10);
+  // a side over its own rect: head drawn 10 mm to the right of its true place, the R7 change moves along
+  const moved = await page.evaluate(async () => {
+    const { view2d, sheets } = window.v2;
+    const r = sheets.rect;
+    const s = window.v2.mount({ bounds: r, background: '#ffffff' });
+    const shifted = { minX: r.minX + 10, maxX: r.maxX + 10, minY: r.minY, maxY: r.maxY };
+    s.setScene([{ layers: [{ content: view2d.inkdiff(sheets.base, { src: sheets.head, rect: shifted }, r) }] }]);
+    await s.ready();
+    return s.info(0, 0);
+  });
+  expect(moved.regions.length).toBeGreaterThan(1); // everything moved: many changed areas
+  expect(moved.counts.added).toBeGreaterThan(info.info.counts.added * 10);
   // side by side: the sheets themselves
   await page.evaluate(async () => { window.cmp.setMode('side'); await window.stage.ready(); });
   await grab(page);

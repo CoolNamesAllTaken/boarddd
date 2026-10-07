@@ -43,7 +43,8 @@ export function image(src, rect) {
 
 /**
  * Ink diff of two images over one rect (kipr inkdiff.js): ink only in base red, only in head green,
- * in both dimmed. `mode`: 'ink' (paper ignored) or 'alpha'; `tol` in pixels.
+ * in both dimmed. A side drawn over its own world rect is `{ src, rect }` (e.g. sheets of different
+ * viewBoxes); `rect` is the diff's frame. `mode`: 'ink' (paper ignored) or 'alpha'; `tol` in pixels.
  */
 export function inkdiff(base, head, rect, { mode = 'ink', tol = 1, colors = DIFF_COLORS, regionGapMm = 1.5 } = {}) {
   return { type: 'inkdiff', base, head, rect, options: { mode, tol, colors, regionGapMm } };
@@ -213,11 +214,13 @@ async function renderImage(c, job) {
 }
 
 async function renderInk(c, job) {
-  const [bi, hi] = await Promise.all([decodeImage(c.base), decodeImage(c.head)]);
+  const own = (s) => (s && Object.getPrototypeOf(s) === Object.prototype && 'src' in s ? s : { src: s, rect: null });
+  const [b, hd] = [own(c.base), own(c.head)];
+  const [bi, hi] = await Promise.all([decodeImage(b.src), decodeImage(hd.src)]);
   const { width: w, height: h, r } = job;
-  const read = (img) => (img ? rasterOver(img, c.rect, job).g.getImageData(0, 0, w, h).data : null);
+  const read = (img, at) => (img ? rasterOver(img, at || c.rect, job).g.getImageData(0, 0, w, h).data : null);
   const o = c.options;
-  const d = inkDiff(read(bi), read(hi), w, h, { mode: o.mode, tol: o.tol, colors: o.colors, gap: Math.max(2, o.regionGapMm * r), minPixels: Math.max(3, Math.round(r * r * 0.05)) });
+  const d = inkDiff(read(bi, b.rect), read(hi, hd.rect), w, h, { mode: o.mode, tol: o.tol, colors: o.colors, gap: Math.max(2, o.regionGapMm * r), minPixels: Math.max(3, Math.round(r * r * 0.05)) });
   const out = newCanvas(w, h);
   const g = out.getContext('2d');
   const data = g.createImageData(w, h);

@@ -54,8 +54,10 @@ export type DiffContent = {
   options: { style?: DiffStyle; colors?: { removed?: RGBColor; added?: RGBColor; unchanged?: RGBColor }; showUnchanged?: boolean; underlay?: Array<{ source: GerberSource; name?: string; color?: RGBColor; alpha?: number }> };
 };
 export type ImageContent = { type: 'image'; src: ImageInput; rect: Bounds };
+/** An image, or an image over its own world rect. */
+export type InkSide = ImageInput | { src: ImageInput; rect: Bounds };
 export type InkDiffContent = {
-  type: 'inkdiff'; base: ImageInput | null; head: ImageInput | null; rect: Bounds;
+  type: 'inkdiff'; base: InkSide | null; head: InkSide | null; rect: Bounds;
   options: { mode: 'ink' | 'alpha'; tol: number; colors: InkColors; regionGapMm: number };
 };
 export type RasterJob = { rect: Bounds; width: number; height: number; r: number };
@@ -79,7 +81,7 @@ export declare function diff(
   options?: DiffContent['options'] & { /** Also report changed regions (an extra analysis pass). */ regions?: boolean },
 ): DiffContent;
 export declare function image(src: ImageInput, rect: Bounds): ImageContent;
-export declare function inkdiff(base: ImageInput | null, head: ImageInput | null, rect: Bounds, options?: Partial<InkDiffContent['options']>): InkDiffContent;
+export declare function inkdiff(base: InkSide | null, head: InkSide | null, rect: Bounds, options?: Partial<InkDiffContent['options']>): InkDiffContent;
 export declare function draw(fn: DrawContent['draw'], rect?: Bounds | null): DrawContent;
 export declare function contentRect(c: Content): Bounds | null;
 export declare function isEmptySource(source: GerberSource, drill?: boolean): boolean;
@@ -167,6 +169,8 @@ export type SceneLayer = {
   className?: string;
 };
 export type PaneSpec = {
+  /** Extra classes on the pane element (it always has `bd2-pane`, and `data-side` when `side` is set). */
+  className?: string;
   label?: string;
   labelRight?: string;
   /** Free tag handed back in events and overlay contexts ('base', 'head', ...). */
@@ -198,6 +202,8 @@ export type StageEvents = {
   measure: { points: Array<{ x: number; y: number }>; result: MeasureResult | null };
   render: { pane: number; layer: number; content: Content; info: ContentInfo; r: number };
   error: { error: unknown; pane?: number; layer?: number; content?: Content };
+  /** A re-render is scheduled or running (true), or the panes are up to date (false). */
+  busy: { busy: boolean };
 };
 export type StageState = { region: Region | null; flip: boolean; tool: 'pan' | 'measure'; measure: Array<{ x: number; y: number }> };
 export type StageOptions = {
@@ -222,6 +228,8 @@ export type StageOptions = {
   background?: string | null;
   /** Distance label on the measure line (default true). */
   measureLabel?: boolean;
+  /** Add a <style> with STAGE_CSS (default true). false under a CSP without 'unsafe-inline' styles: ship STAGE_CSS in a stylesheet. */
+  injectCss?: boolean;
 };
 export type TileStats = { r: number; width: number; height: number; rect: Bounds } | null;
 export type Stage = {
@@ -258,6 +266,8 @@ export type Stage = {
   destroy(): void;
 };
 export declare function createStage(container: HTMLElement, options?: StageOptions): Stage;
+/** The stage's base CSS (pane layout, overlay, labels, measure), as createStage injects it. */
+export declare const STAGE_CSS: string;
 export declare function svgEl<K extends keyof SVGElementTagNameMap>(tag: K, attrs?: Record<string, string | number | null | undefined>, parent?: Element | null): SVGElementTagNameMap[K];
 export declare function measureText(m: MeasureResult | null): string;
 

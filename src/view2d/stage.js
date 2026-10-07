@@ -21,7 +21,7 @@ import { contentRect, renderContent } from './content.js';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const CLICK_SLOP_PX = 4;
 
-const CSS = `
+export const STAGE_CSS = `
 .bd2-stage{position:relative;display:flex;gap:2px;width:100%;height:100%;overflow:hidden}
 .bd2-pane{position:relative;flex:1 1 0;min-width:0;overflow:hidden;touch-action:none;user-select:none;cursor:grab}
 .bd2-pane.bd2-grabbing{cursor:grabbing}
@@ -62,7 +62,7 @@ export function measureText(m) {
 export function createStage(container, options = {}) {
   const opt = {
     padding: 0.02, settleMs: 180, maxEdge: 4096, maxPixels: 16e6, minScale: MIN_SCALE, maxScale: MAX_SCALE,
-    background: null, measureLabel: true, ...options,
+    background: null, measureLabel: true, injectCss: true, ...options,
   };
   let bounds = opt.bounds || null;
   let flip = !!opt.flip;
@@ -79,7 +79,7 @@ export function createStage(container, options = {}) {
   let rendererPromise = null;
 
   const root = el('div', 'bd2-stage', container);
-  el('style', null, root).textContent = CSS;
+  if (opt.injectCss) el('style', null, root).textContent = STAGE_CSS; // off under a strict CSP: ship STAGE_CSS in a stylesheet
 
   function emit(name, payload) {
     const set = listeners.get(name);
@@ -128,7 +128,8 @@ export function createStage(container, options = {}) {
     const old = panes.flatMap((p) => p.slots);
     for (const p of panes) p.el.remove();
     panes = specs.map((spec, index) => {
-      const pane = { index, spec, side: spec.side ?? null, el: el('div', 'bd2-pane', root) };
+      const pane = { index, spec, side: spec.side ?? null, el: el('div', `bd2-pane${spec.className ? ` ${spec.className}` : ''}`, root) };
+      if (spec.side) pane.el.dataset.side = spec.side;
       if (opt.background) pane.el.style.background = opt.background;
       if (tool === 'measure') pane.el.classList.add('bd2-measuring');
       pane.layersEl = el('div', 'bd2-layers', pane.el);
@@ -229,12 +230,23 @@ export function createStage(container, options = {}) {
   let busy = 0;
   const idleWaiters = [];
 
+  let busyShown = false;
+  let jobsLeft = 0; // tiles still to render in the current pass
+
   function settle(ms = opt.settleMs) {
     clearTimeout(settleTimer);
     settleTimer = setTimeout(() => { settleTimer = null; resharpen(); }, ms);
+    updateBusy();
+  }
+
+  // 'busy': a re-render is scheduled or running (a pan that needs none is not busy)
+  function updateBusy() {
+    const now = jobsLeft > 0 || (!!settleTimer && !destroyed && plan().length > 0);
+    if (now !== busyShown) { busyShown = now; emit('busy', { busy: now }); }
   }
 
   function checkIdle() {
+    updateBusy();
     if (!busy && !settleTimer) for (const fn of idleWaiters.splice(0)) fn();
   }
 
@@ -277,10 +289,11 @@ export function createStage(container, options = {}) {
 
   const offBy = (have, want) => have < want * 0.87 || have > want * 2.5;
 
-  async function sharpenNow() {
-    if (destroyed) return;
+  /** The tiles the view on show needs: [{ slot, area, r, pane, layer, kind }] (base or detail). */
+  function plan() {
+    const jobs = [];
     const want = stepScale(view.s, dpr());
-    for (const pane of [...panes]) {
+    for (const pane of panes) {
       const { pw, ph } = size(pane);
       const visible = visibleBounds(view, pw, ph);
       for (const [li, slot] of pane.slots.entries()) {
@@ -289,14 +302,35 @@ export function createStage(container, options = {}) {
         if (!area) continue;
         const rmax = budgetScale(area.maxX - area.minX, area.maxY - area.minY, opt);
         const baseR = Math.min(want, rmax);
-        if (!slot.base || offBy(slot.base.r, baseR)) await renderTile(slot, area, baseR, pane.index, li, 'base');
-        if (want > rmax * 1.15) {
-          const now = intersect(visible, area);
-          const zone = intersect(grow(visible, 0.25), area);
-          if (!now || !zone) continue;
-          const detailR = Math.min(want, budgetScale(zone.maxX - zone.minX, zone.maxY - zone.minY, opt));
-          if (!slot.detail || !contains(slot.detail.rect, now) || offBy(slot.detail.r, detailR)) await renderTile(slot, zone, detailR, pane.index, li, 'detail');
-        } else if (slot.detail) {
+        if (!slot.base || offBy(slot.base.r, baseR)) jobs.push({ slot, area, r: baseR, pane: pane.index, layer: li, kind: 'base' });
+        if (want <= rmax * 1.15) continue;
+        const now = intersect(visible, area);
+        const zone = intersect(grow(visible, 0.25), area);
+        if (!now || !zone) continue;
+        const detailR = Math.min(want, budgetScale(zone.maxX - zone.minX, zone.maxY - zone.minY, opt));
+        if (!slot.detail || !contains(slot.detail.rect, now) || offBy(slot.detail.r, detailR)) jobs.push({ slot, area: zone, r: detailR, pane: pane.index, layer: li, kind: 'detail' });
+      }
+    }
+    return jobs;
+  }
+
+  async function sharpenNow() {
+    if (destroyed) return;
+    const jobs = plan();
+    jobsLeft = jobs.length;
+    updateBusy();
+    try {
+      for (const j of jobs) { await renderTile(j.slot, j.area, j.r, j.pane, j.layer, j.kind); jobsLeft--; }
+    } finally {
+      jobsLeft = 0;
+    }
+    // zoomed back out within the whole-bounds budget: the detail tiles go
+    const want = stepScale(view.s, dpr());
+    for (const pane of panes) {
+      for (const slot of pane.slots) {
+        const area = contentRect(slot.content) || bounds;
+        if (!slot.detail || !area) continue;
+        if (want <= budgetScale(area.maxX - area.minX, area.maxY - area.minY, opt) * 1.15) {
           slot.detail.canvas.remove();
           slot.detail = null;
         }
