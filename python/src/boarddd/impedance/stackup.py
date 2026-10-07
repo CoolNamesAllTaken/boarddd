@@ -46,7 +46,7 @@ def _side(layers: list[dict], i: int, step: int, ref: str | None, warnings: list
         kind = layer.get("kind")
         if kind == "copper":
             name = layer.get("layer") or layer["name"]
-            if ref is None or ref in (name, layer["name"]):
+            if ref is not False and (ref is None or ref in (name, layer["name"])):
                 ref_name = name
                 break
             ct = layer.get("thickness")
@@ -77,7 +77,7 @@ def _side(layers: list[dict], i: int, step: int, ref: str | None, warnings: list
             mask = {"c": c, "erc": erc}
             mask_index = j
         j += step
-    if ref is not None and ref_name is None:
+    if ref is not None and ref is not False and ref_name is None:
         raise ValueError(f"reference plane {ref} not found {'above' if step < 0 else 'below'}")
     return {
         "h": h,
@@ -111,13 +111,21 @@ class Line:
         return d
 
 
+def _span(e) -> dict:
+    """The x0/x1 of an extent ({x0?, x1?}; None or missing ends run to the domain edge)."""
+    e = e or {}
+    return {k: e[k] for k in ("x0", "x1") if e.get(k) is not None}
+
+
 def _stackup_section(layers, i, up, down, o: dict, structure: str) -> dict:
     """The real cross-section of signal copper i for the field solver (the JS stackupSection)."""
-    seq = (
-        list(range(down["index"], (up["index"] or 0) - 1, -1))
-        if down["index"] is not None
-        else list(range(up["index"], len(layers)))
-    )
+    if down["index"] is not None:
+        seq = list(range(down["index"], (up["index"] or 0) - 1, -1))
+    elif up["index"] is not None:
+        seq = list(range(up["index"], len(layers)))
+    else:  # no plane at all (a layout's CPW): bottom up
+        seq = list(range(len(layers) - 1, -1, -1))
+    layout = o.get("layout")
     refs = {x for x in (up["index"], down["index"]) if x is not None}
     pair = o["kind"] == "differential"
     w, s = o["width"], o.get("gap")
@@ -148,7 +156,8 @@ def _stackup_section(layers, i, up, down, o: dict, structure: str) -> dict:
         d = thick(lay)
         if j in refs:
             if not (structure == "coplanar" and not inner):
-                conductors.append({"y0": y, "y1": y + d, "net": "gnd"})
+                ext = ((layout or {}).get("planes") or {}).get("top" if j == up["index"] else "bottom")
+                conductors.append({**_span(ext), "y0": y, "y1": y + d, "net": "gnd"})
         elif j == i:
             slab = {"y0": y, "y1": y + d}
             if inner:
@@ -162,7 +171,9 @@ def _stackup_section(layers, i, up, down, o: dict, structure: str) -> dict:
         elif lay.get("kind") == "dielectric":
             dielectrics.append({"y0": y, "y1": y + d, "er": er_of(lay)})
         y += d
-    if pair:
+    if layout:
+        traces = [{"x0": b["x0"], "x1": b["x1"], **slab, "net": b["net"]} for b in layout["traces"]]
+    elif pair:
         traces = [
             {"x0": -s / 2 - w, "x1": -s / 2, **slab, "net": "p"},
             {"x0": s / 2, "x1": s / 2 + w, **slab, "net": "n"},
@@ -171,7 +182,10 @@ def _stackup_section(layers, i, up, down, o: dict, structure: str) -> dict:
         traces = [{"x0": -w / 2, "x1": w / 2, **slab, "net": "sig"}]
     conductors += [r for b in traces for r in etched(b, o.get("etch") or 0)]
     grounds: list[dict] = []
-    if structure.startswith("coplanar"):
+    if layout:
+        grounds = [{**_span(g), **slab, "net": "gnd"} for g in layout.get("grounds") or []]
+        conductors += grounds
+    elif structure.startswith("coplanar"):
         e = (s / 2 + w if pair else w / 2) + o["coplanar_gap"]
         grounds = [{"x1": -e, **slab, "net": "gnd"}, {"x0": e, **slab, "net": "gnd"}]
         conductors += grounds
@@ -197,11 +211,12 @@ def line_from_stackup(
     gap: float | None = None,
     structure: str | None = None,
     coplanar_gap: float | None = None,
-    ref_top: str | None = None,
-    ref_bottom: str | None = None,
+    ref_top: str | bool | None = None,
+    ref_bottom: str | bool | None = None,
     mask: bool = True,
     solver: str = "closedform",
     etch: float = 0,
+    layout: dict | None = None,
 ) -> Line:
     """A signal layer ('F.Cu', 'In1.Cu') of a board model stackup as a closed-form line.
 
@@ -210,7 +225,9 @@ def line_from_stackup(
     microstrip. `solver="field"` also returns `section`, the real cross-section for the tier-2 field solver
     (every layer's own εr, the mask on any outer structure); then differential coplanar and coplanar on inner
     layers are allowed too (`model` None when tier 1 has none); `etch` makes the traces trapezoids whose top is
-    `etch` narrower than `width`.
+    `etch` narrower than `width`. `layout` (field solver; boarddd.impedance.route) gives the copper in the signal
+    layer as found on a board: `traces` [{x0, x1, net}], coplanar `grounds` [{x0?, x1?}] and the reference planes'
+    extents `planes: {top, bottom}`; `ref_top`/`ref_bottom` False means no plane on that side.
     """
     if solver not in ("closedform", "field"):
         raise ValueError(f"unknown solver {solver}")
@@ -228,7 +245,8 @@ def line_from_stackup(
         warnings.append(f"{layer}: no thickness, using {_num(t)} mm")
     up, down = _side(layers, i, -1, ref_top, warnings), _side(layers, i, 1, ref_bottom, warnings)
     outer = up["ref"] is None or down["ref"] is None
-    if up["ref"] is None and down["ref"] is None:
+    # A layout (route.py) may describe a CPW with no plane at all: its coplanar grounds.
+    if up["ref"] is None and down["ref"] is None and not (is_field and layout and layout.get("grounds")):
         raise ValueError(f"{layer} has no reference plane")
     structure = structure or ("microstrip" if outer else "stripline")
     ref, open_ = (down, up) if up["ref"] is None else (up, down)
@@ -270,6 +288,7 @@ def line_from_stackup(
     section = None
     if is_field:
         o = {"kind": kind, "width": width, "gap": gap, "coplanar_gap": coplanar_gap, "mask": mask, "etch": etch}
+        o["layout"] = layout
         section = _stackup_section(layers, i, up, down, o, structure)
     return Line(model, structure, params, warnings, section)
 
