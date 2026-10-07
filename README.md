@@ -171,6 +171,9 @@ const part = await loadSTEP('part.step', { occt: { js: '.../occt-import-js.js', 
   is fitted (from the named nodes, else a Hough vote), and a node goes to a part only if it is clearly
   nearer that part than any other node and than any other part; mutual-nearest pairs settle the rest.
   A part with `assembly: true` and a `box` claims the solids inside it (a module).
+- Panels: the copies of a board export under the same designator. Give each copy its own `ref` and the
+  exported one as `name` (`{ref: 'R7·2', name: 'R7', x, y}`): a node named `R7` goes to the nearest copy
+  once the origin is fitted.
 - Placements already in the model's own frame (y up, e.g. measured by a server from the same STEP):
   `mapNodesToRefs(nodes, comps, { frame: 'board', offset: {x: 0, y: 0}, byName: false, joinExtras: false })`
   skips the flip, the origin fit, name matching and extra-piece joining; module `box` may be 3D
