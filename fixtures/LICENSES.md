@@ -17,6 +17,7 @@ synthetic boards and data generated here belong in `fixtures/`; no company or cu
 | `generated/outline/sheet/` | royalblue Edge.Cuts plotted with the drawing sheet (`--ibt`) and its gbrjob, for `io.outline.pick_board` | `generated/outline/make.sh`, kicad-cli 10.0.6 | derived from royalblue54L_feather: CERN-OHL-P v2 |
 | `generated/drill/` | `test/fixtures/slots-board/slots.kicad_pcb` drilled as routed and G85 slots, and in inches with each zero format, for `io.excellon` and the JS parity tests | `generated/drill/make.sh`, kicad-cli 10.0.6 | derived from a board written for boarddd: MIT |
 | `generated/bom/` | a KiCad-layout BOM of royalblue54L_feather (31 lines; no MPNs: the demo has none), for `io.bom` | `generated/bom/make_bom.py` from `royalblue54L_feather/board.json` | derived from royalblue54L_feather: CERN-OHL-P v2 |
+| `generated/step/royalblue54L_feather.step.gz` | royalblue's whole STEP export with KiCad's stock models (components and board body), gzipped, for the `[step]` extra's tests | `generated/step/make.sh` (kicad-cli 10.0.6) | derived from royalblue54L_feather (CERN-OHL-P v2) and KiCad's 3D library (CC-BY-SA 4.0 with the KiCad libraries exception) |
 | `generated/step/royalblue54L_feather-excerpt.step` | 16 components' occurrence chains and the board body cut out of royalblue's STEP export (KiCad stock models), solids emptied, for `step.text`/`step.registration` | `generated/step/make.sh` (kicad-cli 10.0.6) + `make_excerpt.py` | derived from royalblue54L_feather (CERN-OHL-P v2) and KiCad's 3D library (CC-BY-SA 4.0 with the KiCad libraries exception) |
 | `generated/*/make*` | scripts | written for boarddd | MIT (this repository) |
 
@@ -24,3 +25,8 @@ Python-only goldens live next to their tests: `python/tests/kicad/fixtures/pad_p
 the footprints are KiCad library footprints, CC-BY-SA 4.0 with the KiCad libraries exception, plus kipr's own
 `RP2040-Zero_Castellated` and `Trapezoid_Delta`) and `python/tests/kicad/fixtures/royalblue54L_pcbnew/` (pcbnew's
 numbers for the board above: CERN-OHL-P v2).
+
+The `[step]` extra's own fixtures live next to its tests: `python/tests/step/fixtures_occ/tiny.step` and
+`tiny-pos.csv` (magpie's synthetic board, `make_board.py`, of KiCad stock footprints and 3D models) and
+`fixtures_occ/library/*.step` (three KiCad stock 3D models, unmodified): KiCad's libraries are CC-BY-SA 4.0
+with the KiCad libraries exception; the script is MIT.

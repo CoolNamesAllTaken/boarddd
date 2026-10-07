@@ -2,7 +2,7 @@
 
 Server-side readers that turn a fab package or KiCad files into the board model ([model.md](model.md)).
 Stdlib only; `.xlsx`/`.xls` BOMs need the `[xlsx]` extra (openpyxl, xlrd). IPC-2581/ODB++ (`io.ipc2581`,
-`io.odbpp`) and the OCP-backed STEP half (`[step]`) are later phases.
+`io.odbpp`) are a later phase. The OCP-backed STEP engine is the `[step]` extra: see [step.md](step.md).
 
 ```python
 from boarddd.io.package import read_package
@@ -32,7 +32,7 @@ The KiCad readers are in [KiCad files](#kicad-files-boardddiokicad) below.
 
 Each copied module names its source file and commit in its docstring. Magpie switches to these modules
 in phase G2, which re-diffs magpie's later changes first. magpie's `step/steptext.py` (the numpy index)
-goes with the `[step]` extra (F4), and `footprint/gerbers.py` stays in magpie for now.
+is `step.index` in the `[step]` extra ([step.md](step.md)), and `footprint/gerbers.py` stays in magpie for now.
 
 ## `read_package`: where each field comes from
 
