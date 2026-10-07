@@ -9,17 +9,6 @@ const DATA = new URL('./data/royalblue54L_feather/', import.meta.url);
 const status = document.getElementById('status');
 const say = (t) => { status.textContent = t; };
 
-async function gerberApi() {
-  const mods = await Promise.all(['index', 'board', 'diff', 'drills', 'layers', 'outline', 'raster'].map((m) => import(`wasm-gerber-renderer/${m}.js`)));
-  const glue = await import('wasm-gerber-renderer/wasm/wasm_gerber_processor.js');
-  const api = Object.assign({}, ...mods);
-  const renderer = await api.createGerberRenderer(document.createElement('canvas'), {
-    wasmModule: glue,
-    wasmInitInput: { module_or_path: new URL('/vendor/wasm-gerber-renderer/wasm/wasm_gerber_processor_bg.wasm', location.href) },
-    contextAttributes: { preserveDrawingBuffer: true },
-  });
-  return { api, renderer };
-}
 const fetchText = async (url) => (await fetch(url)).text();
 
 const dark = matchMedia('(prefers-color-scheme: dark)').matches;
@@ -30,8 +19,7 @@ try {
   const files = await Promise.all(manifest.files.map(async (name) => ({ name, text: await fetchText(new URL(name, DATA)) })));
   const components = await (await fetch(new URL(manifest.components, DATA))).json();
   say('Painting the board from its Gerbers…');
-  const { api, renderer } = await gerberApi();
-  const board = await buildGerberBoard(api, renderer, files, { thickness: 1.6 });
+  const board = await buildGerberBoard(null, null, files, { thickness: 1.6 });
   viewer.add(board.group);
   viewer.setView('iso');
 
@@ -56,8 +44,8 @@ try {
     if (e.target.checked) {
       // There is no second revision of KiCad's demo: the base is the same board without its NPTH
       // drill file, so those holes show as added (green) and everything else as unchanged.
-      diff ??= await paintCopperDiff(api, renderer, {
-        base: readFabFiles(api, files.filter((f) => !/NPTH/.test(f.name))), head: board.fab,
+      diff ??= await paintCopperDiff(null, null, {
+        base: readFabFiles(null, files.filter((f) => !/NPTH/.test(f.name))), head: board.fab,
       }, board.painted);
       board.setFaces({ top: diff.top, bottom: diff.bottom });
     } else {

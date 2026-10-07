@@ -1,7 +1,7 @@
 // Test/screenshot harness (not part of the library): one board or footprint in a bare three.js scene,
 // board frame z-up, orthographic top/bottom views for pixel geometry checks and a perspective iso view.
 //   ?fp=<url of .kicad_mod>            buildFootprint
-//   ?gerber=<dir with manifest.json>   buildGerberBoard (the fork renderer from /vendor)
+//   ?gerber=<dir with manifest.json>   buildGerberBoard (boarddd/gerber injected, harness-gerber.js)
 //   &view=top|bottom|iso  &w=..&h=..  &bg=#rrggbb
 // Sets window.harness = {ok, error, info} once the frame is drawn.
 import * as THREE from 'three';

@@ -1,0 +1,3050 @@
+use super::aperture_macro::{evaluate_expression, parse_macro};
+use super::state::{parse_sr, MAX_GENERATED_ITEMS, MAX_STEP_REPEAT_COPIES};
+use super::{
+    format_count, parse_gerber, parse_gerber_payload_with_options, parse_gerber_with_options,
+    GerberParser, ParserState, Polarity,
+};
+use crate::geometry::{GerberData, RegionContour, RegionSegment, PATH_SECTOR_VERTEX_FLOATS};
+use crate::interaction::FeatureKind;
+use std::collections::HashMap;
+
+fn assert_approx_eq(actual: f32, expected: f32) {
+    assert!(
+        (actual - expected).abs() < 0.0001,
+        "expected {expected}, got {actual}"
+    );
+}
+
+fn triangle_bounds(vertices: &[f32]) -> (f32, f32, f32, f32) {
+    let mut min_x = f32::INFINITY;
+    let mut max_x = f32::NEG_INFINITY;
+    let mut min_y = f32::INFINITY;
+    let mut max_y = f32::NEG_INFINITY;
+
+    for point in vertices.chunks_exact(2) {
+        min_x = min_x.min(point[0]);
+        max_x = max_x.max(point[0]);
+        min_y = min_y.min(point[1]);
+        max_y = max_y.max(point[1]);
+    }
+
+    (min_x, max_x, min_y, max_y)
+}
+
+fn collect_triangle_vertices(layer: &GerberData) -> Vec<f32> {
+    let mut vertices = layer.triangles.vertices.clone();
+
+    for template in &layer.triangle_templates {
+        for i in 0..template.instance_x.len() {
+            let offset_x = template.instance_x[i];
+            let offset_y = template.instance_y[i];
+            for point in template.vertices.chunks_exact(2) {
+                vertices.push(point[0] + offset_x);
+                vertices.push(point[1] + offset_y);
+            }
+        }
+    }
+
+    vertices
+}
+
+fn layer_triangle_bounds(layer: &GerberData) -> (f32, f32, f32, f32) {
+    triangle_bounds(&collect_triangle_vertices(layer))
+}
+
+fn has_circle_at(
+    circles: &crate::geometry::Circles,
+    expected_x: f32,
+    expected_y: f32,
+    expected_radius: f32,
+) -> bool {
+    circles
+        .x
+        .iter()
+        .zip(&circles.y)
+        .zip(&circles.radius)
+        .any(|((&x, &y), &radius)| {
+            (x - expected_x).abs() < 0.0001
+                && (y - expected_y).abs() < 0.0001
+                && (radius - expected_radius).abs() < 0.0001
+        })
+}
+
+#[test]
+fn allocation_count_formatting_groups_digits_without_underflow() {
+    assert_eq!(format_count(0), "0");
+    assert_eq!(format_count(12), "12");
+    assert_eq!(format_count(123), "123");
+    assert_eq!(format_count(1_234), "1,234");
+    assert_eq!(format_count(12_345), "12,345");
+    assert_eq!(format_count(123_456), "123,456");
+    assert_eq!(format_count(24_000_000), "24,000,000");
+}
+
+#[test]
+fn rejects_step_repeat_counts_above_parser_limit() {
+    let mut state = ParserState::default();
+    let command = format!("%SRX{}Y1I1J0*%", MAX_STEP_REPEAT_COPIES + 1);
+
+    let error = parse_sr(&command, &mut state).expect_err("oversized SR must fail");
+
+    assert!(error.contains("exceeds the supported limit"));
+    assert_eq!(state.sr_x, 1);
+    assert_eq!(state.sr_y, 1);
+}
+
+#[test]
+fn rejects_malformed_step_repeat_without_changing_state() {
+    let mut state = ParserState::default();
+
+    let error = parse_sr("%SRX2YI1J1*%", &mut state).expect_err("missing Y count must fail");
+
+    assert!(error.contains("missing numeric value"));
+    assert_eq!(state.sr_x, 1);
+    assert_eq!(state.sr_y, 1);
+    assert_eq!(state.sr_i, 0.0);
+    assert_eq!(state.sr_j, 0.0);
+}
+
+#[test]
+fn generated_geometry_budget_is_cumulative() {
+    let state = ParserState::default();
+
+    state
+        .consume_generated_items(MAX_GENERATED_ITEMS, "test")
+        .expect("budget boundary should be accepted");
+    let error = state
+        .consume_generated_items(1, "test")
+        .expect_err("budget overflow must fail");
+
+    assert!(error.contains("generated geometry exceeds"));
+}
+
+#[test]
+fn rejects_standard_polygon_vertex_counts_outside_specification() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10P,1.0X4294967295*%
+D10*
+X000000Y000000D03*
+M02*";
+    let mut parser = GerberParser::with_options(true, 1);
+
+    let layers = parser
+        .parse(data)
+        .expect("invalid polygon should be ignored safely");
+
+    assert!(layers.is_empty());
+    assert!(!parser.apertures.contains_key("10"));
+}
+
+#[test]
+fn accepts_decimal_notation_for_integral_polygon_vertex_counts() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10P,1.0X6.0*%
+D10*
+X000000Y000000D03*
+M02*",
+    )
+    .expect("integral decimal vertex count should remain supported");
+
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].triangle_templates.len(), 1);
+    assert_eq!(layers[0].triangle_templates[0].vertices.len(), 36);
+    assert_eq!(layers[0].triangle_templates[0].instance_x.len(), 1);
+}
+
+#[test]
+fn rejects_macro_vertex_counts_before_allocation() {
+    let mut macros = HashMap::new();
+    parse_macro(
+        "%AMLIMITS*5,1,4294967295,0,0,1,0*4,1,4294967295,0,0,0,0*%",
+        &mut macros,
+    );
+
+    let primitives = macros
+        .get("LIMITS")
+        .expect("macro should be parsed")
+        .instantiate(&[]);
+
+    assert!(primitives.is_empty());
+}
+
+#[test]
+fn rejects_repeated_arc_region_before_interaction_tessellation() {
+    let mut contour = RegionContour::default();
+    contour
+        .push_arc(
+            [1.0, 0.0],
+            [-1.0, 0.0],
+            [0.0, 0.0],
+            1.0,
+            0.0,
+            std::f32::consts::PI,
+        )
+        .expect("test arc should be valid");
+    let mut state = ParserState::default();
+    state.sr_x = MAX_STEP_REPEAT_COPIES as u32;
+    let contours = vec![contour; 4];
+
+    let error = match super::geometry::build_path_regions(&contours, &state, 2, true, false) {
+        Ok(_) => panic!("repeated arc region must be rejected before expansion"),
+        Err(error) => error,
+    };
+
+    let rejected_by_command_limit = error.contains("path region expands");
+    let rejected_by_geometry_limit = error
+        .contains("generated geometry exceeds the supported limit")
+        && error.contains("while processing path region");
+    assert!(
+        rejected_by_command_limit || rejected_by_geometry_limit,
+        "{error}"
+    );
+    assert_eq!(state.generated_items(), 0);
+}
+
+#[test]
+fn trailing_zero_omission_coordinates_are_right_padded() {
+    let layers = parse_gerber(
+        "\
+%FSTAX24Y24*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+X01Y02D03*
+X-01Y-02D03*
+M02*",
+    )
+    .expect("trailing zero format should parse");
+
+    assert_eq!(layers.len(), 1);
+    let circles = &layers[0].circles;
+    assert_eq!(circles.x.len(), 2);
+    assert!(has_circle_at(circles, 1.0, 2.0, 0.5));
+    assert!(has_circle_at(circles, -1.0, -2.0, 0.5));
+}
+
+#[test]
+fn explicit_decimal_coordinates_use_common_number_parser() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+X1.25Y-2.5D03*
+M02*",
+    )
+    .expect("explicit decimal coordinates should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert!(has_circle_at(&layers[0].circles, 1.25, -2.5, 0.5));
+}
+
+#[test]
+fn x_and_y_coordinate_formats_can_differ() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y36*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+X010000Y1000000D03*
+M02*",
+    )
+    .expect("mixed X/Y coordinate formats should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert!(has_circle_at(&layers[0].circles, 1.0, 1.0, 0.5));
+}
+
+#[test]
+fn x2_attributes_are_ignored_for_image_rendering() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%TF.FileFunction,Copper,L1,Top*%
+%ADD10C,1.0*%
+%TA.AperFunction,ComponentPad*%
+D10*
+%TO.N,GND*%
+X010000Y020000D03*
+%TD*%
+M02*",
+    )
+    .expect("attributes should not affect image rendering");
+
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].circles.x.len(), 1);
+    assert!(has_circle_at(&layers[0].circles, 1.0, 2.0, 0.5));
+}
+
+#[test]
+fn deprecated_macro_vector_line_primitive_2_aliases_primitive_20() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMVL2*
+2,1,0.5,-1,0,1,0,0*%
+%ADD10VL2*%
+D10*
+X000000Y000000D03*
+M02*",
+    )
+    .expect("macro primitive 2 should parse as vector line");
+
+    assert_eq!(layers.len(), 1);
+    let (min_x, max_x, min_y, max_y) = layer_triangle_bounds(&layers[0]);
+    assert_approx_eq(min_x, -1.0);
+    assert_approx_eq(max_x, 1.0);
+    assert_approx_eq(min_y, -0.25);
+    assert_approx_eq(max_y, 0.25);
+}
+
+#[test]
+fn deprecated_macro_lower_left_line_primitive_22_renders_rectangle() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMLL22*
+22,1,2,1,-1,-0.5,0*%
+%ADD10LL22*%
+D10*
+X000000Y000000D03*
+M02*",
+    )
+    .expect("macro primitive 22 should parse as lower-left rectangle");
+
+    assert_eq!(layers.len(), 1);
+    let (min_x, max_x, min_y, max_y) = layer_triangle_bounds(&layers[0]);
+    assert_approx_eq(min_x, -1.0);
+    assert_approx_eq(max_x, 1.0);
+    assert_approx_eq(min_y, -0.5);
+    assert_approx_eq(max_y, 0.5);
+}
+
+fn scaled(value: f32) -> i32 {
+    (value * 10_000.0).round() as i32
+}
+
+fn scaled_vec(values: &[f32]) -> Vec<i32> {
+    values.iter().map(|value| scaled(*value)).collect()
+}
+
+fn push_scaled_vec(output: &mut String, label: &str, values: &[f32]) {
+    if !values.is_empty() {
+        output.push_str(&format!("{label}={:?}\n", scaled_vec(values)));
+    }
+}
+
+fn gerber_snapshot(data: &str) -> String {
+    let layers = parse_gerber(data).expect("snapshot input should parse");
+    let mut output = String::new();
+    output.push_str(&format!("layers={}\n", layers.len()));
+
+    for (idx, layer) in layers.iter().enumerate() {
+        output.push_str(&format!("layer[{idx}].negative={}\n", layer.is_negative));
+        output.push_str(&format!(
+            "layer[{idx}].boundary=[{},{},{},{}]",
+            scaled(layer.boundary.min_x),
+            scaled(layer.boundary.max_x),
+            scaled(layer.boundary.min_y),
+            scaled(layer.boundary.max_y)
+        ));
+        output.push('\n');
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].triangles.vertices"),
+            &layer.triangles.vertices,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].triangles.hole_x"),
+            &layer.triangles.hole_x,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].triangles.hole_y"),
+            &layer.triangles.hole_y,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].triangles.hole_radius"),
+            &layer.triangles.hole_radius,
+        );
+        for (template_idx, template) in layer.triangle_templates.iter().enumerate() {
+            push_scaled_vec(
+                &mut output,
+                &format!("layer[{idx}].triangle_templates[{template_idx}].vertices"),
+                &template.vertices,
+            );
+            push_scaled_vec(
+                &mut output,
+                &format!("layer[{idx}].triangle_templates[{template_idx}].instance_x"),
+                &template.instance_x,
+            );
+            push_scaled_vec(
+                &mut output,
+                &format!("layer[{idx}].triangle_templates[{template_idx}].instance_y"),
+                &template.instance_y,
+            );
+        }
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].circles.x"),
+            &layer.circles.x,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].circles.y"),
+            &layer.circles.y,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].circles.radius"),
+            &layer.circles.radius,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].circles.hole_x"),
+            &layer.circles.hole_x,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].circles.hole_y"),
+            &layer.circles.hole_y,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].circles.hole_radius"),
+            &layer.circles.hole_radius,
+        );
+        push_scaled_vec(&mut output, &format!("layer[{idx}].arcs.x"), &layer.arcs.x);
+        push_scaled_vec(&mut output, &format!("layer[{idx}].arcs.y"), &layer.arcs.y);
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].arcs.radius"),
+            &layer.arcs.radius,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].arcs.start_angle"),
+            &layer.arcs.start_angle,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].arcs.sweep_angle"),
+            &layer.arcs.sweep_angle,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].arcs.thickness"),
+            &layer.arcs.thickness,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].thermals.x"),
+            &layer.thermals.x,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].thermals.y"),
+            &layer.thermals.y,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].thermals.outer_diameter"),
+            &layer.thermals.outer_diameter,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].thermals.inner_diameter"),
+            &layer.thermals.inner_diameter,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].thermals.gap_thickness"),
+            &layer.thermals.gap_thickness,
+        );
+        push_scaled_vec(
+            &mut output,
+            &format!("layer[{idx}].thermals.rotation"),
+            &layer.thermals.rotation,
+        );
+    }
+
+    output
+}
+
+fn assert_gerber_snapshot(data: &str, expected: &str) {
+    assert_eq!(gerber_snapshot(data).trim(), expected.trim());
+}
+
+#[test]
+fn m02_stops_parsing_following_commands() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+X000000Y000000D03*
+M02*
+X010000Y000000D03*",
+    )
+    .expect("flash should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].circles.x.len(), 1);
+    assert_approx_eq(layers[0].circles.x[0], 0.0);
+}
+
+#[test]
+fn aperture_macro_omitted_variables_default_to_zero() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMSTAR5*
+$3=$1x0.5*
+$4=$3x0.4*
+4,1,10,
+$3x0.0000,$3x1.0000,
+$4x-0.5878,$4x0.8090,
+$3x-0.9511,$3x0.3090,
+$4x-0.9511,$4x-0.3090,
+$3x-0.5878,$3x-0.8090,
+$4x0.0000,$4x-1.0000,
+$3x0.5878,$3x-0.8090,
+$4x0.9511,$4x-0.3090,
+$3x0.9511,$3x0.3090,
+$4x0.5878,$4x0.8090,
+$3x0.0000,$3x1.0000,
+$2*%
+%ADD23STAR5,5.000000*%
+%ADD24STAR5,5.000000X45*%
+%ADD25STAR5,5.000000X90*%
+%ADD26STAR5,5.000000X135*%
+D23*
+X025000000Y025000000D03*
+D24*
+X-025000000Y025000000D03*
+D25*
+X-025000000Y-025000000D03*
+D26*
+X025000000Y-025000000D03*
+M02*",
+    )
+    .expect("macro should parse omitted parameters");
+    let mut occupied_quadrants = [false; 4];
+
+    let vertices = collect_triangle_vertices(&layers[0]);
+    for triangle in vertices.chunks_exact(6) {
+        let centroid_x = (triangle[0] + triangle[2] + triangle[4]) / 3.0;
+        let centroid_y = (triangle[1] + triangle[3] + triangle[5]) / 3.0;
+
+        if centroid_x > 10.0 && centroid_y > 10.0 {
+            occupied_quadrants[0] = true;
+        } else if centroid_x < -10.0 && centroid_y > 10.0 {
+            occupied_quadrants[1] = true;
+        } else if centroid_x < -10.0 && centroid_y < -10.0 {
+            occupied_quadrants[2] = true;
+        } else if centroid_x > 10.0 && centroid_y < -10.0 {
+            occupied_quadrants[3] = true;
+        }
+    }
+
+    assert_eq!(occupied_quadrants, [true, true, true, true]);
+}
+
+#[test]
+fn golden_region_d02_output_matches_current_parser() {
+    assert_gerber_snapshot(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%LPD*%
+G36*
+X000000Y000000D02*
+G01*
+X010000Y000000D01*
+X010000Y010000D01*
+X000000Y010000D01*
+G37*
+M02*",
+        "\
+layers=1
+layer[0].negative=false
+layer[0].boundary=[0,10000,0,10000]
+layer[0].triangles.vertices=[10000, 0, 0, 10000, 0, 0, 10000, 10000, 0, 10000, 10000, 0]",
+    );
+}
+
+#[test]
+fn region_arc_is_preserved_for_path_renderer() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+M02*",
+    )
+    .expect("region arc should parse");
+
+    assert_eq!(layers.len(), 1);
+    let layer = &layers[0];
+    assert!(layer.triangles.vertices.is_empty());
+    assert_eq!(layer.path_regions.region_count(), 1);
+    assert_eq!(layer.path_regions.wedge_vertex_offsets, vec![0, 9]);
+    assert_eq!(layer.path_regions.sector_vertex_offsets, vec![0, 12]);
+    assert_eq!(layer.path_regions.cover_vertices.len(), 12);
+    assert_eq!(layer.path_regions.clear_vertices.len(), 12);
+    assert!(layer.path_regions.pick_contours.is_empty());
+    assert_approx_eq(layer.boundary.min_x, -1.0);
+    assert_approx_eq(layer.boundary.max_x, 1.0);
+    assert_approx_eq(layer.boundary.min_y, 0.0);
+    assert_approx_eq(layer.boundary.max_y, 1.0);
+}
+
+#[test]
+fn preserved_region_arc_interaction_uses_path_regions() {
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    let payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+M02*",
+        )
+        .expect("region arc interaction payload should parse");
+
+    let interaction_layer = payload
+        .interaction_layer
+        .expect("interaction layer should be collected");
+    assert_eq!(interaction_layer.features.len(), 1);
+    let feature = &interaction_layer.features[0];
+    assert!(feature.primitives.is_empty());
+    let path_regions = feature
+        .path_regions
+        .as_deref()
+        .expect("region interaction should keep path regions");
+    assert_eq!(path_regions.region_count(), 0);
+    assert!(path_regions.wedge_vertices.is_empty());
+    assert!(path_regions.sector_vertices.is_empty());
+    assert_eq!(path_regions.pick_contours.len(), 1);
+    assert_eq!(
+        feature.path_region_ref,
+        Some(crate::interaction::PathRegionRef {
+            sublayer_idx: 0,
+            region_start: 0,
+            region_count: 1,
+        })
+    );
+}
+
+#[test]
+fn region_arc_interaction_clone_omits_source_contours() {
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    parser.preserve_region_source_contours = true;
+    let payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+M02*",
+        )
+        .expect("region arc payload should parse");
+
+    assert!(payload.render_layers[0].path_regions.has_source_contours());
+    let interaction_layer = payload
+        .interaction_layer
+        .expect("interaction layer should be collected");
+    let path_regions = interaction_layer.features[0]
+        .path_regions
+        .as_deref()
+        .expect("region interaction should keep path regions");
+
+    assert_eq!(path_regions.pick_contours.len(), 1);
+    assert_eq!(path_regions.region_count(), 0);
+    assert!(!path_regions.has_source_contours());
+    assert!(interaction_layer.features[0].path_region_ref.is_some());
+}
+
+#[test]
+fn path_region_pick_respects_inner_hole_contour() {
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    let payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+G75*
+G36*
+X000000Y000000D02*
+G01*
+X100000Y000000D01*
+G03*
+X100000Y100000I-050000J050000D01*
+G01*
+X000000Y100000D01*
+X000000Y000000D01*
+X040000Y040000D02*
+X060000Y040000D01*
+X060000Y060000D01*
+X040000Y060000D01*
+X040000Y040000D01*
+G37*
+M02*",
+        )
+        .expect("region with inner hole should parse");
+
+    let interaction_layer = payload
+        .interaction_layer
+        .expect("interaction layer should be collected");
+
+    assert!(interaction_layer.pick(2.0, 2.0, 0.0).is_some());
+    assert!(interaction_layer.pick(5.0, 5.0, 0.0).is_none());
+}
+
+#[test]
+fn linear_region_with_inner_hole_uses_path_renderer() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%LPD*%
+G36*
+X-050000Y-050000D02*
+G01*
+X050000Y-050000D01*
+X050000Y050000D01*
+X-050000Y050000D01*
+X-050000Y-050000D01*
+X-020000Y-020000D02*
+X-020000Y020000D01*
+X020000Y020000D01*
+X020000Y-020000D01*
+X-020000Y-020000D01*
+G37*
+M02*",
+    )
+    .expect("linear region with inner hole should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert!(layers[0].triangles.vertices.is_empty());
+    assert_eq!(layers[0].path_regions.region_count(), 1);
+}
+
+#[test]
+fn path_region_pick_contour_quality_tracks_arc_tessellation_quality() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+M02*";
+    let mut low_parser = GerberParser::with_options_and_interactions(true, 0, true);
+    let mut high_parser = GerberParser::with_options_and_interactions(true, 2, true);
+    let low_payload = low_parser
+        .parse_payload(data)
+        .expect("low quality arc region interaction should parse");
+    let high_payload = high_parser
+        .parse_payload(data)
+        .expect("high quality arc region interaction should parse");
+
+    let low_feature = &low_payload
+        .interaction_layer
+        .expect("low quality interaction layer should exist")
+        .features[0];
+    let high_feature = &high_payload
+        .interaction_layer
+        .expect("high quality interaction layer should exist")
+        .features[0];
+    let low_points: usize = low_feature
+        .path_regions
+        .as_deref()
+        .expect("low quality path regions should exist")
+        .pick_contours
+        .iter()
+        .flatten()
+        .map(Vec::len)
+        .sum();
+    let high_points: usize = high_feature
+        .path_regions
+        .as_deref()
+        .expect("high quality path regions should exist")
+        .pick_contours
+        .iter()
+        .flatten()
+        .map(Vec::len)
+        .sum();
+
+    assert!(high_points > low_points);
+}
+
+#[test]
+fn arc_draw_interactions_report_g02_and_g03_commands() {
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    let payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+G75*
+X010000Y000000D02*
+G02*
+X-010000Y000000I-010000J000000D01*
+G03*
+X010000Y000000I010000J000000D01*
+M02*",
+        )
+        .expect("arc draw interaction payload should parse");
+
+    let interaction_layer = payload
+        .interaction_layer
+        .expect("interaction layer should be collected");
+    assert_eq!(interaction_layer.features.len(), 2);
+    assert_eq!(
+        interaction_layer.features[0]
+            .descriptor
+            .properties
+            .arc_command
+            .as_deref(),
+        Some("G02")
+    );
+    assert_eq!(
+        interaction_layer.features[1]
+            .descriptor
+            .properties
+            .arc_command
+            .as_deref(),
+        Some("G03")
+    );
+}
+
+#[test]
+fn zero_length_d01_interaction_reports_flash() {
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    let payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10R,1.0X0.5*%
+D10*
+X000000Y000000D02*
+X000000Y000000D01*
+M02*",
+        )
+        .expect("zero-length D01 interaction payload should parse");
+
+    let interaction_layer = payload
+        .interaction_layer
+        .expect("interaction layer should be collected");
+    assert_eq!(interaction_layer.features.len(), 1);
+    assert_eq!(
+        interaction_layer.features[0].descriptor.kind,
+        FeatureKind::Flash
+    );
+}
+
+#[test]
+fn step_repeat_d03_interactions_are_split_per_copy() {
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    let payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,0.5*%
+%SRX2Y1I2.0J0.0*%
+D10*
+X000000Y000000D03*
+%SR*%
+M02*",
+        )
+        .expect("step-repeat flash interaction payload should parse");
+
+    let interaction_layer = payload
+        .interaction_layer
+        .expect("interaction layer should be collected");
+    assert_eq!(interaction_layer.features.len(), 2);
+    let first = &interaction_layer.features[0].bounds;
+    let second = &interaction_layer.features[1].bounds;
+    assert_approx_eq((first.min_x() + first.max_x()) * 0.5, 0.0);
+    assert_approx_eq((second.min_x() + second.max_x()) * 0.5, 2.0);
+}
+
+#[test]
+fn step_repeat_d01_interactions_are_split_per_copy() {
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    let payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,0.5*%
+%SRX2Y1I2.0J0.0*%
+D10*
+X000000Y000000D02*
+X010000Y000000D01*
+%SR*%
+M02*",
+        )
+        .expect("step-repeat draw interaction payload should parse");
+
+    let interaction_layer = payload
+        .interaction_layer
+        .expect("interaction layer should be collected");
+    assert_eq!(interaction_layer.features.len(), 2);
+    assert_eq!(
+        interaction_layer.features[0].descriptor.kind,
+        FeatureKind::Draw
+    );
+    assert_eq!(
+        interaction_layer.features[1].descriptor.kind,
+        FeatureKind::Draw
+    );
+    let first = &interaction_layer.features[0].bounds;
+    let second = &interaction_layer.features[1].bounds;
+    assert_approx_eq((first.min_x() + first.max_x()) * 0.5, 0.5);
+    assert_approx_eq((second.min_x() + second.max_x()) * 0.5, 2.5);
+}
+
+#[test]
+fn interaction_aperture_properties_use_effective_scale_and_rotation() {
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    let payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD24R,1.0X0.5*%
+%LS2.0*%
+%LR90*%
+D24*
+X000000Y000000D03*
+M02*",
+        )
+        .expect("scaled rotated aperture interaction payload should parse");
+
+    let interaction_layer = payload
+        .interaction_layer
+        .expect("interaction layer should be collected");
+    let properties = &interaction_layer.features[0].descriptor.properties;
+    assert_eq!(properties.diameter, None);
+    assert_approx_eq(properties.width.expect("width should be reported"), 2.0);
+    assert_approx_eq(properties.height.expect("height should be reported"), 1.0);
+    assert_approx_eq(
+        properties.rotation.expect("rotation should be reported"),
+        std::f32::consts::FRAC_PI_2,
+    );
+}
+
+#[test]
+fn interaction_aperture_rotation_reflects_mirroring_before_layer_rotation() {
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    let payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10P,1.0X5X45*%
+%LMX*%
+%LR90*%
+D10*
+X000000Y000000D03*
+M02*",
+        )
+        .expect("mirrored rotated polygon interaction payload should parse");
+
+    let interaction_layer = payload
+        .interaction_layer
+        .expect("interaction layer should be collected");
+    let rotation = interaction_layer.features[0]
+        .descriptor
+        .properties
+        .rotation
+        .expect("polygon rotation should be reported");
+    assert_approx_eq(rotation, -std::f32::consts::FRAC_PI_4 * 3.0);
+}
+
+#[test]
+fn non_circle_apertures_do_not_report_diameter_properties() {
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    let polygon_payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10P,1.0X5X45*%
+D10*
+X000000Y000000D03*
+M02*",
+        )
+        .expect("polygon aperture interaction payload should parse");
+    let polygon_layer = polygon_payload
+        .interaction_layer
+        .expect("polygon interaction layer should be collected");
+    let polygon_properties = &polygon_layer.features[0].descriptor.properties;
+    assert_eq!(polygon_properties.diameter, None);
+    assert_eq!(polygon_properties.vertices, Some(5));
+    assert_approx_eq(
+        polygon_properties
+            .rotation
+            .expect("polygon rotation should be reported"),
+        std::f32::consts::FRAC_PI_4,
+    );
+
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    let macro_payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+%AMROUND*1,1,1.0,0,0,0*%
+%ADD10ROUND*%
+D10*
+X000000Y000000D03*
+M02*",
+        )
+        .expect("macro aperture interaction payload should parse");
+    let macro_layer = macro_payload
+        .interaction_layer
+        .expect("macro interaction layer should be collected");
+    assert_eq!(macro_layer.features[0].descriptor.properties.diameter, None);
+}
+
+#[test]
+fn region_arc_can_be_flattened_for_legacy_triangles() {
+    let layers = parse_gerber_with_options(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+M02*",
+        false,
+        1,
+    )
+    .expect("flattened region arc should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].path_regions.region_count(), 0);
+    assert!(!layers[0].triangles.vertices.is_empty());
+}
+
+#[test]
+fn region_arc_flattening_quality_controls_tessellation_density() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+M02*";
+    let low_layers = parse_gerber_with_options(data, false, 0)
+        .expect("low quality flattened region arc should parse");
+    let high_layers = parse_gerber_with_options(data, false, 2)
+        .expect("high quality flattened region arc should parse");
+
+    assert!(
+        high_layers[0].triangles.vertices.len() > low_layers[0].triangles.vertices.len(),
+        "high quality should produce more tessellated triangle vertices than low quality"
+    );
+}
+
+#[test]
+fn preserved_region_arc_quality_does_not_change_analytic_payload() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+M02*";
+    let low_layers =
+        parse_gerber_with_options(data, true, 0).expect("low quality path region arc should parse");
+    let high_layers = parse_gerber_with_options(data, true, 2)
+        .expect("high quality path region arc should parse");
+
+    assert_eq!(
+        high_layers[0].path_regions.wedge_vertices.len(),
+        low_layers[0].path_regions.wedge_vertices.len()
+    );
+    assert_eq!(
+        high_layers[0].path_regions.sector_vertices.len(),
+        low_layers[0].path_regions.sector_vertices.len()
+    );
+}
+
+#[test]
+fn aperture_block_region_arc_is_preserved_for_path_renderer() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%ABD10*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+%AB*%
+D10*
+X000000Y000000D03*
+M02*",
+    )
+    .expect("aperture block arc region should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert!(layers[0].triangles.vertices.is_empty());
+    assert_eq!(layers[0].path_regions.region_count(), 1);
+    assert!(layers[0].path_regions.pick_contours.is_empty());
+}
+
+#[test]
+fn aperture_block_path_region_flash_is_interactive() {
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    let payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+%ABD10*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+%AB*%
+D10*
+X000000Y000000D03*
+M02*",
+        )
+        .expect("aperture block arc region interaction payload should parse");
+
+    let interaction_layer = payload
+        .interaction_layer
+        .expect("interaction layer should be collected");
+    assert_eq!(interaction_layer.features.len(), 1);
+    let feature = &interaction_layer.features[0];
+    assert!(feature.primitives.is_empty());
+    let path_regions = feature
+        .path_regions
+        .as_deref()
+        .expect("aperture block region interaction should keep path regions");
+    assert_eq!(path_regions.region_count(), 0);
+    assert!(path_regions.wedge_vertices.is_empty());
+    assert!(path_regions.sector_vertices.is_empty());
+    assert_eq!(path_regions.pick_contours.len(), 1);
+    assert_eq!(
+        feature.path_region_ref,
+        Some(crate::interaction::PathRegionRef {
+            sublayer_idx: 0,
+            region_start: 0,
+            region_count: 1,
+        })
+    );
+}
+
+#[test]
+fn aperture_block_path_region_interaction_ref_accounts_for_pending_primitives() {
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    let payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD11C,1.0*%
+%ABD10*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+%AB*%
+D11*
+X-030000Y000000D03*
+D10*
+X000000Y000000D03*
+M02*",
+        )
+        .expect("aperture block after pending primitive should parse");
+
+    assert_eq!(payload.render_layers.len(), 2);
+    assert_eq!(payload.render_layers[0].circles.x.len(), 1);
+    assert_eq!(payload.render_layers[1].path_regions.region_count(), 1);
+
+    let interaction_layer = payload
+        .interaction_layer
+        .expect("interaction layer should be collected");
+    let block_feature = interaction_layer
+        .features
+        .iter()
+        .find(|feature| feature.path_region_ref.is_some())
+        .expect("block path region feature should keep render sublayer ref");
+
+    assert_eq!(
+        block_feature.path_region_ref,
+        Some(crate::interaction::PathRegionRef {
+            sublayer_idx: 1,
+            region_start: 0,
+            region_count: 1,
+        })
+    );
+}
+
+#[test]
+fn aperture_block_path_region_interaction_ref_accounts_for_split_pending_sublayers() {
+    let mut parser = GerberParser::with_options_and_interactions(true, 1, true);
+    let payload = parser
+        .parse_payload(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD11C,1.0X0.25*%
+%ADD12C,1.0*%
+%ABD10*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+%AB*%
+D12*
+X-050000Y000000D03*
+D11*
+X-030000Y000000D03*
+D10*
+X000000Y000000D03*
+M02*",
+        )
+        .expect("aperture block after split pending primitive should parse");
+
+    assert_eq!(payload.render_layers.len(), 3);
+    assert_eq!(payload.render_layers[0].circles.x.len(), 1);
+    assert_eq!(payload.render_layers[1].circles.x.len(), 1);
+    assert_eq!(payload.render_layers[2].path_regions.region_count(), 1);
+
+    let interaction_layer = payload
+        .interaction_layer
+        .expect("interaction layer should be collected");
+    let block_feature = interaction_layer
+        .features
+        .iter()
+        .find(|feature| feature.path_region_ref.is_some())
+        .expect("block path region feature should keep render sublayer ref");
+
+    assert_eq!(
+        block_feature.path_region_ref,
+        Some(crate::interaction::PathRegionRef {
+            sublayer_idx: 2,
+            region_start: 0,
+            region_count: 1,
+        })
+    );
+}
+
+#[test]
+fn aperture_block_path_region_flash_transform_is_applied() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%ABD10*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+%AB*%
+%LR90*%
+D10*
+X100000Y200000D03*
+M02*",
+    )
+    .expect("aperture block arc region should transform");
+
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].path_regions.region_count(), 1);
+    assert_approx_eq(layers[0].boundary.min_x, 9.0);
+    assert_approx_eq(layers[0].boundary.max_x, 10.0);
+    assert_approx_eq(layers[0].boundary.min_y, 19.0);
+    assert_approx_eq(layers[0].boundary.max_y, 21.0);
+}
+
+#[test]
+fn path_region_before_flash_preserves_sublayer_order() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,1.0*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+D10*
+X030000Y000000D03*
+M02*",
+    )
+    .expect("path region followed by flash should parse");
+
+    assert_eq!(layers.len(), 2);
+    assert_eq!(layers[0].path_regions.region_count(), 1);
+    assert!(layers[0].circles.x.is_empty());
+    assert_eq!(layers[1].path_regions.region_count(), 0);
+    assert_eq!(layers[1].circles.x.len(), 1);
+}
+
+#[test]
+fn flash_before_path_region_preserves_sublayer_order() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+X-030000Y000000D03*
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+M02*",
+    )
+    .expect("flash followed by path region should parse");
+
+    assert_eq!(layers.len(), 2);
+    assert_eq!(layers[0].circles.x.len(), 1);
+    assert_eq!(layers[0].path_regions.region_count(), 0);
+    assert!(layers[1].circles.x.is_empty());
+    assert_eq!(layers[1].path_regions.region_count(), 1);
+}
+
+fn arc_region_gerber(regions: &[(&str, i32)]) -> String {
+    // One circular G36 region (two G03 half arcs) per entry, 4 mm apart,
+    // each preceded by the given extra command ("" for none).
+    let mut gerber = String::from("%FSLAX24Y24*%\n%MOMM*%\n%ADD10C,0.5*%\nG75*\n");
+    for (prefix, index) in regions {
+        let offset = index * 40000;
+        gerber.push_str(prefix);
+        gerber.push_str(&format!(
+            "G36*\nX{:06}Y000000D02*\nG03*\nX{:06}Y000000I-010000J000000D01*\nX{:06}Y000000I010000J000000D01*\nG37*\nG01*\n",
+            offset + 10000,
+            offset - 10000,
+            offset + 10000,
+        ));
+    }
+    gerber.push_str("M02*");
+    gerber
+}
+
+#[test]
+fn consecutive_arc_regions_share_one_sublayer() {
+    // A stencil layer is thousands of rounded pads in a row; each used to
+    // open its own polarity sublayer.
+    let layers = parse_gerber(&arc_region_gerber(&[("", 0), ("", 1), ("", 2)]))
+        .expect("consecutive arc regions should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].path_regions.region_count(), 3);
+}
+
+#[test]
+fn arc_regions_still_split_on_polarity_changes_and_primitives() {
+    // Clear polarity between regions keeps its own sublayer.
+    let layers = parse_gerber(&arc_region_gerber(&[
+        ("", 0),
+        ("%LPC*%\n", 1),
+        ("%LPD*%\n", 2),
+    ]))
+    .expect("regions with polarity changes should parse");
+    assert_eq!(layers.len(), 3);
+    assert!(!layers[0].is_negative && layers[1].is_negative && !layers[2].is_negative);
+    assert!(layers
+        .iter()
+        .all(|layer| layer.path_regions.region_count() == 1));
+
+    // A flash between two regions keeps the drawing order: region, flash,
+    // region, each in its own sublayer (as before the merge).
+    let layers = parse_gerber(&arc_region_gerber(&[
+        ("", 0),
+        ("D10*\nX020000Y020000D03*\n", 1),
+    ]))
+    .expect("regions around a flash should parse");
+    let region_counts: Vec<usize> = layers
+        .iter()
+        .map(|layer| layer.path_regions.region_count())
+        .collect();
+    assert_eq!(region_counts, vec![1, 0, 1]);
+}
+
+#[test]
+fn path_region_translate_moves_analytic_sector_vertices() {
+    let mut layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X-010000Y000000I-010000J000000D01*
+G37*
+M02*",
+    )
+    .expect("region arc should parse");
+
+    layers[0].translate(10.0, 20.0);
+    let sector = &layers[0].path_regions.sector_vertices;
+    assert_eq!(sector.len() % PATH_SECTOR_VERTEX_FLOATS, 0);
+    let first = &sector[0..PATH_SECTOR_VERTEX_FLOATS];
+    let second = &sector[PATH_SECTOR_VERTEX_FLOATS..PATH_SECTOR_VERTEX_FLOATS * 2];
+    assert_approx_eq(first[0], 11.0);
+    assert_approx_eq(first[1], 20.0);
+    assert_approx_eq(first[2], 10.0);
+    assert_approx_eq(first[3], 20.0);
+    assert_approx_eq(first[4], 1.0);
+    assert_approx_eq(second[0], 10.0);
+    assert_approx_eq(second[1], 21.0);
+    assert_approx_eq(second[2], 10.0);
+    assert_approx_eq(second[3], 20.0);
+    assert_approx_eq(second[4], 1.0);
+}
+
+#[test]
+fn path_region_arc_radius_is_canonicalized_to_raw_endpoints() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOIN*%
+G75*
+G36*
+X00151463Y01226672D02*
+G02*
+X00149975Y01233567I00011698J00006133D01*
+G01*
+X00151463Y01226672D01*
+G37*
+M02*",
+    )
+    .expect("rounding-sensitive region arc should parse");
+
+    let sector = &layers[0].path_regions.sector_vertices;
+    let center = [sector[2], sector[3]];
+    let radius = sector[4];
+    let inch_to_mm = 25.4;
+    let start = [0.151463 * inch_to_mm, 1.226672 * inch_to_mm];
+    let end = [0.149975 * inch_to_mm, 1.233567 * inch_to_mm];
+    let start_radius = ((start[0] - center[0]).powi(2) + (start[1] - center[1]).powi(2)).sqrt();
+    let end_radius = ((end[0] - center[0]).powi(2) + (end[1] - center[1]).powi(2)).sqrt();
+
+    assert_approx_eq(start_radius, radius);
+    assert_approx_eq(end_radius, radius);
+}
+
+#[test]
+fn path_region_canonicalization_preserves_major_arc_sweep() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+G75*
+G36*
+X010000Y000000D02*
+G03*
+X000000Y-010000I-010000J000000D01*
+G01*
+X010000Y000000D01*
+G37*
+M02*",
+    )
+    .expect("major arc region should parse");
+
+    assert_eq!(layers[0].path_regions.sector_vertex_offsets, vec![0, 18]);
+}
+
+#[test]
+fn single_quadrant_region_arc_records_clamped_sweep() {
+    let mut parser = GerberParser::with_options(true, 1);
+    parser.preserve_region_source_contours = true;
+    let layers = parser
+        .parse(
+            "\
+%FSLAX24Y24*%
+%MOMM*%
+G74*
+G36*
+X010000Y000000D02*
+G03*
+X000000Y-012000I010000J000000D01*
+G01*
+X010000Y000000D01*
+G37*
+M02*",
+        )
+        .expect("single-quadrant arc region should parse");
+
+    let segment = &layers[0].path_regions.source_contours[0][0].segments[0];
+    let RegionSegment::Arc {
+        sweep_angle,
+        clamp_sweep,
+        ..
+    } = segment
+    else {
+        panic!("first source segment should be an arc");
+    };
+
+    assert!(*clamp_sweep);
+    assert!(sweep_angle.abs() <= std::f32::consts::FRAC_PI_2 + 0.001);
+}
+
+#[test]
+fn clear_polarity_region_cuts_interaction_highlight_candidate() {
+    let payload = parse_gerber_payload_with_options(
+        "\
+%FSLAX36Y36*%
+%MOMM*%
+%LPD*%
+G36*
+X5000000Y20000000D02*
+G01*
+Y37500000D01*
+X37500000D01*
+Y20000000D01*
+X5000000D01*
+G37*
+%LPC*%
+G36*
+X10000000Y25000000D02*
+Y30000000D01*
+G02*
+X12500000Y32500000I2500000J0D01*
+G01*
+X30000000D01*
+G02*
+X30000000Y25000000I0J-3750000D01*
+G01*
+X10000000D01*
+G37*
+M02*",
+        true,
+        1,
+    )
+    .expect("polarity region payload should parse");
+    let interaction_layer = payload
+        .interaction_layer
+        .expect("interaction layer should be collected");
+
+    assert!(interaction_layer.pick(15.0, 28.75, 0.0).is_none());
+
+    let (outer_feature_id, outer_feature) = interaction_layer
+        .pick(6.0, 21.0, 0.0)
+        .expect("outer region should be selectable");
+    assert_eq!(outer_feature.descriptor.kind, FeatureKind::Region);
+
+    let clear_features = interaction_layer.following_clear_features_for_highlight(outer_feature_id);
+    assert_eq!(clear_features.len(), 1);
+    assert_eq!(clear_features[0].descriptor.kind, FeatureKind::Region);
+    assert_eq!(clear_features[0].descriptor.polarity, Polarity::Negative);
+}
+
+#[test]
+fn golden_step_repeat_output_matches_current_parser() {
+    assert_gerber_snapshot(
+        "\
+%FSLAX26Y26*%
+%MOIN*%
+%ADD10C,0.1*%
+%SRX2Y1I1.0J0*%
+D10*
+X000000Y000000D03*
+%SR*%
+M02*",
+        "\
+layers=1
+layer[0].negative=false
+layer[0].boundary=[-12700,266700,-12700,12700]
+layer[0].circles.x=[0, 254000]
+layer[0].circles.y=[0, 0]
+layer[0].circles.radius=[12700, 12700]",
+    );
+}
+
+#[test]
+fn no_hole_apertures_omit_hole_buffers() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10R,1.0X1.0*%
+%ADD11C,1.0*%
+D10*
+X000000Y000000D03*
+D11*
+X2000000Y000000D03*
+M02*",
+    )
+    .expect("apertures should parse");
+
+    let triangles = &layers[0].triangles;
+    assert!(
+        !triangles.vertices.is_empty()
+            || layers[0]
+                .triangle_templates
+                .iter()
+                .any(|template| !template.vertices.is_empty())
+    );
+    assert!(triangles.hole_x.is_empty());
+    assert!(triangles.hole_y.is_empty());
+    assert!(triangles.hole_radius.is_empty());
+
+    let circles = &layers[0].circles;
+    assert_eq!(circles.x.len(), 1);
+    assert!(circles.hole_x.is_empty());
+    assert!(circles.hole_y.is_empty());
+    assert!(circles.hole_radius.is_empty());
+}
+
+#[test]
+fn apertures_with_holes_keep_hole_buffers() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10R,1.0X1.0X0.2*%
+%ADD11C,1.0X0.2*%
+D10*
+X000000Y000000D03*
+D11*
+X2000000Y000000D03*
+M02*",
+    )
+    .expect("apertures should parse");
+
+    let triangles = &layers[0].triangles;
+    assert!(!triangles.vertices.is_empty());
+    assert_eq!(triangles.hole_x.len(), triangles.vertices.len() / 2);
+    assert_eq!(triangles.hole_y.len(), triangles.vertices.len() / 2);
+    assert_eq!(triangles.hole_radius.len(), triangles.vertices.len() / 2);
+    assert!(triangles.hole_radius.iter().all(|radius| *radius > 0.0));
+
+    let circles = &layers[0].circles;
+    assert_eq!(circles.x.len(), 1);
+    assert_eq!(circles.hole_x.len(), circles.x.len());
+    assert_eq!(circles.hole_y.len(), circles.x.len());
+    assert_eq!(circles.hole_radius.len(), circles.x.len());
+    assert!(circles.hole_radius.iter().all(|radius| *radius > 0.0));
+}
+
+#[test]
+fn macro_exposure_off_only_erases_earlier_macro_primitives() {
+    let data = "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMCLEARFIRST*
+1,0,0.6,0,0,0*
+21,1,1.0,1.0,0,0,0*%
+%ADD10CLEARFIRST*%
+D10*
+X000000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("macro exposure order should parse");
+    let vertices = collect_triangle_vertices(&layers[0]);
+
+    // The leading exposure-off circle has no earlier macro solid to erase, so
+    // the result is the plain square rather than a square with a circular hole.
+    assert_eq!(vertices.len(), 12);
+    let (min_x, max_x, min_y, max_y) = triangle_bounds(&vertices);
+    assert_approx_eq(min_x, -0.5);
+    assert_approx_eq(max_x, 0.5);
+    assert_approx_eq(min_y, -0.5);
+    assert_approx_eq(max_y, 0.5);
+}
+
+#[test]
+fn mixed_hole_apertures_are_split_into_separate_sublayers() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,1.0*%
+%ADD11C,1.0X0.2*%
+D10*
+X000000Y000000D03*
+D11*
+X2000000Y000000D03*
+M02*",
+    )
+    .expect("apertures should parse");
+
+    assert_eq!(layers.len(), 2);
+
+    let plain_circles = &layers[0].circles;
+    assert_eq!(plain_circles.x.len(), 1);
+    assert!(plain_circles.hole_x.is_empty());
+    assert!(plain_circles.hole_y.is_empty());
+    assert!(plain_circles.hole_radius.is_empty());
+
+    let holed_circles = &layers[1].circles;
+    assert_eq!(holed_circles.x.len(), 1);
+    assert_eq!(holed_circles.hole_x.len(), 1);
+    assert_eq!(holed_circles.hole_y.len(), 1);
+    assert_eq!(holed_circles.hole_radius.len(), 1);
+    assert!(holed_circles.hole_radius[0] > 0.0);
+}
+
+#[test]
+fn golden_macro_center_line_output_matches_current_parser() {
+    assert_gerber_snapshot(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMRECT*21,1,2,1,1,0,90*%
+%ADD10RECT*%
+D10*
+X000000Y000000D03*
+M02*",
+        "\
+layers=1
+layer[0].negative=false
+layer[0].boundary=[-5000,5000,0,20000]
+layer[0].triangle_templates[0].vertices=[5000, 0, 5000, 20000, -5000, 20000, 5000, 0, -5000, 20000, -5000, 0]
+layer[0].triangle_templates[0].instance_x=[0]
+layer[0].triangle_templates[0].instance_y=[0]",
+    );
+}
+
+#[test]
+fn golden_aperture_block_polarity_output_matches_current_parser() {
+    assert_gerber_snapshot(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%ABD20*%
+%LPD*%
+%ADD10C,4.0*%
+D10*
+X000000Y000000D03*
+%LPC*%
+%ADD11C,2.0*%
+D11*
+X000000Y000000D03*
+%AB*%
+%LPD*%
+D20*
+X100000Y000000D03*
+M02*",
+        "\
+layers=2
+layer[0].negative=false
+layer[0].boundary=[80000,120000,-20000,20000]
+layer[0].circles.x=[100000]
+layer[0].circles.y=[0]
+layer[0].circles.radius=[20000]
+layer[1].negative=true
+layer[1].boundary=[90000,110000,-10000,10000]
+layer[1].circles.x=[100000]
+layer[1].circles.y=[0]
+layer[1].circles.radius=[10000]",
+    );
+}
+
+#[test]
+fn golden_layer_rotation_block_output_matches_current_parser() {
+    assert_gerber_snapshot(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%ABD20*%
+%ADD10C,1.0*%
+D10*
+X010000Y000000D03*
+%AB*%
+%LR90*%
+D20*
+X100000Y000000D03*
+M02*",
+        "\
+layers=1
+layer[0].negative=false
+layer[0].boundary=[95000,105000,5000,15000]
+layer[0].circles.x=[100000]
+layer[0].circles.y=[10000]
+layer[0].circles.radius=[5000]",
+    );
+}
+
+#[test]
+fn golden_macro_expression_output_matches_current_parser() {
+    assert_gerber_snapshot(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMBOXS2*
+4,1,4,
+-$1/2+$4,$2/2-$3+$5,
+(-$1+3x$3)/2+$4,$2/2+$5,
+($1-3x$3)/2+$4,$2/2+$5,
+$1/2+$4,$2/2-$3+$5,
+-$1/2+$4,$2/2-$3+$5,
+$6*%
+%ADD10BOXS2,2.0X1.0X0.2X0.1X-0.3X90*%
+D10*
+X000000Y000000D03*
+M02*",
+        "\
+layers=1
+layer[0].negative=false
+layer[0].boundary=[-2000,0,-9000,11000]
+layer[0].triangle_templates[0].vertices=[-2000, 8000, -2000, -6000, 0, -9000, 0, 11000, -2000, 8000, 0, -9000]
+layer[0].triangle_templates[0].instance_x=[0]
+layer[0].triangle_templates[0].instance_y=[0]",
+    );
+}
+
+#[test]
+fn region_d02_move_is_included_as_first_contour_vertex() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+%LPD*%
+G36*
+X000000Y000000D02*
+G01*
+X010000Y000000D01*
+X010000Y010000D01*
+X000000Y010000D01*
+G37*
+M02*";
+
+    let layers = parse_gerber(data).expect("region should parse");
+    let triangles = &layers[0].triangles;
+
+    assert_eq!(triangles.vertices.len() / 2, 6);
+}
+
+#[test]
+fn clear_polarity_first_layer_preserves_negative_polarity() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+%LPC*%
+G36*
+X000000Y000000D02*
+G01*
+X010000Y000000D01*
+X010000Y010000D01*
+X000000Y010000D01*
+G37*
+M02*";
+
+    let layers = parse_gerber(data).expect("region should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert!(layers[0].is_negative);
+}
+
+#[test]
+fn aperture_identifier_above_9999_is_selectable() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10000C,1.0*%
+D10000*
+X000000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("flash should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].circles.x.len(), 1);
+}
+
+#[test]
+fn aperture_identifier_leading_zeroes_are_normalized() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD010C,1.0*%
+D10*
+X000000Y000000D03*
+%ADD11C,1.0*%
+D011*
+X010000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("flashes should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].circles.x.len(), 2);
+}
+
+#[test]
+fn load_scaling_transforms_aperture_not_operation_coordinates() {
+    let data = "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+X1000000Y000000D03*
+%LS2.0*%
+X2000000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("flashes should parse");
+    let circles = &layers[0].circles;
+
+    assert_eq!(circles.x.len(), 2);
+    assert_approx_eq(circles.x[0], 1.0);
+    assert_approx_eq(circles.x[1], 2.0);
+    assert_approx_eq(circles.radius[0], 0.5);
+    assert_approx_eq(circles.radius[1], 1.0);
+}
+
+#[test]
+fn load_mirroring_transforms_aperture_not_operation_coordinates() {
+    let data = "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMOFF*1,1,0.5,0.25,0*%
+%ADD10OFF*%
+%LMX*%
+D10*
+X1000000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("macro flash should parse");
+    let circles = &layers[0].circles;
+
+    assert_eq!(circles.x.len(), 1);
+    assert_approx_eq(circles.x[0], 0.75);
+    assert_approx_eq(circles.y[0], 0.0);
+    assert_approx_eq(circles.radius[0], 0.25);
+}
+
+#[test]
+fn macro_circle_rotation_moves_center_in_degrees_about_origin() {
+    let data = "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMCIRCLE*1,1,1,1,0,90*%
+%ADD10CIRCLE*%
+D10*
+X000000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("macro circle should parse");
+    let circles = &layers[0].circles;
+
+    assert_eq!(circles.x.len(), 1);
+    assert_approx_eq(circles.x[0], 0.0);
+    assert_approx_eq(circles.y[0], 1.0);
+}
+
+#[test]
+fn macro_center_line_rotation_uses_degrees_about_origin() {
+    let data = "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMRECT*21,1,2,1,1,0,90*%
+%ADD10RECT*%
+D10*
+X000000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("macro rectangle should parse");
+    let (min_x, max_x, min_y, max_y) = layer_triangle_bounds(&layers[0]);
+
+    assert_approx_eq(min_x, -0.5);
+    assert_approx_eq(max_x, 0.5);
+    assert_approx_eq(min_y, 0.0);
+    assert_approx_eq(max_y, 2.0);
+}
+
+#[test]
+fn macro_outline_rotation_uses_closing_point_before_rotation_parameter() {
+    let data = "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMOUTLINE*4,1,4,0,0,2,0,2,1,0,1,0,0,90*%
+%ADD10OUTLINE*%
+D10*
+X000000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("macro outline should parse");
+    let (min_x, max_x, min_y, max_y) = layer_triangle_bounds(&layers[0]);
+
+    assert_approx_eq(min_x, -1.0);
+    assert_approx_eq(max_x, 0.0);
+    assert_approx_eq(min_y, 0.0);
+    assert_approx_eq(max_y, 2.0);
+}
+
+#[test]
+fn macro_thermal_rotation_from_ucamco_sample_is_preserved() {
+    let data = "\
+%FSLAX36Y36*%
+%MOMM*%
+%AMTHERS4T*
+7,0,0,$1,$2,$3,$4*%
+%ADD40THERS4T,0.1000X0.0500X0.0200X0.00*%
+%ADD41THERS4T,0.2000X0.1000X0.0200X10.00*%
+%ADD42THERS4T,0.2500X0.2000X0.0600X30.00*%
+%ADD43THERS4T,0.2700X0.2000X0.0600X45.00*%
+D40*
+X0Y1100000D03*
+D41*
+X400000D03*
+D42*
+X800000D03*
+D43*
+X1200000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("thermal macro sample should parse");
+    let thermals = &layers[0].thermals;
+
+    assert_eq!(thermals.x.len(), 4);
+    assert_approx_eq(thermals.x[0], 0.0);
+    assert_approx_eq(thermals.x[1], 0.4);
+    assert_approx_eq(thermals.x[2], 0.8);
+    assert_approx_eq(thermals.x[3], 1.2);
+    assert_approx_eq(thermals.y[0], 1.1);
+    assert_approx_eq(thermals.outer_diameter[2], 0.25);
+    assert_approx_eq(thermals.inner_diameter[2], 0.2);
+    assert_approx_eq(thermals.gap_thickness[2], 0.06);
+    assert_approx_eq(thermals.rotation[0], 0.0);
+    assert_approx_eq(thermals.rotation[1], 10.0_f32.to_radians());
+    assert_approx_eq(thermals.rotation[2], 30.0_f32.to_radians());
+    assert_approx_eq(thermals.rotation[3], 45.0_f32.to_radians());
+}
+
+#[test]
+fn macro_expressions_support_lowercase_multiply_and_parentheses() {
+    let data = "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMBOXS2*
+4,1,4,
+-$1/2+$4,$2/2-$3+$5,
+(-$1+3x$3)/2+$4,$2/2+$5,
+($1-3x$3)/2+$4,$2/2+$5,
+$1/2+$4,$2/2-$3+$5,
+-$1/2+$4,$2/2-$3+$5,
+$6*%
+%ADD10BOXS2,2.0X1.0X0.2X0.1X-0.3X90*%
+D10*
+X000000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("macro expression should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert!(!collect_triangle_vertices(&layers[0]).is_empty());
+}
+
+#[test]
+fn step_repeat_offsets_use_file_units() {
+    let data = "\
+%FSLAX26Y26*%
+%MOIN*%
+%ADD10C,0.1*%
+%SRX2Y1I1.0J0*%
+D10*
+X000000Y000000D03*
+%SR*%
+M02*";
+
+    let layers = parse_gerber(data).expect("step repeat should parse");
+    let circles = &layers[0].circles;
+
+    assert_eq!(circles.x.len(), 2);
+    assert_approx_eq(circles.x[0], 0.0);
+    assert_approx_eq(circles.x[1], 25.4);
+}
+
+#[test]
+fn repeated_triangle_aperture_flashes_use_template_instances() {
+    let data = "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10R,1.0X0.5*%
+D10*
+X000000Y000000D03*
+X2000000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("rectangle flashes should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert!(layers[0].triangles.vertices.is_empty());
+    assert_eq!(layers[0].triangle_templates.len(), 1);
+    assert_eq!(layers[0].triangle_templates[0].vertices.len(), 12);
+    assert_eq!(layers[0].triangle_templates[0].instance_x.len(), 2);
+    assert_eq!(layers[0].triangle_templates[0].instance_y.len(), 2);
+    assert_approx_eq(layers[0].triangle_templates[0].instance_x[0], 0.0);
+    assert_approx_eq(layers[0].triangle_templates[0].instance_x[1], 2.0);
+}
+
+#[test]
+fn transformed_triangle_aperture_flashes_use_template_instances() {
+    let data = "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10R,1.0X0.5*%
+%LR45.0*%
+D10*
+X000000Y000000D03*
+X2000000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("rotated rectangle flashes should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert!(layers[0].triangles.vertices.is_empty());
+    assert_eq!(layers[0].triangle_templates.len(), 1);
+    assert_eq!(layers[0].triangle_templates[0].vertices.len(), 12);
+    assert_eq!(layers[0].triangle_templates[0].instance_x.len(), 2);
+    assert_eq!(layers[0].triangle_templates[0].instance_y.len(), 2);
+    assert_approx_eq(layers[0].triangle_templates[0].instance_x[0], 0.0);
+    assert_approx_eq(layers[0].triangle_templates[0].instance_x[1], 2.0);
+}
+
+#[test]
+fn aperture_block_flashes_stored_graphics_at_operation_coordinate() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+%ABD20*%
+%ADD10C,1.0*%
+D10*
+X010000Y020000D03*
+%AB*%
+D20*
+X100000Y200000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("aperture block should parse");
+    let circles = &layers[0].circles;
+
+    assert_eq!(circles.x.len(), 1);
+    assert_approx_eq(circles.x[0], 11.0);
+    assert_approx_eq(circles.y[0], 22.0);
+    assert_approx_eq(circles.radius[0], 0.5);
+}
+
+#[test]
+fn aperture_block_preserves_internal_polarity_order() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+%ABD20*%
+%LPD*%
+%ADD10C,4.0*%
+D10*
+X000000Y000000D03*
+%LPC*%
+%ADD11C,2.0*%
+D11*
+X000000Y000000D03*
+%AB*%
+%LPD*%
+D20*
+X100000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("aperture block should parse");
+
+    assert_eq!(layers.len(), 2);
+    assert!(!layers[0].is_negative);
+    assert!(layers[1].is_negative);
+    assert_eq!(layers[0].circles.x.len(), 1);
+    assert_eq!(layers[1].circles.x.len(), 1);
+    assert_approx_eq(layers[0].circles.x[0], 10.0);
+    assert_approx_eq(layers[0].circles.radius[0], 2.0);
+    assert_approx_eq(layers[1].circles.x[0], 10.0);
+    assert_approx_eq(layers[1].circles.radius[0], 1.0);
+}
+
+#[test]
+fn clear_polarity_flash_toggles_aperture_block_polarity() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+%ABD20*%
+%LPD*%
+%ADD10C,4.0*%
+D10*
+X000000Y000000D03*
+%LPC*%
+%ADD11C,2.0*%
+D11*
+X000000Y000000D03*
+%AB*%
+%LPC*%
+D20*
+X100000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("aperture block should parse");
+
+    assert_eq!(layers.len(), 2);
+    assert!(layers[0].is_negative);
+    assert!(!layers[1].is_negative);
+    assert_eq!(layers[0].circles.x.len(), 1);
+    assert_eq!(layers[1].circles.x.len(), 1);
+    assert_approx_eq(layers[0].circles.radius[0], 2.0);
+    assert_approx_eq(layers[1].circles.radius[0], 1.0);
+}
+
+#[test]
+fn nested_aperture_blocks_are_available_to_enclosing_block() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+%ABD20*%
+%ADD10C,1.0*%
+D10*
+X010000Y000000D03*
+%AB*%
+%ABD21*%
+D20*
+X020000Y000000D03*
+%AB*%
+D21*
+X100000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("nested aperture block should parse");
+    let circles = &layers[0].circles;
+
+    assert_eq!(circles.x.len(), 1);
+    assert_approx_eq(circles.x[0], 13.0);
+    assert_approx_eq(circles.y[0], 0.0);
+}
+
+#[test]
+fn nested_aperture_block_restores_enclosing_graphic_state() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,1.0*%
+%ADD11C,0.5*%
+%ABD20*%
+D11*
+G02*
+G75*
+X0000000Y2500000D02*
+%ABD21*%
+D10*
+G01*
+X0000000Y0000000D02*
+X1000000Y0000000D01*
+%AB*%
+X2500000Y0I0J-2500000D01*
+%AB*%
+D20*
+X0Y0D03*
+M02*",
+    )
+    .expect("nested aperture block should parse");
+    let arcs = &layers[0].arcs;
+    let circles = &layers[0].circles;
+
+    assert_eq!(arcs.x.len(), 1);
+    assert_approx_eq(arcs.x[0], 0.0);
+    assert_approx_eq(arcs.y[0], 0.0);
+    assert_approx_eq(arcs.radius[0], 2.5);
+    assert!(has_circle_at(circles, 0.0, 2.5, 0.25));
+    assert!(has_circle_at(circles, 2.5, 0.0, 0.25));
+}
+
+#[test]
+fn aperture_block_definition_preserves_ending_graphic_state() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,1.0*%
+%ADD11C,2.0*%
+%ABD20*%
+D10*
+X0000000Y0000000D03*
+D11*
+%AB*%
+X1000000Y0000000D03*
+M02*",
+    )
+    .expect("aperture block should parse");
+    let circles = &layers[0].circles;
+
+    assert!(has_circle_at(circles, 1.0, 0.0, 1.0));
+}
+
+#[test]
+fn arc_caps_use_rendered_arc_endpoints() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+G03*
+G75*
+X0000000Y-2500000D02*
+X-5000000Y0I0J2500000D01*
+M02*",
+    )
+    .expect("arc should parse");
+    let circles = &layers[0].circles;
+
+    assert!(has_circle_at(circles, 0.0, -2.5, 0.5));
+    assert!(has_circle_at(circles, -2.5, 0.0, 0.5));
+    assert!(!has_circle_at(circles, -5.0, 0.0, 0.5));
+}
+
+#[test]
+fn arc_boundary_uses_sweep_not_full_circle() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+G03*
+G75*
+X1000000Y0000000D02*
+X0000000Y1000000I-1000000J0000000D01*
+M02*",
+    )
+    .expect("arc should parse");
+    let boundary = &layers[0].boundary;
+
+    assert_approx_eq(boundary.min_x, -0.5);
+    assert_approx_eq(boundary.max_x, 1.5);
+    assert_approx_eq(boundary.min_y, -0.5);
+    assert_approx_eq(boundary.max_y, 1.5);
+}
+
+#[test]
+fn full_circle_arc_preserves_equal_start_end_with_center_offset() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+G03*
+G75*
+X1000000Y0000000D02*
+X1000000Y0000000I-1000000J0000000D01*
+M02*",
+    )
+    .expect("full-circle arc should parse");
+    let layer = &layers[0];
+
+    assert_eq!(layer.arcs.x.len(), 1);
+    assert_approx_eq(layer.arcs.x[0], 0.0);
+    assert_approx_eq(layer.arcs.y[0], 0.0);
+    assert_approx_eq(layer.arcs.radius[0], 1.0);
+    assert_approx_eq(layer.arcs.sweep_angle[0], 2.0 * std::f32::consts::PI);
+    assert_eq!(layer.circles.x.len(), 2);
+    assert!(has_circle_at(&layer.circles, 1.0, 0.0, 0.5));
+}
+
+#[test]
+fn micro_arc_with_endpoints_within_tolerance_is_not_treated_as_full_circle() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD12C,0.300*%
+D12*
+G75*
+G03*
+X75200059Y9600000D02*
+X75200000Y9600000I-29J-50000D01*
+M02*",
+    )
+    .expect("micro-arc should parse");
+    let layer = &layers[0];
+
+    assert_eq!(layer.arcs.x.len(), 1);
+    assert!(
+        layer.arcs.sweep_angle[0].abs() < 0.01,
+        "micro-arc sweep must be small (~0.001 rad), got {}",
+        layer.arcs.sweep_angle[0]
+    );
+}
+
+#[test]
+fn full_circle_arc_requires_solid_standard_circle_aperture() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10R,1.0X1.0*%
+D10*
+G03*
+G75*
+X1000000Y0000000D02*
+X1000000Y0000000I-1000000J0000000D01*
+M02*",
+    )
+    .expect("non-solid full-circle arc should parse without image geometry");
+
+    assert!(layers.is_empty());
+}
+
+#[test]
+fn linear_draw_requires_solid_standard_circle_aperture() {
+    let rectangle_layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10R,1.0X1.0*%
+D10*
+X0000000Y0000000D02*
+X1000000Y0000000D01*
+M02*",
+    )
+    .expect("rectangle D01 should parse without image geometry");
+    assert!(rectangle_layers.is_empty());
+
+    let holed_circle_layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,1.0X0.2*%
+D10*
+X0000000Y0000000D02*
+X1000000Y0000000D01*
+M02*",
+    )
+    .expect("holed circle D01 should parse without image geometry");
+    assert!(holed_circle_layers.is_empty());
+
+    let macro_circle_layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMCIRC*1,1,1.0,0,0,0*%
+%ADD10CIRC*%
+D10*
+X0000000Y0000000D02*
+X1000000Y0000000D01*
+M02*",
+    )
+    .expect("macro circle D01 should parse without image geometry");
+    assert!(macro_circle_layers.is_empty());
+}
+
+#[test]
+fn solid_circle_linear_draw_still_renders_round_caps_and_body() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+X0000000Y0000000D02*
+X1000000Y0000000D01*
+M02*",
+    )
+    .expect("solid circle D01 should parse");
+    let layer = &layers[0];
+
+    assert_eq!(layer.circles.x.len(), 2);
+    assert!(has_circle_at(&layer.circles, 0.0, 0.0, 0.5));
+    assert!(has_circle_at(&layer.circles, 1.0, 0.0, 0.5));
+    assert!(layer.triangles.vertices.is_empty());
+    assert_eq!(layer.lines.start_x, vec![0.0]);
+    assert_eq!(layer.lines.start_y, vec![0.0]);
+    assert_eq!(layer.lines.end_x, vec![1.0]);
+    assert_eq!(layer.lines.end_y, vec![0.0]);
+    assert_eq!(layer.lines.width, vec![1.0]);
+}
+
+#[test]
+fn zero_width_solid_circle_draw_preserves_line_body() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,0.0*%
+D10*
+X0000000Y0000000D02*
+X1000000Y0000000D01*
+M02*",
+    )
+    .expect("zero-width solid circle D01 should parse");
+    let layer = &layers[0];
+
+    assert!(layer.circles.x.is_empty());
+    assert_eq!(layer.lines.start_x, vec![0.0]);
+    assert_eq!(layer.lines.start_y, vec![0.0]);
+    assert_eq!(layer.lines.end_x, vec![1.0]);
+    assert_eq!(layer.lines.end_y, vec![0.0]);
+    assert_eq!(layer.lines.width, vec![0.0]);
+}
+
+#[test]
+fn zero_width_solid_circle_arc_preserves_arc_body() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,0.0*%
+D10*
+G03*
+X1000000Y0000000D02*
+X0000000Y1000000I-1000000J0000000D01*
+M02*",
+    )
+    .expect("zero-width solid circle arc should parse");
+    let layer = &layers[0];
+
+    assert!(layer.circles.x.is_empty());
+    assert_eq!(layer.arcs.x.len(), 1);
+    assert_approx_eq(layer.arcs.x[0], 0.0);
+    assert_approx_eq(layer.arcs.y[0], 0.0);
+    assert_approx_eq(layer.arcs.radius[0], 1.0);
+    assert_eq!(layer.arcs.thickness, vec![0.0]);
+}
+
+#[test]
+fn zero_length_solid_circle_draw_matches_single_flash_image() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+X0000000Y0000000D02*
+X0000000Y0000000D01*
+M02*",
+    )
+    .expect("zero-length solid circle D01 should parse");
+    let layer = &layers[0];
+
+    assert_eq!(layer.circles.x.len(), 1);
+    assert!(has_circle_at(&layer.circles, 0.0, 0.0, 0.5));
+    assert!(layer.triangles.vertices.is_empty());
+    assert!(layer.lines.start_x.is_empty());
+}
+
+#[test]
+fn zero_length_non_solid_draw_matches_flash_image() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10R,1.0X1.0*%
+D10*
+X0000000Y0000000D02*
+X0000000Y0000000D01*
+M02*",
+    )
+    .expect("zero-length rectangle D01 should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert!(layers[0].triangles.vertices.is_empty());
+    assert_eq!(layers[0].triangle_templates.len(), 1);
+    let vertices = collect_triangle_vertices(&layers[0]);
+    assert_eq!(vertices.len(), 12);
+    let (min_x, max_x, min_y, max_y) = triangle_bounds(&vertices);
+    assert_approx_eq(min_x, -0.5);
+    assert_approx_eq(max_x, 0.5);
+    assert_approx_eq(min_y, -0.5);
+    assert_approx_eq(max_y, 0.5);
+}
+
+#[test]
+fn transformed_zero_length_non_solid_draw_uses_template_instance() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10R,1.0X1.0*%
+%LR45.0*%
+D10*
+X0000000Y0000000D02*
+X0000000Y0000000D01*
+M02*",
+    )
+    .expect("rotated zero-length rectangle D01 should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert!(layers[0].triangles.vertices.is_empty());
+    assert_eq!(layers[0].triangle_templates.len(), 1);
+    let vertices = collect_triangle_vertices(&layers[0]);
+    assert_eq!(vertices.len(), 12);
+    let (min_x, max_x, min_y, max_y) = triangle_bounds(&vertices);
+    let expected_extent = std::f32::consts::FRAC_1_SQRT_2;
+    assert_approx_eq(min_x, -expected_extent);
+    assert_approx_eq(max_x, expected_extent);
+    assert_approx_eq(min_y, -expected_extent);
+    assert_approx_eq(max_y, expected_extent);
+}
+
+#[test]
+fn degenerate_triangle_apertures_do_not_create_template_instances() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%ADD10R,0.0X1.0*%
+D10*
+X0000000Y0000000D03*
+M02*",
+    )
+    .expect("degenerate rectangle aperture should parse");
+
+    assert!(layers.is_empty());
+}
+
+#[test]
+fn invalid_thermal_macro_is_filtered_before_render_buffers() {
+    let layers = parse_gerber(
+        "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMBADTHERM*7,0,0,1.0,-0.2,0.1,0*%
+%ADD10BADTHERM*%
+D10*
+X0000000Y0000000D03*
+M02*",
+    )
+    .expect("invalid thermal macro should parse");
+
+    assert!(layers.is_empty());
+}
+
+#[test]
+fn layer_scaling_transforms_aperture_block_about_origin() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+%ABD20*%
+%ADD10C,1.0*%
+D10*
+X010000Y000000D03*
+%AB*%
+%LS2.0*%
+D20*
+X100000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("scaled aperture block should parse");
+    let circles = &layers[0].circles;
+
+    assert_eq!(circles.x.len(), 1);
+    assert_approx_eq(circles.x[0], 12.0);
+    assert_approx_eq(circles.radius[0], 1.0);
+}
+
+#[test]
+fn layer_rotation_transforms_aperture_about_origin() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10R,2.0X1.0*%
+%LR90*%
+D10*
+X000000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("rotated aperture should parse");
+    let (min_x, max_x, min_y, max_y) = layer_triangle_bounds(&layers[0]);
+
+    assert_approx_eq(min_x, -0.5);
+    assert_approx_eq(max_x, 0.5);
+    assert_approx_eq(min_y, -1.0);
+    assert_approx_eq(max_y, 1.0);
+}
+
+#[test]
+fn layer_rotation_is_applied_after_mirroring() {
+    let data = "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMOFF*1,1,0.5,0.25,0*%
+%ADD10OFF*%
+%LMX*%
+%LR90*%
+D10*
+X1000000Y1000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("mirrored rotated aperture should parse");
+    let circles = &layers[0].circles;
+
+    assert_eq!(circles.x.len(), 1);
+    assert_approx_eq(circles.x[0], 1.0);
+    assert_approx_eq(circles.y[0], 0.75);
+}
+
+#[test]
+fn layer_rotation_replaces_previous_value() {
+    let data = "\
+%FSLAX26Y26*%
+%MOMM*%
+%AMOFF*1,1,0.5,1,0*%
+%ADD10OFF*%
+%LR90*%
+%LR180*%
+D10*
+X000000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("rotated aperture should parse");
+    let circles = &layers[0].circles;
+
+    assert_eq!(circles.x.len(), 1);
+    assert_approx_eq(circles.x[0], -1.0);
+    assert_approx_eq(circles.y[0], 0.0);
+}
+
+#[test]
+fn layer_rotation_transforms_aperture_block_about_origin() {
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+%ABD20*%
+%ADD10C,1.0*%
+D10*
+X010000Y000000D03*
+%AB*%
+%LR90*%
+D20*
+X100000Y000000D03*
+M02*";
+
+    let layers = parse_gerber(data).expect("rotated aperture block should parse");
+    let circles = &layers[0].circles;
+
+    assert_eq!(circles.x.len(), 1);
+    assert_approx_eq(circles.x[0], 10.0);
+    assert_approx_eq(circles.y[0], 1.0);
+}
+
+#[test]
+fn expression_supports_lowercase_multiply_and_parentheses() {
+    let variables = HashMap::from([
+        ("$1".to_string(), 2.0),
+        ("$3".to_string(), 0.2),
+        ("$4".to_string(), 0.1),
+    ]);
+
+    let value =
+        evaluate_expression("(-$1+3x$3)/2+$4", &variables).expect("expression should parse");
+
+    assert!((value + 0.6).abs() < 0.0001);
+}
+
+#[test]
+fn multiline_outline_macro_instantiates_geometry() {
+    let mut macros = HashMap::new();
+    parse_macro(
+        "%AMBOXS2*4,1,4,-$1/2+$4,$2/2-$3+$5,(-$1+3x$3)/2+$4,$2/2+$5,($1-3x$3)/2+$4,$2/2+$5,$1/2+$4,$2/2-$3+$5,-$1/2+$4,$2/2-$3+$5,$6*%",
+        &mut macros,
+    );
+    let macro_def = macros.get("BOXS2").expect("macro should be parsed");
+    let primitives = macro_def.instantiate(&[2.0, 1.0, 0.2, 0.1, -0.3, 90.0]);
+
+    assert!(!primitives.is_empty());
+}
+
+#[test]
+fn multiple_commands_on_one_line_parse_like_one_command_per_line() {
+    let per_line = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+X000000Y000000D03*
+X010000Y000000D03*
+X020000Y010000D03*
+M02*",
+    )
+    .expect("one command per line should parse");
+    let packed = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*X000000Y000000D03*X010000Y000000D03*X020000Y010000D03*M02*",
+    )
+    .expect("several commands on one line should parse");
+
+    assert_eq!(packed.len(), per_line.len());
+    assert_eq!(packed[0].circles.x.len(), 3);
+    assert_eq!(packed[0].circles.x, per_line[0].circles.x);
+    assert_eq!(packed[0].circles.y, per_line[0].circles.y);
+    assert_eq!(packed[0].circles.radius, per_line[0].circles.radius);
+}
+
+#[test]
+fn extended_commands_inline_with_graphic_commands_are_isolated() {
+    let layers = parse_gerber(
+        "%FSLAX24Y24*%%MOMM*%%ADD10C,1.0*%D10*X000000Y000000D03*%LPC*%X010000Y000000D03*M02*",
+    )
+    .expect("whole file on a single line should parse");
+
+    assert_eq!(layers.len(), 2, "dark and clear polarity layers expected");
+    assert_eq!(layers[0].circles.x.len(), 1);
+    assert!(has_circle_at(&layers[0].circles, 0.0, 0.0, 0.5));
+    assert_eq!(layers[1].circles.x.len(), 1);
+    assert!(has_circle_at(&layers[1].circles, 1.0, 0.0, 0.5));
+}
+
+#[test]
+fn multi_line_aperture_macro_body_survives_packed_graphic_commands() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%AMDOT*
+1,1,$1,0,0*
+%
+%ADD11DOT,2.0*%
+D11*X000000Y000000D03*X030000Y000000D03*M02*",
+    )
+    .expect("macro aperture followed by packed flashes should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].circles.x.len(), 2);
+    assert!(has_circle_at(&layers[0].circles, 0.0, 0.0, 1.0));
+    assert!(has_circle_at(&layers[0].circles, 3.0, 0.0, 1.0));
+}
+
+#[test]
+fn packed_body_with_empty_commands_and_m00_terminator_parses() {
+    // Mirrors CAM output that writes the header one command per line and the
+    // entire body on a single line, including stray empty `*` commands and a
+    // deprecated M00 end-of-program.
+    let layers = parse_gerber(
+        "\
+%FSLAX44Y44*%
+%MOMM*%
+%ADD80C,0.37000*%
+*D80*X00617500Y00864500*D03*Y00856500*D03*X00609500Y00864500*D03**X0Y0D02*M00*",
+    )
+    .expect("packed body with empty commands should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].circles.x.len(), 3);
+    assert!(has_circle_at(&layers[0].circles, 61.75, 86.45, 0.185));
+    assert!(has_circle_at(&layers[0].circles, 61.75, 85.65, 0.185));
+    assert!(has_circle_at(&layers[0].circles, 60.95, 86.45, 0.185));
+}
+
+#[test]
+fn m02_stops_parsing_commands_that_follow_on_the_same_line() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*X000000Y000000D03*M02*X010000Y000000D03*",
+    )
+    .expect("flash before M02 should parse");
+
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].circles.x.len(), 1);
+    assert_approx_eq(layers[0].circles.x[0], 0.0);
+}
+
+#[test]
+fn comments_containing_percent_signs_do_not_open_extended_commands() {
+    let layers = parse_gerber(
+        "\
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,1.0*%
+G04 progress 50% done*D10*X000000Y000000D03*M02*",
+    )
+    .expect("comment with a percent sign should be ignored");
+
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].circles.x.len(), 1);
+}
+
+#[test]
+fn m00_stops_parsing_following_commands_like_m02() {
+    let on_next_line = parse_gerber(
+        "%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*
+X000000Y000000D03*
+M00*
+X010000Y000000D03*",
+    )
+    .expect("flash before M00 should parse");
+    assert_eq!(on_next_line.len(), 1);
+    assert_eq!(on_next_line[0].circles.x.len(), 1);
+    assert_approx_eq(on_next_line[0].circles.x[0], 0.0);
+
+    let on_same_line = parse_gerber(
+        "%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,1.0*%
+D10*X000000Y000000D03*M00*X010000Y000000D03*X020000Y000000D03*",
+    )
+    .expect("flash before M00 should parse");
+    assert_eq!(on_same_line.len(), 1);
+    assert_eq!(on_same_line[0].circles.x.len(), 1);
+    assert_approx_eq(on_same_line[0].circles.x[0], 0.0);
+}
+
+#[test]
+fn command_pre_count_matches_tokenizer_for_well_formed_input() {
+    // Multi-line macros end with a bare `%` command that carries no `*`, the
+    // packed body adds thousands of commands to a single line, and CRLF,
+    // indented terminators and whitespace-only lines must not disturb the
+    // count. The estimate must equal what the tokenizer really yields.
+    let mut data = String::from("%FSLAX24Y24*%\r\n%MOMM*%\r\n");
+    for index in 0..3 {
+        data.push_str(&format!(
+            "%AMDOT{index}*\r\n0 dot macro {index}*\r\n\r\n    \r\n1,1,$1,0,0*\r\n  %\r\n%ADD1{index}DOT{index},1.0*%\r\n"
+        ));
+    }
+    data.push_str("G04 packed body*D10*");
+    for index in 0..500 {
+        data.push_str(&format!("X{:06}Y000000*D03*", index * 100));
+    }
+    data.push_str("M02*\n");
+
+    let tokenizer_count = super::split_commands(&data).count();
+    assert_eq!(super::count_commands(&data), tokenizer_count);
+
+    let commands = super::collect_commands(&data).expect("index should be allocated");
+    assert_eq!(commands.len(), tokenizer_count);
+    // The indented terminator line is yielded raw; `parse_command` trims it.
+    assert!(commands.iter().any(|command| command.trim() == "%"));
+    assert!(commands.contains(&"M02*"));
+
+    let layers = parse_gerber(&data).expect("pre-counted file should still parse");
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].circles.x.len(), 500);
+}
+
+#[test]
+fn command_pre_count_never_underestimates_well_formed_input() {
+    // A single-line macro with several primitives holds several `*` but is one
+    // command, so the estimate may exceed the real count; it must never fall
+    // short for well-formed input.
+    let inline_macro = "%FSLAX24Y24*%\n%MOMM*%\n%AMINLINE*1,1,$1,0,0*20,1,0.1,0,0,1,0,0*%\n%ADD10INLINE,1.0*%\nD10*X000000Y000000D03*M02*\n";
+    assert!(super::count_commands(inline_macro) >= super::split_commands(inline_macro).count());
+
+    for data in [
+        "%FSLAX24Y24*%\n%MOMM*%\n%ADD10C,1.0*%\nD10*\nX000000Y000000D03*\nM02",
+        "%FSLAX24Y24*%\n%MOMM*%\n%ADD10C,1.0*%\nD10*X000000Y000000D03*M02*",
+        "%FSLAX24Y24*%\n%MOMM*%\n%AMDOT*\n1,1,$1,0,0*\n%",
+        "",
+    ] {
+        assert_eq!(
+            super::count_commands(data),
+            super::split_commands(data).count(),
+            "count mismatch for {data:?}"
+        );
+    }
+}
+
+#[test]
+fn whitespace_only_lines_inside_extended_commands_are_not_yielded() {
+    let commands: Vec<&str> =
+        super::split_commands("%AMDOT*\r\n1,1,$1,0,0*\r\n    \r\n\t\r\n\r\n%\r\nD10*\r\n")
+            .collect();
+
+    // Commands outside extended blocks end at `*`; the opening line and raw
+    // lines inside a block keep their line ending, which `parse_command` trims.
+    assert_eq!(
+        commands,
+        vec!["%AMDOT*\r", "1,1,$1,0,0*\r", "%", "D10*"],
+        "whitespace-only lines must not become commands"
+    );
+}
+
+#[test]
+fn command_index_fallback_absorbs_under_counted_malformed_input() {
+    // An empty `%%` extended command is a command without `*` that is not a
+    // bare `%` line, so the single-pass estimate misses it. The index must
+    // still grow and the file must still parse.
+    let data = "\
+%FSLAX24Y24*%
+%MOMM*%
+%%
+%ADD10C,1.0*%
+%%
+D10*X000000Y000000D03*X010000Y000000D03*M02*";
+
+    let tokenizer_count = super::split_commands(data).count();
+    assert!(
+        super::count_commands(data) < tokenizer_count,
+        "test input must exercise the fallback growth path"
+    );
+
+    let commands = super::collect_commands(data).expect("fallback growth should succeed");
+    assert_eq!(commands.len(), tokenizer_count);
+
+    let layers = parse_gerber(data).expect("malformed empty extended commands are ignored");
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].circles.x.len(), 2);
+}

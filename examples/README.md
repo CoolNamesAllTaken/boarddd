@@ -8,5 +8,5 @@
   `boarddd/models` (`components.json`: the placements, from `kicad-cli pcb export pos`), shown in
   `boarddd/scene`'s viewer; ▣ toggles the components, Δ the copper diff. `examples/data/` was exported
   with `scripts/export-demo.sh` (kicad-cli 10.0.6).
-- The peers come from `importmap.js`: `three` from `node_modules`, our wasm-gerber-renderer fork from
-  `vendor/` (a dev copy).
+- The peers come from `importmap.js`: `three` from `node_modules`. The Gerber faces use `boarddd/gerber`
+  and its committed wasm (no renderer to inject).

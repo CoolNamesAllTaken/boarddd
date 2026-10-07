@@ -1,13 +1,14 @@
 # boarddd
 
-3D PCB rendering for the browser, shared by [kipr](https://github.com/CoolNamesAllTaken/kipr) (KiCad
+2D and 3D PCB rendering for the browser, shared by [kipr](https://github.com/CoolNamesAllTaken/kipr) (KiCad
 PR review) and gentoo (a PCB fab shop site). Framework-free ES modules, no build step, `.d.ts` typings.
 
+- **`boarddd/gerber`**: the 2D Gerber/Excellon renderer (WebGL2 + wasm): realistic board faces, layer
+  and drill diffs, layer roles, board outlines, view math, contour tracing.
 - **`boarddd/geom`**: pure geometry, no three.js: coordinate frames, outlines and winding, round
   holes and stadium slots, hole budget, KiCad pad shapes (shape offset, rotation, roundrect, ...).
 - **`boarddd/board`**: the board solid from an outline and drills (plated barrels, caps, UVs), face
-  textures from Gerbers via [wasm-gerber-renderer](https://github.com/CoolNamesAllTaken/wasm-gerber-viewer),
-  copper-diff textures.
+  textures from Gerbers via `boarddd/gerber`, copper-diff textures.
 - **`boarddd/footprint`**: one KiCad footprint on a small board: pads, copper, silk, courtyard.
 - **`boarddd/models`**: GLB and STEP loading (occt in a Worker), units/up-axis detection, colour
   space, matching meshes to reference designators.
@@ -17,6 +18,33 @@ PR review) and gentoo (a PCB fab shop site). Framework-free ES modules, no build
 Status: phase 1.
 
 ## API
+
+### `boarddd/gerber`
+
+```js
+import { createGerberRenderer, groupBoardLayers, renderFaceRaster, renderLayerDiff, parseExcellon } from 'boarddd/gerber';
+const renderer = await createGerberRenderer(canvas);   // loads the committed wasm next to the core
+```
+
+| | |
+|---|---|
+| `createGerberRenderer`, `GerberRenderer`, `renderGerberToCanvas`, `renderGerberToPng`, `calculateFitView`, `projectToCanvas`, `unprojectFromCanvas`, `viewExtent` | the upstream core ([wasm-gerber-viewer](https://github.com/dsafdsaf132/wasm-gerber-viewer), vendored) |
+| `board.js`: `renderBoard`, `renderFaceRaster`, `faceRasterSize`, `addBoardLayers`, `selectFace` | a realistic face: laminate, copper, mask, finish, silk, see-through holes |
+| `diff.js`: `renderLayerDiff`, `analyzeLayerDiff`, `analyzeBoardDiff`, `measureLayers`, `geometryText`, ... | removed red, added green, unchanged dim, in one shared frame |
+| `drills.js`: `parseExcellon`, `diffHoles`, `holesToGerber`, `holeMask`, `cutHoles`, `dropEmptyTools`, `withoutEmptyTools`, ... | holes as data; KiCad's zero-diameter tools dropped before the wasm sees them |
+| `layers.js`: `layerRole`, `groupBoardLayers`, `withoutProfile`, `hasGeometry`, `plotsProfile` | which layer a file is; outline strokes plotted on other layers |
+| `outline.js`: `boardOutline`, `outlineContours`, `gerberExtents`, `ringsToGerber` | the board shape as polygons (mm) |
+| `palette.js`, `view.js`, `contour.js`, `raster.js` | board colours; world ⇄ pixel math and shared frames; raster → outlines; pixel readback |
+| `boarddd/gerber/contour-worker.js` | `traceLayer` in a module worker |
+
+The upstream core (`index.js`, `shared.js`) and the Rust crate are vendored from our fork
+(CoolNamesAllTaken/wasm-gerber-viewer) into `third_party/wasm-gerber-renderer/` by `scripts/sync-fork.sh`,
+MIT © dsafdsaf132 (LICENSE there). The other modules in `src/gerber/` moved here from the fork at `92976b5`
+and are boarddd's own. The wasm is built by `scripts/build-wasm.sh` (Rust from the crate's
+`rust-toolchain.toml`, wasm-pack 0.14.0) and committed in `third_party/wasm-gerber-renderer/core/wasm/`
+with `BUILD.json`; CI checks that its source hash matches the crate and that the crate builds. Consumers
+need no Rust. To update: `bash scripts/sync-fork.sh [fork checkout] [ref]`, `bash scripts/build-wasm.sh`,
+commit `third_party/` (or run the CI workflow by hand with `commit` on a branch).
 
 ### `boarddd/geom` (pure, no three.js)
 
@@ -39,14 +67,12 @@ const board = buildBoard({ outline: { board: [[0, 0], [50, 0], [50, 30], [0, 30]
                            holes: [{ x: 10, y: 10, diameter: 1, plated: true }, { x: 20, y: 10, x2: 23, y2: 10, diameter: 1 }] });
 scene.add(board.group);
 
-// a board painted from its Gerbers + Excellon files, through our wasm-gerber-renderer fork (injected)
-const gerber = Object.assign({}, ...await Promise.all(['board', 'diff', 'drills', 'layers', 'outline', 'raster']
-  .map((m) => import(`wasm-gerber-renderer/${m}.js`))));
-const renderer = await createGerberRenderer(document.createElement('canvas'), { /* wasm init */ });
-const head = await buildGerberBoard(gerber, renderer, files /* [{name, text}] */, { thickness: 1.6 });
+// a board painted from its Gerbers + Excellon files. gerber = null: boarddd/gerber (or inject another
+// implementation); renderer = null: one shared renderer (defaultRenderer()), or pass your own GerberRenderer
+const head = await buildGerberBoard(null, null, files /* [{name, text}] */, { thickness: 1.6 });
 
 // copper diff against another revision, in the same frame (same UVs): swap it onto the faces
-const diff = await paintCopperDiff(gerber, renderer, { base: readFabFiles(gerber, baseFiles), head: head.fab }, head.painted);
+const diff = await paintCopperDiff(null, null, { base: readFabFiles(null, baseFiles), head: head.fab }, head.painted);
 head.setFaces({ top: diff.top, bottom: diff.bottom });
 ```
 
@@ -138,9 +164,10 @@ v.dispose();                  // frees GL (content included) and removes the can
 ## Peers
 
 `three` is a peer dependency, imported by the bare specifier `"three"`: map it with an importmap,
-or let your bundler resolve it. `wasm-gerber-renderer` (for Gerber face textures) and occt-import-js
-(for STEP) are passed in by the caller, never imported by boarddd itself, so bundling boarddd into
-a classic script (e.g. esbuild IIFE) works.
+or let your bundler resolve it. occt-import-js (for STEP) is passed in by the caller, never imported by
+boarddd itself. `boarddd/gerber` loads its wasm from `third_party/wasm-gerber-renderer/core/wasm/`
+relative to the module; a bundle that moves the files passes `wasmModuleUrl` (or `wasmModule` +
+`wasmInitInput`) to `createGerberRenderer`. Serve `third_party/` alongside `src/`.
 
 ```html
 <script type="importmap">
@@ -158,16 +185,17 @@ coordinates), z up out of the top copper, board bottom face at z = 0 and top fac
 
 ## Tests
 
-- `npm test`: node tests: geometry (stadium slots, hole budget, every KiCad pad shape against pcbnew's
+- `npm test`: node tests: `boarddd/gerber` (layer roles, outlines, drills and zero-diameter tools, view
+  math, frame backgrounds; ported from the fork), geometry (stadium slots, hole budget, every KiCad pad shape against pcbnew's
   own polygons, kipr's pad-placement golden data), the board solid, the footprint reader/builder.
 - `npm run test:browser`: headless Chromium (SwiftShader WebGL2): slotted holes must show through as
   stadiums in a straight-down render of a footprint and of a Gerber-built board; copper diff colours;
-  a blue STEP board reads blue from top and bottom; no frames while idle; view cube clicks; dispose.
+  a blue STEP board reads blue from top and bottom; no frames while idle; view cube clicks; dispose;
+  `boarddd/gerber` pixel tests (`gerber-board-diff`, `gerber-drill-empty-tools`, ported from the fork).
   `PW_PORT` changes the server port (several checkouts at once).
+- `npm run typecheck`: the `.d.ts` files, plus `test/types/` (type-level use of `boarddd/gerber`).
 - Fixtures: `test/fixtures/` (see the READMEs there for sources); `examples/data/` is KiCad demo data
   (KiCad's `demos/royalblue54L_feather`), exported with `scripts/export-demo.sh`.
-- `vendor/wasm-gerber-renderer/` is a dev/test copy of the fork (`scripts/sync-gerber-renderer.sh`), not
-  part of the package.
 
 ## Development
 
@@ -176,9 +204,12 @@ npm install
 npm test                      # node --test: test/**/*.test.mjs
 npm run test:browser          # playwright, headless Chromium (WebGL2 via SwiftShader)
 npm run serve                 # examples at http://127.0.0.1:8417/examples/
+npm run check:wasm            # the committed wasm matches third_party/wasm-gerber-renderer/crate
+npm run build:wasm            # rebuild it (rustup + wasm-pack, downloaded if missing)
 ```
 
 ## Credits
 
 Ported from gentoo's `viewer3d.js` (PantsForBirds), kipr's `web/project/pcba3d` and
-`web/library/js` (CoolNamesAllTaken/kipr). Each module names its sources.
+`web/library/js` (CoolNamesAllTaken/kipr). Each module names its sources. `boarddd/gerber` is built
+on [wasm-gerber-viewer](https://github.com/dsafdsaf132/wasm-gerber-viewer) by dsafdsaf132 (MIT).
