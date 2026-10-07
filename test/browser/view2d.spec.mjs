@@ -619,3 +619,22 @@ test('pixelSnap: at rest a tile is drawn at the screen resolution on the device 
   expect(tiles[1].renders).toBeGreaterThan(tiles[0].renders); // moved off the grid: drawn again
   expect(tiles[2].a).toBeLessThan(0); // mirrored
 });
+
+test('layers with a rect: rasterised over their own area, past the stage bounds', async ({ page }) => {
+  const res = await page.evaluate(async () => {
+    const { view2d, files, file, bounds } = window.v2;
+    const b = bounds.pic;
+    const wide = { minX: b.minX - 60, maxX: b.maxX + 60, minY: b.minY - 40, maxY: b.maxY + 40 };
+    const s = window.v2.mount({ bounds: b });
+    const edge = { ...file(files.picBase, 'Edge_Cuts'), color: [1, 0, 0], alpha: 1 };
+    const content = view2d.layers([edge], { rect: wide });
+    s.setScene([{ layers: [{ content }] }]);
+    await s.ready();
+    const t = s.stats().tiles[0][0].base;
+    return { rect: view2d.contentRect(content), tile: t.rect, wide, plain: view2d.contentRect(view2d.layers([edge])) };
+  });
+  expect(res.rect).toEqual(res.wide);
+  expect(res.plain).toBeNull();
+  expect(res.tile.minX).toBeLessThanOrEqual(res.wide.minX + 1e-6);
+  expect(res.tile.maxY).toBeGreaterThanOrEqual(res.wide.maxY - 1e-6);
+});
