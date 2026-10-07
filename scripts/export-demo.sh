@@ -8,7 +8,7 @@
 # KiCad's default), and kicad-cli's GLB with the 3D models (STEP substituted for VRML).
 set -euo pipefail
 pcb=$1; out=$2
-cli=${KICAD_CLI:-/workspace/projects/kipr-tools/bin/kicad-cli}
+cli=${KICAD_CLI:-kicad-cli}
 mkdir -p "$out"
 "$cli" pcb export gerbers -o "$out/" -l F.Cu,B.Cu,F.Mask,B.Mask,F.Silkscreen,B.Silkscreen,F.Paste,B.Paste,Edge.Cuts --no-protel-ext "$pcb" >/dev/null
 "$cli" pcb export drill -o "$out/" --format excellon --excellon-separate-th --excellon-units mm "$pcb" >/dev/null
