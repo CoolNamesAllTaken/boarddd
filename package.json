@@ -38,6 +38,10 @@
       "types": "./src/model/index.d.ts",
       "default": "./src/model/index.js"
     },
+    "./impedance": {
+      "types": "./src/impedance/index.d.ts",
+      "default": "./src/impedance/index.js"
+    },
     "./schema/board.schema.json": "./schema/board.schema.json",
     "./package.json": "./package.json"
   },
@@ -56,7 +60,7 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:browser": "playwright test",
     "serve": "node scripts/serve.mjs",
-    "typecheck": "tsc --noEmit --lib es2022,dom --moduleResolution bundler --module esnext src/geom/index.d.ts src/board/index.d.ts src/footprint/index.d.ts src/models/index.d.ts src/scene/index.d.ts src/model/index.d.ts src/gerber/index.d.ts && tsc -p test/types/tsconfig.json",
+    "typecheck": "tsc --noEmit --lib es2022,dom --moduleResolution bundler --module esnext src/geom/index.d.ts src/board/index.d.ts src/footprint/index.d.ts src/models/index.d.ts src/scene/index.d.ts src/model/index.d.ts src/gerber/index.d.ts src/impedance/index.d.ts && tsc -p test/types/tsconfig.json",
     "build:wasm": "bash scripts/build-wasm.sh",
     "check:wasm": "bash scripts/build-wasm.sh --check"
   },

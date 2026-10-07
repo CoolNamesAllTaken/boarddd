@@ -9,5 +9,5 @@
     "target": "ES2022",
     "types": []
   },
-  "files": ["view-api.ts", "board-diff-api.ts"]
+  "files": ["view-api.ts", "board-diff-api.ts", "impedance-api.ts"]
 }

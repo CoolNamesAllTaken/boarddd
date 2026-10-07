@@ -17,6 +17,9 @@ PR review) and gentoo (a PCB fab shop site). Framework-free ES modules, no build
 - **`boarddd/model`**: the normalised board model `boarddd/board@1` (`board.json`): typings,
   `validateBoard`, `footprintToBoard`. The schema is `schema/board.schema.json`; see
   [docs/model.md](docs/model.md).
+- **`boarddd/impedance`**: closed-form PCB transmission-line impedance (microstrip, solder mask,
+  stripline, CPW/CPWG, edge-coupled pairs), width synthesis and validity flags; the same code is
+  `boarddd.impedance` in Python. See [docs/impedance.md](docs/impedance.md).
 
 The Python package in [`python/`](python/README.md) (same repository, same version tag) holds the
 server-side readers and owns the board model. Readers are server-side (Python), renderers are
@@ -272,7 +275,9 @@ coordinates), z up out of the top copper, board bottom face at z = 0 and top fac
 - `boarddd/model`: `validateBoard` against the shared cases in `fixtures/model/` (pytest runs the same
   file), and the royalblue54L_feather golden `board.json` against boarddd's own `.kicad_mod` parser and
   the drill files.
-- Python: `cd python && pip install -e ".[dev]" && pytest` (model, validator, golden board), `ruff`,
+- `boarddd/impedance`: golden references (Polar, HFSS, Cohn exact, scikit-rf, a field-solver sweep) and
+  JS↔Python parity on `fixtures/impedance/cases.json` (`node fixtures/impedance/make_cases.mjs --check`).
+- Python: `cd python && pip install -e ".[dev]" && pytest` (model, validator, golden board, impedance), `ruff`,
   `python -m boarddd.model --check` (generated schema/typings up to date).
 - `npm run typecheck`: the `.d.ts` files, plus `test/types/` (type-level use of `boarddd/gerber`).
 - Fixtures: `fixtures/` is shared golden data for node, Playwright and pytest (licences in

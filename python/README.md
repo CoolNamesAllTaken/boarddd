@@ -14,6 +14,9 @@ from boarddd.validate import validate_board
 
 board = Board.from_json(open("board.json").read())
 errors = validate_board(json.load(open("board.json")))   # [] when valid
+
+from boarddd.impedance import microstrip, synthesize
+microstrip(w=0.36, h=0.2104, t=0.035, er=4.4).Z0          # 50.92 Ω; see docs/impedance.md
 ```
 
 Development (Python 3.11+):
