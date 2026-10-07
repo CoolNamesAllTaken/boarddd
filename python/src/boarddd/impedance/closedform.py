@@ -20,6 +20,43 @@ from math import cosh, exp, log, pi, sin, sinh, sqrt, tanh
 ETA0 = 376.730313668
 """Impedance of free space, Ω (CODATA 2018)."""
 
+# boarddd's fitted constants (marked "boarddd" below; docs/impedance.md). fixtures/impedance/fit_corrections.py
+# refits them on fixtures/impedance/field-sweep.json (boarddd's own field solver); closedform.js has the same table.
+_FIT = {
+    "mask": {"k": 2.52, "a": 0.333, "p": 0.829, "b": 0.655, "kappa": 0.0753},
+    "coplanar": {"corner": 0.0949, "backing": 0.12},
+    "coupledMicrostrip": {"even": 0.95, "odd": 0.915},
+    "coupledStripline": {"decay": 3.04},
+    "offset": {"lo": 0.193, "span": 30},
+    "maskCpwg": {"k": 1.55, "a": 0.266, "p": 1.1, "b": 1.45},
+    "maskCoupledEven": {"k": 2.32, "a": 0.269, "p": 0.8, "b": -0.0854},
+    "maskCoupledOdd": {"k": 2.54, "a": 0.32, "p": 1.09, "b": 0.658},
+}
+
+
+# Solder mask on CPWG and coupled microstrip (boarddd), the coated-microstrip form per mode: a conformal coating
+# c thick (εr erc) only replaces air, so Cair is unchanged and εeff rises by the air's share of the mode's field
+# (1 - q) times the share F inside the coating, F = 1 - exp(-k u^-a (c/h)^p (1 + b h/s)) with s the gap (CPWG)
+# or the pair spacing; k, a, p, b fitted per mode to fixtures/impedance/field-mask-sweep.json.
+def _mask_mode(Z, ee, er, u, ch, gh, erc, m):
+    q = (ee - 1) / ((er - 1) or 1)
+    F = 1 - exp(-m["k"] * u ** -m["a"] * ch ** m["p"] * (1 + m["b"] / gh))
+    ee2 = ee + ((1 - q) * F * (erc - 1)) / (1 + _FIT["mask"]["kappa"] * (erc - 1))
+    return Z * sqrt(ee / ee2), ee2
+
+
+def _mask_params(c, erc, h, flags) -> bool:
+    """Check and flag the optional mask parameters of CPWG and coupled microstrip; True when there is a mask."""
+    if c is None or c == 0:
+        return False
+    if not c >= 0:
+        raise ValueError(f"c must be a number >= 0 (got {c})")
+    if erc is None or not erc >= 1:
+        raise ValueError(f"erc must be >= 1 (got {erc})")
+    _range(flags, "c/h", c / h, 0, 0.25, "boarddd mask model")
+    _range(flags, "erc", erc, 2.5, 5, "boarddd mask model")
+    return True
+
 
 @dataclass(frozen=True)
 class Flag:
@@ -192,13 +229,13 @@ def microstrip(*, w: float, h: float, er: float, t: float = 0) -> LineResult:
 # ── coated microstrip (solder mask) ────────────────────────────────────────────────────────────────────────
 # A conformal coating of thickness c and permittivity εc over the trace and the laminate only adds dielectric
 # where the bare line has air, so Cair (and the H-J air impedance) is unchanged and εeff rises:
-#   εeff = εeff,bare + (1 - q) F (εc - 1) / (1 + 0.076 (εc - 1)),   q = (εeff,bare - 1)/(εr - 1)
-#   F = 1 - exp(-2.66 u^-0.316 (c/h)^0.848 (1 - 0.606 t/h))
+#   εeff = εeff,bare + (1 - q) F (εc - 1) / (1 + 0.0753 (εc - 1)),   q = (εeff,bare - 1)/(εr - 1)
+#   F = 1 - exp(-2.52 u^-0.333 (c/h)^0.829 (1 - 0.655 t/h))
 # (1 - q) is the air's share of the bare line's field (Wheeler's filling factor); F is the share of that air
 # field inside the coating, and the denominator its partly series (normal-field) character. The form is
 # boarddd's: the published covered-microstrip models (Bahl-Stuchly 1980, Svačina 1992, Wan-Hoorfar 2000) are for
 # a planar cover, not a conformal mask, and the constants are fitted to 180 quasi-static field solutions with a
-# conformal mask (0.3 <= u <= 3, 0.006 <= c/h <= 0.4, t/h <= 0.35, εc 3.3-4): within 0.65 % of Z0 there.
+# conformal mask (0.3 <= u <= 3, 0.006 <= c/h <= 0.4, t/h <= 0.35, εc 3.3-4): within 0.35 % of Z0 there.
 
 
 def coated_microstrip(*, w: float, h: float, er: float, c: float, erc: float, t: float = 0) -> LineResult:
@@ -211,8 +248,9 @@ def coated_microstrip(*, w: float, h: float, er: float, c: float, erc: float, t:
     u, T, C = w / h, t / h, c / h
     _, ee_bare, z_air = _microstrip_core(u, T, er)
     q = (ee_bare - 1) / ((er - 1) or 1)
-    F = 1 - exp(-2.66 * u**-0.316 * C**0.848 * max(0.0, 1 - 0.606 * T))
-    eps_eff = ee_bare + ((1 - q) * F * (erc - 1)) / (1 + 0.076 * (erc - 1))
+    m = _FIT["mask"]
+    F = 1 - exp(-m["k"] * u ** -m["a"] * C ** m["p"] * max(0.0, 1 - m["b"] * T))
+    eps_eff = ee_bare + ((1 - q) * F * (erc - 1)) / (1 + m["kappa"] * (erc - 1))
     flags: list[Flag] = []
     _microstrip_flags(flags, u, T, er)
     src = "boarddd mask model"
@@ -239,8 +277,8 @@ def coated_microstrip(*, w: float, h: float, er: float, c: float, erc: float, t:
 #     added as capacitance to the centred line;
 #   narrow strips: the exact image-series result for a thin conductor between planes,
 #     Z_off = Z_centred + (η0 / 2π√εr) ln sin(πa/b);
-#   weighted by a smoothstep in log(w / min(a, c)) from 0.2 (narrow) to 6 (wide), a boarddd choice checked
-#   against quasi-static field solutions (within 1.5 % up to h_max/h_min = 4).
+#   weighted by a smoothstep in log(w / min(a, c)) from 0.193 (narrow) to 5.8 (wide), a boarddd choice checked
+#   against quasi-static field solutions (within 1.8 % up to h_max/h_min = 4).
 
 
 def _cohn_stripline0(w: float, b: float) -> float:
@@ -286,7 +324,7 @@ def _stripline_air(w: float, h1: float, h2: float, t: float) -> float:
         ETA0 / zs + (w / h1 + w / h2 - (4 * w) / (b - t)) + 2 * (_offset_fringe(a, c) - _offset_fringe(b / 2, b / 2))
     )
     zn = zs + (ETA0 / (2 * pi)) * log(sin((pi * a) / b))
-    q = min(1.0, max(0.0, log(w / min(a, c) / 0.2) / log(30)))
+    q = min(1.0, max(0.0, log(w / min(a, c) / _FIT["offset"]["lo"]) / log(_FIT["offset"]["span"])))
     f = q * q * (3 - 2 * q)
     return zn * (1 - f) + zw * f if zn > 0 else zw
 
@@ -324,7 +362,7 @@ def stripline(*, w: float, h1: float, er: float, h2: float | None = None, t: flo
 # 0.1-0.4 mm gaps, because Δ approaches the gap. boarddd instead adds the thickness as air capacitance above the
 # t = 0 map (per 2ε0): the gaps' sidewalls as parallel plates, t/g, plus corner and backing terms fitted to
 # quasi-static field solutions (CPWG, 0.25 <= h/g <= 10, t/g <= 0.7):
-#   ΔC = t/g + 0.1 √(t/w) [+ 0.05 √(t/h) g/h with a backing plane].
+#   ΔC = t/g + 0.0949 √(t/w) [+ 0.12 √(t/h) g/h with a backing plane].
 
 
 def _tanh_ratio(a: float, b: float) -> tuple[float, float]:
@@ -334,12 +372,22 @@ def _tanh_ratio(a: float, b: float) -> tuple[float, float]:
     return k, sqrt(one * (1 + k))
 
 
-def _coplanar(w: float, gap: float, h: float, er: float, t: float, grounded: bool) -> LineResult:
+def _coplanar(
+    w: float,
+    gap: float,
+    h: float,
+    er: float,
+    t: float,
+    grounded: bool,
+    mask_c: float | None = None,
+    erc: float | None = None,
+) -> LineResult:
     _positive({"w": w, "gap": gap, "h": h, "er": er, "t": t}, ["w", "gap", "h"])
     g = gap
     k0, k0p = w / (w + 2 * g), (2 * sqrt(g * (w + g))) / (w + 2 * g)
     r0 = elliptic_ratio(k0, k0p)  # K(k0)/K(k0')
-    dt = t / g + 0.1 * sqrt(t / w) + (0.05 * sqrt(t / h) * (g / h) if grounded else 0) if t > 0 else 0
+    cp = _FIT["coplanar"]
+    dt = t / g + cp["corner"] * sqrt(t / w) + (cp["backing"] * sqrt(t / h) * (g / h) if grounded else 0) if t > 0 else 0
     flags: list[Flag] = []
     src = "Ghione-Naldi 1987" if grounded else "Ghione-Naldi 1984"
     _range(flags, "t/gap", t / g, 0, 0.7, "boarddd coplanar thickness")
@@ -357,18 +405,30 @@ def _coplanar(w: float, gap: float, h: float, er: float, t: float, grounded: boo
         # Air above and below (2 r0), plus the dielectric's share of the lower half-plane.
         c_air = 2 * r0 + dt
         c = 2 * r0 + dt + (er - 1) * r1
-    method = src + (" + boarddd thickness" if t > 0 else "")
-    return LineResult("cpwg" if grounded else "cpw", method, ETA0 / (2 * sqrt(c * c_air)), c / c_air, flags)
+    eps_eff, Z0, masked = c / c_air, ETA0 / (2 * sqrt(c * c_air)), False
+    if grounded and _mask_params(mask_c, erc, h, flags):
+        Z0, eps_eff = _mask_mode(Z0, eps_eff, er, w / h, mask_c / h, g / h, erc, _FIT["maskCpwg"])
+        masked = True
+    elif not grounded and mask_c:
+        raise ValueError("cpw has no mask model (c): use the field solver")
+    method = src + (" + boarddd thickness" if t > 0 else "") + (" + boarddd mask model" if masked else "")
+    return LineResult("cpwg" if grounded else "cpw", method, Z0, eps_eff, flags)
 
 
-def cpw(*, w: float, gap: float, h: float, er: float, t: float = 0) -> LineResult:
+def cpw(
+    *, w: float, gap: float, h: float, er: float, t: float = 0, c: float | None = None, erc: float | None = None
+) -> LineResult:
     """Coplanar waveguide on a substrate of height h with no plane under it (Ghione-Naldi 1984)."""
-    return _coplanar(w, gap, h, er, t, False)
+    return _coplanar(w, gap, h, er, t, False, c, erc)
 
 
-def cpwg(*, w: float, gap: float, h: float, er: float, t: float = 0) -> LineResult:
-    """Grounded (conductor-backed) CPW (Ghione-Naldi 1987): infinite coplanar grounds, the plane h below."""
-    return _coplanar(w, gap, h, er, t, True)
+def cpwg(
+    *, w: float, gap: float, h: float, er: float, t: float = 0, c: float | None = None, erc: float | None = None
+) -> LineResult:
+    """Grounded (conductor-backed) CPW (Ghione-Naldi 1987): infinite coplanar grounds, the plane h below.
+
+    Optional solder mask: c thick (over laminate and copper), εr erc (boarddd mask model)."""
+    return _coplanar(w, gap, h, er, t, True, c, erc)
 
 
 # ── edge-coupled microstrip: Kirschning & Jansen 1984 ─────────────────────────────────────────────────────
@@ -381,7 +441,7 @@ def cpwg(*, w: float, gap: float, h: float, er: float, t: float = 0) -> LineResu
 # field solver for the odd mode of 1 oz pairs with s ~ t, so boarddd adds thickness as capacitance on top of the
 # t = 0 modes, as for coupled stripline below: ΔCs (C and Cair) is the single line's H-J thickness increase,
 # shared by its two edges; even: ΔCe = ΔCs (1 - ψe/2), odd: ΔCo = ΔCs + ψo 2t/s (air, a parallel plate across
-# the gap). ψe = (1 + g) exp(-g) and ψo = (1 + g) exp(-0.8g) are boarddd's fit to quasi-static field solutions
+# the gap). ψe = (1 + g) exp(-0.95g) and ψo = (1 + g) exp(-0.915g) are boarddd's fit to quasi-static field solutions
 # (0.2 <= g <= 3, t/h <= 0.35).
 
 
@@ -426,9 +486,13 @@ def _caps(Z: float, ee: float) -> tuple[float, float]:
     return (ETA0 * sqrt(ee)) / Z, ETA0 / (Z * sqrt(ee))
 
 
-def coupled_microstrip(*, w: float, s: float, h: float, er: float, t: float = 0) -> CoupledResult:
-    """Edge-coupled microstrip pair: each trace w wide, s edge to edge (Kirschning-Jansen 1984, boarddd thickness)."""
-    _positive(locals(), ["w", "s", "h"])
+def coupled_microstrip(
+    *, w: float, s: float, h: float, er: float, t: float = 0, c: float | None = None, erc: float | None = None
+) -> CoupledResult:
+    """Edge-coupled microstrip pair: each trace w wide, s edge to edge (Kirschning-Jansen 1984, boarddd thickness).
+
+    Optional solder mask: c thick (over laminate and copper), εr erc (boarddd mask model)."""
+    _positive({"w": w, "s": s, "h": h, "er": er, "t": t}, ["w", "s", "h"])
     u, g, T = w / h, s / h, t / h
     z_even, ee_even, z_odd, ee_odd = _kj_modes(u, g, er)
     if T > 0:
@@ -436,7 +500,8 @@ def coupled_microstrip(*, w: float, s: float, h: float, er: float, t: float = 0)
         c0, a0 = _caps(_z01(u) / sqrt(_eps_eff0(u, er)), _eps_eff0(u, er))
         zt, eet, _ = _microstrip_core(u, T, er)
         ct, at = _caps(zt, eet)
-        pe, po, plate = (1 + g) * exp(-g), (1 + g) * exp(-0.8 * g), (2 * T) / g
+        cm = _FIT["coupledMicrostrip"]
+        pe, po, plate = (1 + g) * exp(-cm["even"] * g), (1 + g) * exp(-cm["odd"] * g), (2 * T) / g
 
         def mode(Z: float, ee: float, dC: float, dA: float) -> tuple[float, float]:
             c, a = _caps(Z, ee)
@@ -450,7 +515,11 @@ def coupled_microstrip(*, w: float, s: float, h: float, er: float, t: float = 0)
     _range(flags, "s/h", g, 0.1, 10, src)
     _range(flags, "er", er, 1, 18, src)
     _range(flags, "t/h", T, 0, 0.35, "boarddd coupled thickness")
-    method = src + (" + boarddd thickness" if T > 0 else "")
+    masked = _mask_params(c, erc, h, flags)
+    if masked:
+        z_even, ee_even = _mask_mode(z_even, ee_even, er, u, c / h, g, erc, _FIT["maskCoupledEven"])
+        z_odd, ee_odd = _mask_mode(z_odd, ee_odd, er, u, c / h, g, erc, _FIT["maskCoupledOdd"])
+    method = src + (" + boarddd thickness" if T > 0 else "") + (" + boarddd mask model" if masked else "")
     return _coupled("coupled_microstrip", method, z_even, z_odd, ee_even, ee_odd, flags)
 
 
@@ -463,7 +532,7 @@ def coupled_microstrip(*, w: float, s: float, h: float, er: float, t: float = 0)
 # capacitance (C/ε0 = η0/Z_air) on top of Cohn's exact t = 0 modes:
 #   ΔCs   thickness increase of one strip alone (Cohn + Wheeler above),
 #   e     its share per edge: (ΔCs - ΔCpp)/2, ΔCpp = 4w/(b-t) - 4w/b the parallel-plate part,
-#   ψ     the part of the inner edge that couples to the other strip, (1 + 2x) exp(-2.8x), x = s/(b-t),
+#   ψ     the part of the inner edge that couples to the other strip, (1 + 2x) exp(-3.04x), x = s/(b-t),
 #   even: ΔCe = ΔCs - ψ e        (the inner sidewall faces a magnetic wall),
 #   odd:  ΔCo = ΔCs + ψ 2t/s     (the inner sidewalls form a parallel plate across the gap, electric wall at s/2).
 # ψ is boarddd's own fit to quasi-static field solutions (0.2 <= x <= 1.1, t/b <= 0.12); it gives the exact
@@ -485,7 +554,7 @@ def _sym_coupled_air(w: float, s: float, b: float, t: float) -> tuple[float, flo
     dcs = ETA0 / _sym_stripline_air(w, b, t) - ETA0 / _cohn_stripline0(w, b)
     e = (dcs - ((4 * w) / (b - t) - (4 * w) / b)) / 2
     x = s / (b - t)
-    psi = (1 + 2 * x) * exp(-2.8 * x)
+    psi = (1 + 2 * x) * exp(-_FIT["coupledStripline"]["decay"] * x)
     return ETA0 / (ETA0 / zoe0 + dcs - psi * e), ETA0 / (ETA0 / zoo0 + dcs + (psi * 2 * t) / s)
 
 

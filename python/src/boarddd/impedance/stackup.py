@@ -12,6 +12,7 @@ import dataclasses
 from dataclasses import dataclass, field
 
 from .closedform import CoupledResult, LineResult, calculate, synthesize
+from .fieldsolver import FieldResult, etched, mask
 
 STACKUP_DEFAULTS = {"copper_thickness": 0.035, "epsilon_r": 4.5, "mask_thickness": 0.01, "mask_epsilon_r": 3.3}
 """Defaults for what a stackup leaves out (KiCad's own defaults); each use adds a warning."""
@@ -38,7 +39,7 @@ def model_for(structure: str, kind: str = "single", *, coated: bool = False) -> 
 def _side(layers: list[dict], i: int, step: int, ref: str | None, warnings: list[str]) -> dict:
     """Dielectric between copper i and the reference copper in direction `step` (-1 up, +1 down)."""
     h = s = 0.0
-    ref_name = mask = None
+    ref_name = mask = mask_index = None
     j = i + step
     while 0 <= j < len(layers):
         layer = layers[j]
@@ -74,10 +75,18 @@ def _side(layers: list[dict], i: int, step: int, ref: str | None, warnings: list
                 erc = STACKUP_DEFAULTS["mask_epsilon_r"]
                 warnings.append(f"{layer['name']}: no epsilon_r, using {_num(erc)}")
             mask = {"c": c, "erc": erc}
+            mask_index = j
         j += step
     if ref is not None and ref_name is None:
         raise ValueError(f"reference plane {ref} not found {'above' if step < 0 else 'below'}")
-    return {"h": h, "er": h / s if h > 0 else None, "ref": ref_name, "mask": mask if ref_name is None else None}
+    return {
+        "h": h,
+        "er": h / s if h > 0 else None,
+        "ref": ref_name,
+        "mask": mask if ref_name is None else None,
+        "index": None if ref_name is None else j,
+        "mask_index": mask_index if ref_name is None else None,
+    }
 
 
 def _num(x: float) -> str:
@@ -87,10 +96,96 @@ def _num(x: float) -> str:
 
 @dataclass(frozen=True)
 class Line:
-    model: str
+    model: str | None
     structure: str
     params: dict
     warnings: list[str] = field(default_factory=list)
+    section: dict | None = None
+    """With solver="field": the real cross-section for solve_cross_section."""
+
+    def to_dict(self) -> dict:
+        """The JS object (`section` only with solver="field")."""
+        d = dataclasses.asdict(self)
+        if d["section"] is None:
+            del d["section"]
+        return d
+
+
+def _stackup_section(layers, i, up, down, o: dict, structure: str) -> dict:
+    """The real cross-section of signal copper i for the field solver (the JS stackupSection)."""
+    seq = (
+        list(range(down["index"], (up["index"] or 0) - 1, -1))
+        if down["index"] is not None
+        else list(range(up["index"], len(layers)))
+    )
+    refs = {x for x in (up["index"], down["index"]) if x is not None}
+    pair = o["kind"] == "differential"
+    w, s = o["width"], o.get("gap")
+    conductors: list[dict] = []
+    dielectrics: list[dict] = []
+
+    def thick(lay):
+        if lay.get("kind") == "copper":
+            v = lay.get("thickness")
+            return STACKUP_DEFAULTS["copper_thickness"] if v is None else v
+        return lay["thickness"] if lay.get("kind") == "dielectric" else 0
+
+    def er_of(lay):
+        v = (lay or {}).get("epsilon_r")
+        return STACKUP_DEFAULTS["epsilon_r"] if v is None else v
+
+    inner = up["index"] is not None and down["index"] is not None
+    mask_index = up["mask_index"] if up["mask_index"] is not None else down["mask_index"]
+    y = 0
+    slab = None
+    mask_at = None
+    for j in seq:
+        lay = layers[j]
+        if lay.get("kind") == "mask":
+            if j == mask_index:
+                mask_at = lay
+            continue
+        d = thick(lay)
+        if j in refs:
+            if not (structure == "coplanar" and not inner):
+                conductors.append({"y0": y, "y1": y + d, "net": "gnd"})
+        elif j == i:
+            slab = {"y0": y, "y1": y + d}
+            if inner:
+                nb = [x for x in (layers[i - 1] if i > 0 else None, layers[i + 1] if i + 1 < len(layers) else None)]
+                nb = [x for x in nb if x is not None and x.get("kind") == "dielectric"]
+                pre = next((x for x in nb if x.get("dielectric") == "prepreg"), nb[0] if nb else None)
+                dielectrics.append({"y0": y, "y1": y + d, "er": er_of(pre)})
+        elif lay.get("kind") == "copper":
+            k = j - (1 if j > i else -1)
+            dielectrics.append({"y0": y, "y1": y + d, "er": er_of(layers[k] if 0 <= k < len(layers) else None)})
+        elif lay.get("kind") == "dielectric":
+            dielectrics.append({"y0": y, "y1": y + d, "er": er_of(lay)})
+        y += d
+    if pair:
+        traces = [
+            {"x0": -s / 2 - w, "x1": -s / 2, **slab, "net": "p"},
+            {"x0": s / 2, "x1": s / 2 + w, **slab, "net": "n"},
+        ]
+    else:
+        traces = [{"x0": -w / 2, "x1": w / 2, **slab, "net": "sig"}]
+    conductors += [r for b in traces for r in etched(b, o.get("etch") or 0)]
+    grounds: list[dict] = []
+    if structure.startswith("coplanar"):
+        e = (s / 2 + w if pair else w / 2) + o["coplanar_gap"]
+        grounds = [{"x1": -e, **slab, "net": "gnd"}, {"x0": e, **slab, "net": "gnd"}]
+        conductors += grounds
+    if mask_at is not None and o.get("mask", True) is not False:
+        ct = mask_at.get("thickness_over_copper")
+        if ct is None:
+            ct = mask_at.get("thickness")
+        if ct is None:
+            ct = STACKUP_DEFAULTS["mask_thickness"]
+        c = mask_at.get("thickness")
+        er = mask_at.get("epsilon_r")
+        er = STACKUP_DEFAULTS["mask_epsilon_r"] if er is None else er
+        dielectrics += mask(traces + grounds, slab["y0"], c=ct if c is None else c, ct=ct, er=er)
+    return {"conductors": conductors, "dielectrics": dielectrics}
 
 
 def line_from_stackup(
@@ -105,13 +200,21 @@ def line_from_stackup(
     ref_top: str | None = None,
     ref_bottom: str | None = None,
     mask: bool = True,
+    solver: str = "closedform",
+    etch: float = 0,
 ) -> Line:
     """A signal layer ('F.Cu', 'In1.Cu') of a board model stackup as a closed-form line.
 
     `structure` defaults to microstrip on an outer layer and stripline on an inner one; `ref_top`/`ref_bottom`
     (ImpedanceLayer) default to the nearest copper; `mask` models the solder mask on an outer single-ended
-    microstrip.
+    microstrip. `solver="field"` also returns `section`, the real cross-section for the tier-2 field solver
+    (every layer's own εr, the mask on any outer structure); then differential coplanar and coplanar on inner
+    layers are allowed too (`model` None when tier 1 has none); `etch` makes the traces trapezoids whose top is
+    `etch` narrower than `width`.
     """
+    if solver not in ("closedform", "field"):
+        raise ValueError(f"unknown solver {solver}")
+    is_field = solver == "field"
     layers = [_plain(x) for x in (_plain(stackup) or {}).get("layers", [])]
     i = next(
         (k for k, x in enumerate(layers) if x.get("kind") == "copper" and layer in (x.get("layer"), x["name"])), -1
@@ -130,40 +233,78 @@ def line_from_stackup(
     structure = structure or ("microstrip" if outer else "stripline")
     ref, open_ = (down, up) if up["ref"] is None else (up, down)
     params: dict = {"w": width, "t": t}
-    if structure == "stripline":
+    if structure == "stripline" or (is_field and not outer and structure.startswith("coplanar")):
         if outer:
             raise ValueError(f"{layer} is an outer layer: no stripline")
         # Different εr above and below: weight each by its plane capacitance (εr/h), as the strip sees them in parallel.
         er = (up["er"] / up["h"] + down["er"] / down["h"]) / (1 / up["h"] + 1 / down["h"])
         params.update(h1=up["h"], h2=down["h"], er=er)
-        model = model_for(structure, kind)
+        model = model_for(structure, kind) if structure == "stripline" else None
+        if structure != "stripline":
+            if coplanar_gap is None:
+                raise ValueError(f"{structure} needs coplanar_gap")
+            params["gap"] = coplanar_gap
     else:
         if not outer:
             raise ValueError(f"{layer} is an inner layer: tier 1 has no embedded {structure}")
         params.update(h=ref["h"], er=ref["er"])
-        coated = structure == "microstrip" and kind == "single" and mask and open_["mask"] is not None
-        if mask and open_["mask"] is not None and not coated:
+        masked = bool(mask) and open_["mask"] is not None
+        coated = masked and structure == "microstrip" and kind == "single"
+        # Tier 1 models the mask on microstrip (single and coupled) and CPWG; not on CPW.
+        with_mask = masked and (structure == "microstrip" or (structure == "coplanar_grounded" and kind == "single"))
+        if masked and not with_mask and not is_field:
             warnings.append(f"{structure} {kind}: the solder mask is not modelled (tier 1)")
-        if coated:
+        if with_mask:
             params.update(open_["mask"])
         model = model_for(structure, kind, coated=coated)
         if structure.startswith("coplanar"):
             if coplanar_gap is None:
                 raise ValueError(f"{structure} needs coplanar_gap")
             params["gap"] = coplanar_gap
-    if model is None:
+    if model is None and not is_field:
         raise ValueError(f"tier 1 has no {kind} {structure} model")
     if kind == "differential":
         if gap is None:
             raise ValueError("a differential line needs gap")
         params["s"] = gap
-    return Line(model, structure, params, warnings)
+    section = None
+    if is_field:
+        o = {"kind": kind, "width": width, "gap": gap, "coplanar_gap": coplanar_gap, "mask": mask, "etch": etch}
+        section = _stackup_section(layers, i, up, down, o, structure)
+    return Line(model, structure, params, warnings, section)
+
+
+def _field_synthesis(stackup, layer: str, opts: dict, key: str, target: float, start: float):
+    """The width giving `target` with the field solver (the JS fieldSynthesis): secant steps to 1e-4."""
+    from .fieldsolver import solve_cross_section
+
+    fo = opts.get("field_options") or {}
+    lo = {k: v for k, v in opts.items() if k != "field_options"}
+
+    def run(w):
+        return solve_cross_section(line_from_stackup(stackup, layer, **{**lo, "width": w}).section, **fo)
+
+    w0 = start
+    r0 = run(w0)
+    w1 = w0 * (1.1 if getattr(r0, key) > target else 0.9)
+    r1 = run(w1)
+    it = 0
+    while it < 20 and abs(w1 - w0) > 1e-4 * w1:
+        f0, f1 = getattr(r0, key) - target, getattr(r1, key) - target
+        if f1 == f0:
+            break
+        w2 = min(2 * w1, max(w1 / 2, w1 - (f1 * (w1 - w0)) / (f1 - f0)))
+        w0, r0 = w1, r1
+        w1 = w2
+        r1 = run(w1)
+        it += 1
+    return w1, r1
 
 
 @dataclass(frozen=True)
 class TargetEvaluation:
     layer: str
-    model: str
+    model: str | None
     key: str
     value: float
     target: float
@@ -173,14 +314,16 @@ class TargetEvaluation:
     width: float
     """The layer's width, or the synthesized one when the target gives none."""
     synthesized: bool
-    result: LineResult | CoupledResult
+    result: LineResult | CoupledResult | FieldResult
     warnings: list[str]
 
 
-def evaluate_target(stackup, target, **opts) -> list[TargetEvaluation]:
+def evaluate_target(stackup, target, *, field_options: dict | None = None, **opts) -> list[TargetEvaluation]:
     """Evaluate a net class's ImpedanceTarget on a stackup: one row per target layer with its geometry.
 
-    A layer with no width gets the width synthesized for the target instead. `opts` go to line_from_stackup.
+    A layer with no width gets the width synthesized for the target instead. `opts` go to line_from_stackup;
+    `solver="field"` evaluates (and synthesizes) with the tier-2 field solver (`field_options` go to
+    solve_cross_section), and `result` is then its FieldResult.
     """
     target = _plain(target)
     key = "Zdiff" if target["kind"] == "differential" else "Z0"
@@ -199,11 +342,28 @@ def evaluate_target(stackup, target, **opts) -> list[TargetEvaluation]:
         line = line_from_stackup(stackup, il["layer"], **o)
         params = line.params
         synthesized = il.get("width") is None
-        if synthesized:
-            syn = synthesize(line.model, params, target["target"], key=key)
-            params, result = syn.params, syn.result
+        if opts.get("solver") == "field":
+            from .fieldsolver import solve_cross_section
+
+            if synthesized:
+                if line.model:
+                    start = synthesize(line.model, params, target["target"], key=key).value
+                else:
+                    start = params.get("h", params.get("h1"))
+                width, result = _field_synthesis(
+                    stackup, il["layer"], {**o, "field_options": field_options}, key, target["target"], start
+                )
+            else:
+                width = params["w"]
+                result = solve_cross_section(line.section, **(field_options or {}))
+            result = dataclasses.replace(result, model=line.model, flags=[])
         else:
-            result = calculate(line.model, params)
+            if synthesized:
+                syn = synthesize(line.model, params, target["target"], key=key)
+                params, result = syn.params, syn.result
+            else:
+                result = calculate(line.model, params)
+            width = params["w"]
         value = getattr(result, key)
         dev = 100 * (value - target["target"]) / target["target"]
         tol = target.get("tolerance_pct")
@@ -216,7 +376,7 @@ def evaluate_target(stackup, target, **opts) -> list[TargetEvaluation]:
                 target["target"],
                 dev,
                 None if tol is None else abs(dev) <= tol,
-                params["w"],
+                width,
                 synthesized,
                 result,
                 line.warnings,

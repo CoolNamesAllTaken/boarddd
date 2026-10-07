@@ -154,7 +154,7 @@ def test_against_scikit_rf():
 
 def test_accuracy_envelope_against_the_field_solver_sweep():
     errs: dict[str, list[float]] = {}
-    for model, args, ref in load("impedance/qs-sweep.json")["rows"]:
+    for model, args, ref, _ in load("impedance/field-sweep.json")["rows"]:
         r = z.calculate(model, args)
         if r.flags or args["t"] < 0.018:  # real copper, inside the validity range
             continue
@@ -163,13 +163,31 @@ def test_accuracy_envelope_against_the_field_solver_sweep():
     assert len(errs) == 6
     for model, e in errs.items():
         rms = math.sqrt(sum(x * x for x in e) / len(e))
-        assert max(map(abs, e)) < 2.5 and rms < 1, model
+        assert max(map(abs, e)) < 2 and rms < 0.6, model
+
+
+def test_mask_terms_against_the_field_solver_mask_sweep():
+    rows = load("impedance/field-mask-sweep.json")["rows"]
+    bare = {json.dumps(r[1], sort_keys=True): r for r in rows if "c" not in r[1]}
+    errs: dict[str, list[float]] = {}
+    for model, args, ref, _ in rows:
+        if "c" not in args or z.calculate(model, args).flags:
+            continue
+        b = {k: v for k, v in args.items() if k not in ("c", "erc")}
+        bref = bare[json.dumps(b, sort_keys=True)][2]
+        for k, v in ref.items():
+            ratio = getattr(z.calculate(model, args), k) / getattr(z.calculate(model, b), k)
+            errs.setdefault(f"{model} {k}", []).append(100 * (ratio / (v / bref[k]) - 1))
+    assert len(errs) == 3
+    for name, e in errs.items():
+        rms = math.sqrt(sum(x * x for x in e) / len(e))
+        assert max(map(abs, e)) < 2.5 and rms < 0.6, name
 
 
 @pytest.mark.parametrize("c", CASES["stackup_lines"], ids=lambda c: f"{c['stackup']}-{c['layer']}")
 def test_stackup_line_parity(c):
     line = z.line_from_stackup(CASES["stackups"][c["stackup"]], c["layer"], **c["py_opts"])
-    close(dataclasses.asdict(line), c["expect"], c["layer"])
+    close(line.to_dict(), c["expect"], c["layer"])
 
 
 @pytest.mark.parametrize("c", CASES["stackup_targets"], ids=lambda c: f"{c['stackup']}-{c['target']['target']}")

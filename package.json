@@ -46,6 +46,7 @@
       "types": "./src/impedance/index.d.ts",
       "default": "./src/impedance/index.js"
     },
+    "./impedance/fieldsolver-worker.js": "./src/impedance/fieldsolver-worker.js",
     "./schema/board.schema.json": "./schema/board.schema.json",
     "./package.json": "./package.json"
   },

@@ -17,13 +17,9 @@
    "tol_pct": 0.01,
    "about": "scikit-rf 2.1.0 media.MLine (hammerstadjensen, no dispersion) and media.CPW (Ghione, t = 0), 1 MHz, lossless: an independent BSD-3 implementation of the same papers"
   },
-  "qs": {
+  "field": {
    "tol_pct": 2,
-   "about": "Quasi-static 2D field solutions from hforsten's solver (Ttl/js_2d_fields, GPL-3.0), run locally as a reference only (numbers, no code); lossless, adaptive mesh"
-  },
-  "fdm": {
-   "tol_pct": 2.5,
-   "about": "The t-0272 spike finite-volume field solver (MIT, ours; coarse grid, reads about 1-2 % low on GCPW)"
+   "about": "boarddd's own quasi-static field solver (src/impedance/fieldsolver.js, MIT): the field-sweep.json value where the sweep has the geometry, else solved on the sweep's grid (levels 2/3); cpwg with the sweep's via fence"
   }
  },
  "golden": [
@@ -592,8 +588,8 @@
    "tol_pct": 1e-9
   },
   {
-   "id": "qs-40",
-   "source": "qs",
+   "id": "field-40",
+   "source": "field",
    "model": "microstrip",
    "args": {
     "w": 0.02,
@@ -602,12 +598,12 @@
     "er": 3
    },
    "key": "Z0",
-   "ref": 141.9559,
+   "ref": 142.4022,
    "tol_pct": 2
   },
   {
-   "id": "qs-41",
-   "source": "qs",
+   "id": "field-41",
+   "source": "field",
    "model": "microstrip",
    "args": {
     "w": 0.6,
@@ -616,12 +612,12 @@
     "er": 3
    },
    "key": "Z0",
-   "ref": 42.7911,
+   "ref": 42.9287,
    "tol_pct": 2
   },
   {
-   "id": "qs-42",
-   "source": "qs",
+   "id": "field-42",
+   "source": "field",
    "model": "microstrip",
    "args": {
     "w": 0.24,
@@ -630,12 +626,12 @@
     "er": 3
    },
    "key": "Z0",
-   "ref": 126.1335,
+   "ref": 126.6202,
    "tol_pct": 2
   },
   {
-   "id": "qs-43",
-   "source": "qs",
+   "id": "field-43",
+   "source": "field",
    "model": "microstrip",
    "args": {
     "w": 8,
@@ -644,12 +640,12 @@
     "er": 3
    },
    "key": "Z0",
-   "ref": 17.6375,
+   "ref": 17.6178,
    "tol_pct": 2
   },
   {
-   "id": "qs-44",
-   "source": "qs",
+   "id": "field-44",
+   "source": "field",
    "model": "microstrip",
    "args": {
     "w": 1.6,
@@ -658,12 +654,12 @@
     "er": 3
    },
    "key": "Z0",
-   "ref": 82.2398,
+   "ref": 82.4579,
    "tol_pct": 2
   },
   {
-   "id": "qs-45",
-   "source": "qs",
+   "id": "field-45",
+   "source": "field",
    "model": "stripline",
    "args": {
     "w": 0.02,
@@ -673,12 +669,12 @@
     "er": 4
    },
    "key": "Z0",
-   "ref": 72.5305,
+   "ref": 72.875,
    "tol_pct": 2
   },
   {
-   "id": "qs-46",
-   "source": "qs",
+   "id": "field-46",
+   "source": "field",
    "model": "stripline",
    "args": {
     "w": 0.6,
@@ -688,12 +684,12 @@
     "er": 4
    },
    "key": "Z0",
-   "ref": 10.9383,
+   "ref": 10.953,
    "tol_pct": 2
   },
   {
-   "id": "qs-47",
-   "source": "qs",
+   "id": "field-47",
+   "source": "field",
    "model": "stripline",
    "args": {
     "w": 0.4,
@@ -703,12 +699,12 @@
     "er": 4
    },
    "key": "Z0",
-   "ref": 30.0864,
+   "ref": 30.1952,
    "tol_pct": 2
   },
   {
-   "id": "qs-48",
-   "source": "qs",
+   "id": "field-48",
+   "source": "field",
    "model": "stripline",
    "args": {
     "w": 0.1,
@@ -718,12 +714,12 @@
     "er": 4
    },
    "key": "Z0",
-   "ref": 83.5944,
+   "ref": 83.9399,
    "tol_pct": 2
   },
   {
-   "id": "qs-49",
-   "source": "qs",
+   "id": "field-49",
+   "source": "field",
    "model": "stripline",
    "args": {
     "w": 3,
@@ -733,12 +729,12 @@
     "er": 4
    },
    "key": "Z0",
-   "ref": 13.3185,
+   "ref": 13.3427,
    "tol_pct": 2
   },
   {
-   "id": "qs-50",
-   "source": "qs",
+   "id": "field-50",
+   "source": "field",
    "model": "stripline",
    "args": {
     "w": 0.15,
@@ -748,12 +744,12 @@
     "er": 4
    },
    "key": "Z0",
-   "ref": 46.2525,
+   "ref": 46.405,
    "tol_pct": 2
   },
   {
-   "id": "qs-51",
-   "source": "qs",
+   "id": "field-51",
+   "source": "field",
    "model": "cpwg",
    "args": {
     "w": 0.15,
@@ -763,12 +759,12 @@
     "er": 4.4
    },
    "key": "Z0",
-   "ref": 47.7801,
+   "ref": 47.9583,
    "tol_pct": 2
   },
   {
-   "id": "qs-52",
-   "source": "qs",
+   "id": "field-52",
+   "source": "field",
    "model": "cpwg",
    "args": {
     "w": 0.3,
@@ -778,12 +774,12 @@
     "er": 4.4
    },
    "key": "Z0",
-   "ref": 63.3042,
+   "ref": 63.5296,
    "tol_pct": 2
   },
   {
-   "id": "qs-53",
-   "source": "qs",
+   "id": "field-53",
+   "source": "field",
    "model": "cpwg",
    "args": {
     "w": 0.6,
@@ -793,12 +789,12 @@
     "er": 4.4
    },
    "key": "Z0",
-   "ref": 68.6747,
+   "ref": 68.8823,
    "tol_pct": 2
   },
   {
-   "id": "qs-54",
-   "source": "qs",
+   "id": "field-54",
+   "source": "field",
    "model": "cpwg",
    "args": {
     "w": 0.15,
@@ -808,12 +804,12 @@
     "er": 4.4
    },
    "key": "Z0",
-   "ref": 69.1546,
+   "ref": 69.4545,
    "tol_pct": 2
   },
   {
-   "id": "qs-55",
-   "source": "qs",
+   "id": "field-55",
+   "source": "field",
    "model": "cpwg",
    "args": {
     "w": 0.6,
@@ -823,12 +819,12 @@
     "er": 4.4
    },
    "key": "Z0",
-   "ref": 53.3764,
+   "ref": 53.5101,
    "tol_pct": 2
   },
   {
-   "id": "qs-56",
-   "source": "qs",
+   "id": "field-56",
+   "source": "field",
    "model": "coupled_microstrip",
    "args": {
     "w": 0.04,
@@ -838,12 +834,12 @@
     "er": 4.4
    },
    "key": "Zodd",
-   "ref": 48.7767,
+   "ref": 49.5123,
    "tol_pct": 2
   },
   {
-   "id": "qs-57",
-   "source": "qs",
+   "id": "field-57",
+   "source": "field",
    "model": "coupled_microstrip",
    "args": {
     "w": 0.04,
@@ -853,12 +849,12 @@
     "er": 4.4
    },
    "key": "Zeven",
-   "ref": 163.3729,
+   "ref": 164.0407,
    "tol_pct": 2
   },
   {
-   "id": "qs-58",
-   "source": "qs",
+   "id": "field-58",
+   "source": "field",
    "model": "coupled_microstrip",
    "args": {
     "w": 0.1,
@@ -868,12 +864,12 @@
     "er": 4.4
    },
    "key": "Zodd",
-   "ref": 68.8111,
+   "ref": 69.4398,
    "tol_pct": 2
   },
   {
-   "id": "qs-59",
-   "source": "qs",
+   "id": "field-59",
+   "source": "field",
    "model": "coupled_microstrip",
    "args": {
     "w": 0.1,
@@ -883,12 +879,12 @@
     "er": 4.4
    },
    "key": "Zeven",
-   "ref": 101.5553,
+   "ref": 101.8952,
    "tol_pct": 2
   },
   {
-   "id": "qs-60",
-   "source": "qs",
+   "id": "field-60",
+   "source": "field",
    "model": "coupled_microstrip",
    "args": {
     "w": 0.4,
@@ -898,12 +894,12 @@
     "er": 4.4
    },
    "key": "Zodd",
-   "ref": 27.3521,
+   "ref": 27.6946,
    "tol_pct": 2
   },
   {
-   "id": "qs-61",
-   "source": "qs",
+   "id": "field-61",
+   "source": "field",
    "model": "coupled_microstrip",
    "args": {
     "w": 0.4,
@@ -913,12 +909,12 @@
     "er": 4.4
    },
    "key": "Zeven",
-   "ref": 57.6368,
+   "ref": 57.6004,
    "tol_pct": 2
   },
   {
-   "id": "qs-62",
-   "source": "qs",
+   "id": "field-62",
+   "source": "field",
    "model": "coupled_stripline",
    "args": {
     "w": 0.06,
@@ -929,12 +925,12 @@
     "er": 4
    },
    "key": "Zodd",
-   "ref": 44.4107,
+   "ref": 44.6719,
    "tol_pct": 2
   },
   {
-   "id": "qs-63",
-   "source": "qs",
+   "id": "field-63",
+   "source": "field",
    "model": "coupled_stripline",
    "args": {
     "w": 0.06,
@@ -945,12 +941,12 @@
     "er": 4
    },
    "key": "Zeven",
-   "ref": 82.191,
+   "ref": 82.4484,
    "tol_pct": 2
   },
   {
-   "id": "qs-64",
-   "source": "qs",
+   "id": "field-64",
+   "source": "field",
    "model": "coupled_stripline",
    "args": {
     "w": 0.15,
@@ -961,12 +957,12 @@
     "er": 4
    },
    "key": "Zodd",
-   "ref": 40.2428,
+   "ref": 40.4608,
    "tol_pct": 2
   },
   {
-   "id": "qs-65",
-   "source": "qs",
+   "id": "field-65",
+   "source": "field",
    "model": "coupled_stripline",
    "args": {
     "w": 0.15,
@@ -977,12 +973,12 @@
     "er": 4
    },
    "key": "Zeven",
-   "ref": 41.401,
+   "ref": 41.6064,
    "tol_pct": 2
   },
   {
-   "id": "qs-66",
-   "source": "qs",
+   "id": "field-66",
+   "source": "field",
    "model": "coupled_stripline",
    "args": {
     "w": 0.1,
@@ -993,12 +989,12 @@
     "er": 4
    },
    "key": "Zodd",
-   "ref": 55.8746,
+   "ref": 56.1538,
    "tol_pct": 2
   },
   {
-   "id": "qs-67",
-   "source": "qs",
+   "id": "field-67",
+   "source": "field",
    "model": "coupled_stripline",
    "args": {
     "w": 0.1,
@@ -1009,12 +1005,12 @@
     "er": 4
    },
    "key": "Zeven",
-   "ref": 69.998,
+   "ref": 70.2541,
    "tol_pct": 2
   },
   {
-   "id": "qs-68",
-   "source": "qs",
+   "id": "field-68",
+   "source": "field",
    "model": "coated_microstrip",
    "args": {
     "w": 0.03,
@@ -1025,12 +1021,12 @@
     "erc": 3.3
    },
    "key": "Z0",
-   "ref": 94.5722,
+   "ref": 94.8819,
    "tol_pct": 2
   },
   {
-   "id": "qs-69",
-   "source": "qs",
+   "id": "field-69",
+   "source": "field",
    "model": "coated_microstrip",
    "args": {
     "w": 0.2,
@@ -1041,12 +1037,12 @@
     "erc": 3.3
    },
    "key": "Z0",
-   "ref": 66.8044,
+   "ref": 66.9082,
    "tol_pct": 2
   },
   {
-   "id": "qs-70",
-   "source": "qs",
+   "id": "field-70",
+   "source": "field",
    "model": "coated_microstrip",
    "args": {
     "w": 0.12,
@@ -1057,12 +1053,12 @@
     "erc": 3.3
    },
    "key": "Z0",
-   "ref": 99.8505,
+   "ref": 100.2071,
    "tol_pct": 2
   },
   {
-   "id": "qs-71",
-   "source": "qs",
+   "id": "field-71",
+   "source": "field",
    "model": "coated_microstrip",
    "args": {
     "w": 0.24,
@@ -1073,12 +1069,12 @@
     "erc": 3.3
    },
    "key": "Z0",
-   "ref": 108.8425,
+   "ref": 108.9949,
    "tol_pct": 2
   },
   {
-   "id": "qs-72",
-   "source": "qs",
+   "id": "field-72",
+   "source": "field",
    "model": "coated_microstrip",
    "args": {
     "w": 0.48,
@@ -1089,12 +1085,12 @@
     "erc": 3.3
    },
    "key": "Z0",
-   "ref": 112.1329,
+   "ref": 112.6507,
    "tol_pct": 2
   },
   {
-   "id": "fdm-73",
-   "source": "fdm",
+   "id": "field-73",
+   "source": "field",
    "model": "cpw",
    "args": {
     "w": 0.2,
@@ -1104,12 +1100,12 @@
     "er": 4.4
    },
    "key": "Z0",
-   "ref": 61.86,
-   "tol_pct": 2.5
+   "ref": 62.9921,
+   "tol_pct": 2
   },
   {
-   "id": "fdm-74",
-   "source": "fdm",
+   "id": "field-74",
+   "source": "field",
    "model": "cpw",
    "args": {
     "w": 0.5,
@@ -1119,12 +1115,12 @@
     "er": 4.4
    },
    "key": "Z0",
-   "ref": 67.81,
-   "tol_pct": 2.5
+   "ref": 68.4041,
+   "tol_pct": 2
   },
   {
-   "id": "fdm-75",
-   "source": "fdm",
+   "id": "field-75",
+   "source": "field",
    "model": "cpw",
    "args": {
     "w": 1,
@@ -1134,12 +1130,12 @@
     "er": 4.4
    },
    "key": "Z0",
-   "ref": 53.1,
-   "tol_pct": 2.5
+   "ref": 53.4912,
+   "tol_pct": 2
   },
   {
-   "id": "fdm-76",
-   "source": "fdm",
+   "id": "field-76",
+   "source": "field",
    "model": "cpw",
    "args": {
     "w": 0.3,
@@ -1149,12 +1145,12 @@
     "er": 4.4
    },
    "key": "Z0",
-   "ref": 68.7,
-   "tol_pct": 2.5
+   "ref": 69.1567,
+   "tol_pct": 2
   },
   {
-   "id": "fdm-77",
-   "source": "fdm",
+   "id": "field-77",
+   "source": "field",
    "model": "coated_microstrip",
    "args": {
     "w": 0.36,
@@ -1165,23 +1161,7 @@
     "erc": 3.8
    },
    "key": "Z0",
-   "ref": 49.71,
-   "tol_pct": 2.5
-  },
-  {
-   "id": "qs-78",
-   "source": "qs",
-   "model": "coated_microstrip",
-   "args": {
-    "w": 0.36,
-    "h": 0.2104,
-    "t": 0.035,
-    "er": 4.4,
-    "c": 0.015,
-    "erc": 3.8
-   },
-   "key": "Z0",
-   "ref": 49.555,
+   "ref": 49.6917,
    "tol_pct": 2
   }
  ],
@@ -1234,8 +1214,8 @@
    "expect": {
     "model": "coated_microstrip",
     "method": "Hammerstad-Jensen 1980 + boarddd mask model",
-    "Z0": 49.68052880045748,
-    "eps_eff": 3.337064207704505,
+    "Z0": 49.70216841101752,
+    "eps_eff": 3.334159020587923,
     "flags": []
    }
   },
@@ -1252,12 +1232,12 @@
    "expect": {
     "model": "coupled_microstrip",
     "method": "Kirschning-Jansen 1984 + boarddd thickness",
-    "Zdiff": 83.22328056912914,
-    "Zcommon": 29.30107192697715,
-    "Zodd": 41.61164028456457,
-    "Zeven": 58.6021438539543,
-    "eps_eff_odd": 2.7675802580010593,
-    "eps_eff_even": 3.432646993545939,
+    "Zdiff": 83.57994781735877,
+    "Zcommon": 29.328579960031384,
+    "Zodd": 41.789973908679386,
+    "Zeven": 58.65715992006277,
+    "eps_eff_odd": 2.7787266254975846,
+    "eps_eff_even": 3.435375807674315,
     "flags": []
    }
   },
@@ -1327,8 +1307,8 @@
    "expect": {
     "model": "coated_microstrip",
     "method": "Hammerstad-Jensen 1980 + boarddd mask model",
-    "Z0": 78.05230481047312,
-    "eps_eff": 2.6235338033183497,
+    "Z0": 78.11351361738699,
+    "eps_eff": 2.6194238753182275,
     "flags": []
    }
   },
@@ -1420,8 +1400,8 @@
    "expect": {
     "model": "coated_microstrip",
     "method": "Hammerstad-Jensen 1980 + boarddd mask model",
-    "Z0": 49.44408802938107,
-    "eps_eff": 3.3978902077199984,
+    "Z0": 49.438777320071694,
+    "eps_eff": 3.39862024909011,
     "flags": []
    }
   },
@@ -1438,12 +1418,12 @@
    "expect": {
     "model": "coupled_microstrip",
     "method": "Kirschning-Jansen 1984 + boarddd thickness",
-    "Zdiff": 85.54281281094447,
-    "Zcommon": 27.924697386163174,
-    "Zodd": 42.771406405472234,
-    "Zeven": 55.84939477232635,
-    "eps_eff_odd": 3.0365849495056025,
-    "eps_eff_even": 3.6130514932672178,
+    "Zdiff": 85.59194599027778,
+    "Zcommon": 27.92984305246433,
+    "Zodd": 42.79597299513889,
+    "Zeven": 55.85968610492866,
+    "eps_eff_odd": 3.0383452601057077,
+    "eps_eff_even": 3.613650540333796,
     "flags": []
    }
   },
@@ -1529,8 +1509,8 @@
    "expect": {
     "model": "coated_microstrip",
     "method": "Hammerstad-Jensen 1980 + boarddd mask model",
-    "Z0": 193.28429078675026,
-    "eps_eff": 2.9464468049522328,
+    "Z0": 191.9696684364905,
+    "eps_eff": 2.986939948902622,
     "flags": [
      {
       "code": "w/h",
@@ -1562,12 +1542,12 @@
    "expect": {
     "model": "coupled_microstrip",
     "method": "Kirschning-Jansen 1984 + boarddd thickness",
-    "Zdiff": 25.620446603352885,
-    "Zcommon": 168.266336256238,
-    "Zodd": 12.810223301676443,
-    "Zeven": 336.532672512476,
-    "eps_eff_odd": 1.0391140653570923,
-    "eps_eff_even": 2.602481174268307,
+    "Zdiff": 25.627465372649432,
+    "Zcommon": 168.26986723073475,
+    "Zodd": 12.813732686324716,
+    "Zeven": 336.5397344614695,
+    "eps_eff_odd": 1.0391249863264331,
+    "eps_eff_even": 2.6025050332819504,
     "flags": [
      {
       "code": "w/h",
@@ -1668,8 +1648,8 @@
    "expect": {
     "model": "coated_microstrip",
     "method": "Hammerstad-Jensen 1980 + boarddd mask model",
-    "Z0": 61.912939401611354,
-    "eps_eff": 1.5950660531426832,
+    "Z0": 62.53998458201181,
+    "eps_eff": 1.563241151404042,
     "flags": [
      {
       "code": "t/h",
@@ -1694,10 +1674,10 @@
    "expect": {
     "model": "coupled_microstrip",
     "method": "Kirschning-Jansen 1984 + boarddd thickness",
-    "Zdiff": 114.82421680366278,
-    "Zcommon": 46.564576788336375,
-    "Zodd": 57.41210840183139,
-    "Zeven": 93.12915357667275,
+    "Zdiff": 116.55832354733192,
+    "Zcommon": 46.69223593237875,
+    "Zodd": 58.27916177366596,
+    "Zeven": 93.3844718647575,
     "eps_eff_odd": 1,
     "eps_eff_even": 1,
     "flags": [
@@ -1793,8 +1773,8 @@
    "expect": {
     "model": "coated_microstrip",
     "method": "Hammerstad-Jensen 1980 + boarddd mask model",
-    "Z0": 0.5866350816792546,
-    "eps_eff": 9.835358958020937,
+    "Z0": 0.586636155007203,
+    "eps_eff": 9.835322967890066,
     "flags": [
      {
       "code": "w/h",
@@ -1890,8 +1870,8 @@
    "expect": {
     "model": "coated_microstrip",
     "method": "Hammerstad-Jensen 1980 + boarddd mask model",
-    "Z0": 32.7049956806337,
-    "eps_eff": 3.893203466272581,
+    "Z0": 32.84978362253363,
+    "eps_eff": 3.8589599124845497,
     "flags": [
      {
       "code": "t/h",
@@ -1918,7 +1898,118 @@
    }
   },
   {
-   "id": "coated_microstrip-31",
+   "id": "cpwg-31",
+   "model": "cpwg",
+   "args": {
+    "w": 0.3,
+    "gap": 0.15,
+    "h": 0.2,
+    "t": 0.035,
+    "er": 4.4,
+    "c": 0.02,
+    "erc": 3.8
+   },
+   "expect": {
+    "model": "cpwg",
+    "method": "Ghione-Naldi 1987 + boarddd thickness + boarddd mask model",
+    "Z0": 46.35378121473471,
+    "eps_eff": 3.1021147542019047,
+    "flags": []
+   }
+  },
+  {
+   "id": "cpwg-32",
+   "model": "cpwg",
+   "args": {
+    "w": 0.3,
+    "gap": 0.15,
+    "h": 0.2,
+    "t": 0.035,
+    "er": 4.4,
+    "c": 0.08,
+    "erc": 6
+   },
+   "expect": {
+    "model": "cpwg",
+    "method": "Ghione-Naldi 1987 + boarddd thickness + boarddd mask model",
+    "Z0": 40.20170269561001,
+    "eps_eff": 4.124196007792978,
+    "flags": [
+     {
+      "code": "c/h",
+      "value": 0.39999999999999997,
+      "min": 0,
+      "max": 0.25,
+      "message": "c/h = 0.4 is outside 0..0.25 (boarddd mask model)"
+     },
+     {
+      "code": "erc",
+      "value": 6,
+      "min": 2.5,
+      "max": 5,
+      "message": "erc = 6 is outside 2.5..5 (boarddd mask model)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "coupled_microstrip-33",
+   "model": "coupled_microstrip",
+   "args": {
+    "w": 0.2,
+    "s": 0.15,
+    "h": 0.2,
+    "t": 0.035,
+    "er": 4.4,
+    "c": 0.02,
+    "erc": 3.8
+   },
+   "expect": {
+    "model": "coupled_microstrip",
+    "method": "Kirschning-Jansen 1984 + boarddd thickness + boarddd mask model",
+    "Zdiff": 95.06104298762513,
+    "Zcommon": 38.477306663844196,
+    "Zodd": 47.530521493812564,
+    "Zeven": 76.95461332768839,
+    "eps_eff_odd": 2.988408509909969,
+    "eps_eff_even": 3.4698976498956746,
+    "flags": []
+   }
+  },
+  {
+   "id": "coupled_microstrip-34",
+   "model": "coupled_microstrip",
+   "args": {
+    "w": 0.1,
+    "s": 0.03,
+    "h": 0.2,
+    "t": 0.035,
+    "er": 4.4,
+    "c": 0.06,
+    "erc": 3.3
+   },
+   "expect": {
+    "model": "coupled_microstrip",
+    "method": "Kirschning-Jansen 1984 + boarddd thickness + boarddd mask model",
+    "Zdiff": 57.223603943120814,
+    "Zcommon": 58.89397370914387,
+    "Zodd": 28.611801971560407,
+    "Zeven": 117.78794741828774,
+    "eps_eff_odd": 3.411633040831366,
+    "eps_eff_even": 3.307358962329414,
+    "flags": [
+     {
+      "code": "c/h",
+      "value": 0.3,
+      "min": 0,
+      "max": 0.25,
+      "message": "c/h = 0.3 is outside 0..0.25 (boarddd mask model)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "coated_microstrip-35",
    "model": "coated_microstrip",
    "args": {
     "w": 0.3,
@@ -1937,7 +2028,7 @@
    }
   },
   {
-   "id": "stripline-32",
+   "id": "stripline-36",
    "model": "stripline",
    "args": {
     "w": 0.15,
@@ -1955,7 +2046,7 @@
    }
   },
   {
-   "id": "ipc2141_stripline-33",
+   "id": "ipc2141_stripline-37",
    "model": "ipc2141_stripline",
    "args": {
     "w": 0.15,
@@ -1981,7 +2072,7 @@
    }
   },
   {
-   "id": "coupled_stripline-34",
+   "id": "coupled_stripline-38",
    "model": "coupled_stripline",
    "args": {
     "w": 0.15,
@@ -1994,17 +2085,17 @@
    "expect": {
     "model": "coupled_stripline",
     "method": "Cohn 1955 + boarddd thickness",
-    "Zdiff": 73.99458877217883,
-    "Zcommon": 30.49029751015107,
-    "Zodd": 36.997294386089415,
-    "Zeven": 60.98059502030214,
+    "Zdiff": 74.44409144683787,
+    "Zcommon": 30.386692918332354,
+    "Zodd": 37.22204572341894,
+    "Zeven": 60.77338583666471,
     "eps_eff_odd": 4.1,
     "eps_eff_even": 4.1,
     "flags": []
    }
   },
   {
-   "id": "coupled_stripline-35",
+   "id": "coupled_stripline-39",
    "model": "coupled_stripline",
    "args": {
     "w": 0.15,
@@ -2017,10 +2108,10 @@
    "expect": {
     "model": "coupled_stripline",
     "method": "Cohn 1955 + boarddd thickness",
-    "Zdiff": 39.118232149769376,
-    "Zcommon": 34.211799945801474,
-    "Zodd": 19.559116074884688,
-    "Zeven": 68.42359989160295,
+    "Zdiff": 39.28310684294928,
+    "Zcommon": 34.17741677489248,
+    "Zodd": 19.64155342147464,
+    "Zeven": 68.35483354978496,
     "eps_eff_odd": 4.1,
     "eps_eff_even": 4.1,
     "flags": [
@@ -2035,7 +2126,7 @@
    }
   },
   {
-   "id": "ipc2141_coupled_stripline-36",
+   "id": "ipc2141_coupled_stripline-40",
    "model": "ipc2141_coupled_stripline",
    "args": {
     "w": 0.15,
@@ -2062,7 +2153,7 @@
    }
   },
   {
-   "id": "stripline-37",
+   "id": "stripline-41",
    "model": "stripline",
    "args": {
     "w": 0.15,
@@ -2079,7 +2170,7 @@
    }
   },
   {
-   "id": "ipc2141_stripline-38",
+   "id": "ipc2141_stripline-42",
    "model": "ipc2141_stripline",
    "args": {
     "w": 0.15,
@@ -2104,7 +2195,7 @@
    }
   },
   {
-   "id": "coupled_stripline-39",
+   "id": "coupled_stripline-43",
    "model": "coupled_stripline",
    "args": {
     "w": 0.15,
@@ -2126,7 +2217,7 @@
    }
   },
   {
-   "id": "coupled_stripline-40",
+   "id": "coupled_stripline-44",
    "model": "coupled_stripline",
    "args": {
     "w": 0.15,
@@ -2156,7 +2247,7 @@
    }
   },
   {
-   "id": "ipc2141_coupled_stripline-41",
+   "id": "ipc2141_coupled_stripline-45",
    "model": "ipc2141_coupled_stripline",
    "args": {
     "w": 0.15,
@@ -2182,7 +2273,7 @@
    }
   },
   {
-   "id": "stripline-42",
+   "id": "stripline-46",
    "model": "stripline",
    "args": {
     "w": 0.1,
@@ -2194,13 +2285,13 @@
    "expect": {
     "model": "stripline",
     "method": "Cohn 1954 + Wheeler 1978 thickness + boarddd offset",
-    "Z0": 55.47067364968267,
+    "Z0": 55.48561131271139,
     "eps_eff": 3.8,
     "flags": []
    }
   },
   {
-   "id": "ipc2141_stripline-43",
+   "id": "ipc2141_stripline-47",
    "model": "ipc2141_stripline",
    "args": {
     "w": 0.1,
@@ -2218,7 +2309,7 @@
    }
   },
   {
-   "id": "coupled_stripline-44",
+   "id": "coupled_stripline-48",
    "model": "coupled_stripline",
    "args": {
     "w": 0.1,
@@ -2231,17 +2322,17 @@
    "expect": {
     "model": "coupled_stripline",
     "method": "Cohn 1955 + boarddd thickness + boarddd offset",
-    "Zdiff": 87.83000771017795,
-    "Zcommon": 32.41367820298083,
-    "Zodd": 43.915003855088976,
-    "Zeven": 64.82735640596167,
+    "Zdiff": 88.1831068069741,
+    "Zcommon": 32.32596497622817,
+    "Zodd": 44.09155340348705,
+    "Zeven": 64.65192995245634,
     "eps_eff_odd": 3.8,
     "eps_eff_even": 3.8,
     "flags": []
    }
   },
   {
-   "id": "coupled_stripline-45",
+   "id": "coupled_stripline-49",
    "model": "coupled_stripline",
    "args": {
     "w": 0.1,
@@ -2254,10 +2345,10 @@
    "expect": {
     "model": "coupled_stripline",
     "method": "Cohn 1955 + boarddd thickness + boarddd offset",
-    "Zdiff": 51.80232005852659,
-    "Zcommon": 37.27394199777984,
-    "Zodd": 25.901160029263295,
-    "Zeven": 74.54788399555969,
+    "Zdiff": 52.00551756547483,
+    "Zcommon": 37.238916450690155,
+    "Zodd": 26.002758782737416,
+    "Zeven": 74.47783290138031,
     "eps_eff_odd": 3.8,
     "eps_eff_even": 3.8,
     "flags": [
@@ -2272,7 +2363,7 @@
    }
   },
   {
-   "id": "ipc2141_coupled_stripline-46",
+   "id": "ipc2141_coupled_stripline-50",
    "model": "ipc2141_coupled_stripline",
    "args": {
     "w": 0.1,
@@ -2291,7 +2382,7 @@
    }
   },
   {
-   "id": "stripline-47",
+   "id": "stripline-51",
    "model": "stripline",
    "args": {
     "w": 0.3,
@@ -2303,7 +2394,7 @@
    "expect": {
     "model": "stripline",
     "method": "Cohn 1954 + Wheeler 1978 thickness + boarddd offset",
-    "Z0": 20.063546137810736,
+    "Z0": 20.09784175347295,
     "eps_eff": 4,
     "flags": [
      {
@@ -2324,7 +2415,7 @@
    }
   },
   {
-   "id": "ipc2141_stripline-48",
+   "id": "ipc2141_stripline-52",
    "model": "ipc2141_stripline",
    "args": {
     "w": 0.3,
@@ -2350,7 +2441,7 @@
    }
   },
   {
-   "id": "coupled_stripline-49",
+   "id": "coupled_stripline-53",
    "model": "coupled_stripline",
    "args": {
     "w": 0.3,
@@ -2363,10 +2454,10 @@
    "expect": {
     "model": "coupled_stripline",
     "method": "Cohn 1955 + boarddd thickness + boarddd offset",
-    "Zdiff": 35.72088596376937,
-    "Zcommon": 10.599222501469166,
-    "Zodd": 17.860442981884685,
-    "Zeven": 21.198445002938332,
+    "Zdiff": 35.86020921941683,
+    "Zcommon": 10.600194869951263,
+    "Zodd": 17.930104609708415,
+    "Zeven": 21.200389739902526,
     "eps_eff_odd": 4,
     "eps_eff_even": 4,
     "flags": [
@@ -2388,7 +2479,7 @@
    }
   },
   {
-   "id": "coupled_stripline-50",
+   "id": "coupled_stripline-54",
    "model": "coupled_stripline",
    "args": {
     "w": 0.3,
@@ -2401,10 +2492,10 @@
    "expect": {
     "model": "coupled_stripline",
     "method": "Cohn 1955 + boarddd thickness + boarddd offset",
-    "Zdiff": 25.42039303990626,
-    "Zcommon": 11.290947356798936,
-    "Zodd": 12.71019651995313,
-    "Zeven": 22.581894713597872,
+    "Zdiff": 25.59645001165957,
+    "Zcommon": 11.29335611178516,
+    "Zodd": 12.798225005829785,
+    "Zeven": 22.58671222357032,
     "eps_eff_odd": 4,
     "eps_eff_even": 4,
     "flags": [
@@ -2433,7 +2524,7 @@
    }
   },
   {
-   "id": "ipc2141_coupled_stripline-51",
+   "id": "ipc2141_coupled_stripline-55",
    "model": "ipc2141_coupled_stripline",
    "args": {
     "w": 0.3,
@@ -2460,7 +2551,7 @@
    }
   },
   {
-   "id": "stripline-52",
+   "id": "stripline-56",
    "model": "stripline",
    "args": {
     "w": 1,
@@ -2472,13 +2563,13 @@
    "expect": {
     "model": "stripline",
     "method": "Cohn 1954 + Wheeler 1978 thickness + boarddd offset",
-    "Z0": 19.003609565699968,
+    "Z0": 19.01133625635136,
     "eps_eff": 4.2,
     "flags": []
    }
   },
   {
-   "id": "ipc2141_stripline-53",
+   "id": "ipc2141_stripline-57",
    "model": "ipc2141_stripline",
    "args": {
     "w": 1,
@@ -2504,7 +2595,7 @@
    }
   },
   {
-   "id": "coupled_stripline-54",
+   "id": "coupled_stripline-58",
    "model": "coupled_stripline",
    "args": {
     "w": 1,
@@ -2517,17 +2608,17 @@
    "expect": {
     "model": "coupled_stripline",
     "method": "Cohn 1955 + boarddd thickness + boarddd offset",
-    "Zdiff": 32.21856900019607,
-    "Zcommon": 10.281479770946179,
-    "Zodd": 16.109284500098035,
-    "Zeven": 20.562959541892358,
+    "Zdiff": 32.3007340707305,
+    "Zcommon": 10.27784262803259,
+    "Zodd": 16.15036703536525,
+    "Zeven": 20.55568525606518,
     "eps_eff_odd": 4.2,
     "eps_eff_even": 4.2,
     "flags": []
    }
   },
   {
-   "id": "coupled_stripline-55",
+   "id": "coupled_stripline-59",
    "model": "coupled_stripline",
    "args": {
     "w": 1,
@@ -2540,10 +2631,10 @@
    "expect": {
     "model": "coupled_stripline",
     "method": "Cohn 1955 + boarddd thickness + boarddd offset",
-    "Zdiff": 22.92788989397507,
-    "Zcommon": 10.592099378031334,
-    "Zodd": 11.463944946987535,
-    "Zeven": 21.184198756062667,
+    "Zdiff": 22.980696564549778,
+    "Zcommon": 10.59430540653822,
+    "Zodd": 11.490348282274889,
+    "Zeven": 21.18861081307644,
     "eps_eff_odd": 4.2,
     "eps_eff_even": 4.2,
     "flags": [
@@ -2558,7 +2649,7 @@
    }
   },
   {
-   "id": "ipc2141_coupled_stripline-56",
+   "id": "ipc2141_coupled_stripline-60",
    "model": "ipc2141_coupled_stripline",
    "args": {
     "w": 1,
@@ -2585,7 +2676,7 @@
    }
   },
   {
-   "id": "stripline-57",
+   "id": "stripline-61",
    "model": "stripline",
    "args": {
     "w": 0.02,
@@ -2625,7 +2716,7 @@
    }
   },
   {
-   "id": "ipc2141_stripline-58",
+   "id": "ipc2141_stripline-62",
    "model": "ipc2141_stripline",
    "args": {
     "w": 0.02,
@@ -2643,7 +2734,7 @@
    }
   },
   {
-   "id": "coupled_stripline-59",
+   "id": "coupled_stripline-63",
    "model": "coupled_stripline",
    "args": {
     "w": 0.02,
@@ -2656,10 +2747,10 @@
    "expect": {
     "model": "coupled_stripline",
     "method": "Cohn 1955 + boarddd thickness + boarddd offset",
-    "Zdiff": 99.67684309680747,
-    "Zcommon": 50.53475040678501,
-    "Zodd": 49.83842154840374,
-    "Zeven": 101.06950081357002,
+    "Zdiff": 100.99876795293808,
+    "Zcommon": 49.94409992254019,
+    "Zodd": 50.49938397646904,
+    "Zeven": 99.88819984508038,
     "eps_eff_odd": 3,
     "eps_eff_even": 3,
     "flags": [
@@ -2681,7 +2772,7 @@
    }
   },
   {
-   "id": "coupled_stripline-60",
+   "id": "coupled_stripline-64",
    "model": "coupled_stripline",
    "args": {
     "w": 0.02,
@@ -2694,10 +2785,10 @@
    "expect": {
     "model": "coupled_stripline",
     "method": "Cohn 1955 + boarddd thickness + boarddd offset",
-    "Zdiff": 37.874862420352855,
-    "Zcommon": 62.18109966852857,
-    "Zodd": 18.937431210176427,
-    "Zeven": 124.36219933705713,
+    "Zdiff": 38.19709174131596,
+    "Zcommon": 61.85602431919661,
+    "Zodd": 19.09854587065798,
+    "Zeven": 123.71204863839321,
     "eps_eff_odd": 3,
     "eps_eff_even": 3,
     "flags": [
@@ -2726,7 +2817,7 @@
    }
   },
   {
-   "id": "ipc2141_coupled_stripline-61",
+   "id": "ipc2141_coupled_stripline-65",
    "model": "ipc2141_coupled_stripline",
    "args": {
     "w": 0.02,
@@ -2745,7 +2836,7 @@
    }
   },
   {
-   "id": "cpw-62",
+   "id": "cpw-66",
    "model": "cpw",
    "args": {
     "w": 0.3,
@@ -2757,13 +2848,13 @@
    "expect": {
     "model": "cpw",
     "method": "Ghione-Naldi 1984 + boarddd thickness",
-    "Z0": 67.94441191944401,
-    "eps_eff": 2.292811310288573,
+    "Z0": 67.99086589538813,
+    "eps_eff": 2.2940425126658908,
     "flags": []
    }
   },
   {
-   "id": "cpwg-63",
+   "id": "cpwg-67",
    "model": "cpwg",
    "args": {
     "w": 0.3,
@@ -2775,13 +2866,13 @@
    "expect": {
     "model": "cpwg",
     "method": "Ghione-Naldi 1987 + boarddd thickness",
-    "Z0": 55.32918649983054,
-    "eps_eff": 2.709912740258893,
+    "Z0": 55.142854196998684,
+    "eps_eff": 2.70151020183341,
     "flags": []
    }
   },
   {
-   "id": "cpw-64",
+   "id": "cpw-68",
    "model": "cpw",
    "args": {
     "w": 0.3,
@@ -2799,7 +2890,7 @@
    }
   },
   {
-   "id": "cpwg-65",
+   "id": "cpwg-69",
    "model": "cpwg",
    "args": {
     "w": 0.3,
@@ -2817,7 +2908,7 @@
    }
   },
   {
-   "id": "cpw-66",
+   "id": "cpw-70",
    "model": "cpw",
    "args": {
     "w": 0.15,
@@ -2829,13 +2920,13 @@
    "expect": {
     "model": "cpw",
     "method": "Ghione-Naldi 1984 + boarddd thickness",
-    "Z0": 133.38588610199656,
-    "eps_eff": 1.6194806097550083,
+    "Z0": 133.62581214551682,
+    "eps_eff": 1.6208589253834342,
     "flags": []
    }
   },
   {
-   "id": "cpwg-67",
+   "id": "cpwg-71",
    "model": "cpwg",
    "args": {
     "w": 0.15,
@@ -2847,8 +2938,8 @@
    "expect": {
     "model": "cpwg",
     "method": "Ghione-Naldi 1987 + boarddd thickness",
-    "Z0": 55.425075034860846,
-    "eps_eff": 3.095585851142569,
+    "Z0": 52.51077985838903,
+    "eps_eff": 2.9323388576208793,
     "flags": [
      {
       "code": "h/gap",
@@ -2861,7 +2952,7 @@
    }
   },
   {
-   "id": "cpw-68",
+   "id": "cpw-72",
    "model": "cpw",
    "args": {
     "w": 1,
@@ -2873,8 +2964,8 @@
    "expect": {
     "model": "cpw",
     "method": "Ghione-Naldi 1984 + boarddd thickness",
-    "Z0": 34.87366225396851,
-    "eps_eff": 2.32928251547081,
+    "Z0": 34.88038270880835,
+    "eps_eff": 2.3296409803890556,
     "flags": [
      {
       "code": "t/gap",
@@ -2887,7 +2978,7 @@
    }
   },
   {
-   "id": "cpwg-69",
+   "id": "cpwg-73",
    "model": "cpwg",
    "args": {
     "w": 1,
@@ -2899,8 +2990,8 @@
    "expect": {
     "model": "cpwg",
     "method": "Ghione-Naldi 1987 + boarddd thickness",
-    "Z0": 33.93507044452849,
-    "eps_eff": 2.3856564263380293,
+    "Z0": 33.939296250108775,
+    "eps_eff": 2.3858996069413627,
     "flags": [
      {
       "code": "t/gap",
@@ -2913,7 +3004,7 @@
    }
   },
   {
-   "id": "cpw-70",
+   "id": "cpw-74",
    "model": "cpw",
    "args": {
     "w": 0.5,
@@ -2925,13 +3016,13 @@
    "expect": {
     "model": "cpw",
     "method": "Ghione-Naldi 1984 + boarddd thickness",
-    "Z0": 113.85876225778841,
+    "Z0": 113.92539809647081,
     "eps_eff": 1,
     "flags": []
    }
   },
   {
-   "id": "cpwg-71",
+   "id": "cpwg-75",
    "model": "cpwg",
    "args": {
     "w": 0.5,
@@ -2943,7 +3034,7 @@
    "expect": {
     "model": "cpwg",
     "method": "Ghione-Naldi 1987 + boarddd thickness",
-    "Z0": 112.00999035392661,
+    "Z0": 111.99717416724744,
     "eps_eff": 1,
     "flags": []
    }
@@ -2982,12 +3073,12 @@
    "target": 50,
    "opts": {},
    "expect": {
-    "value": 0.35568361051963204,
+    "value": 0.3559750631429313,
     "result": {
      "model": "coated_microstrip",
      "method": "Hammerstad-Jensen 1980 + boarddd mask model",
-     "Z0": 50.00000000761454,
-     "eps_eff": 3.3340890650635773,
+     "Z0": 50.000000007620955,
+     "eps_eff": 3.331395648350346,
      "flags": []
     }
    }
@@ -3003,11 +3094,11 @@
    "target": 50,
    "opts": {},
    "expect": {
-    "value": 0.20628777621936126,
+    "value": 0.20631133465593782,
     "result": {
      "model": "stripline",
      "method": "Cohn 1954 + Wheeler 1978 thickness + boarddd offset",
-     "Z0": 49.99999999396598,
+     "Z0": 49.9999999991053,
      "eps_eff": 4.1,
      "flags": []
     }
@@ -3024,12 +3115,12 @@
    "target": 50,
    "opts": {},
    "expect": {
-    "value": 0.3816972385819091,
+    "value": 0.3789889648179448,
     "result": {
      "model": "cpwg",
      "method": "Ghione-Naldi 1987 + boarddd thickness",
-     "Z0": 50.0000000037608,
-     "eps_eff": 2.7808211153355575,
+     "Z0": 49.99999999950032,
+     "eps_eff": 2.770407561032607,
      "flags": []
     }
    }
@@ -3045,16 +3136,16 @@
    "target": 90,
    "opts": {},
    "expect": {
-    "value": 0.2786699722905833,
+    "value": 0.2818048108399341,
     "result": {
      "model": "coupled_microstrip",
      "method": "Kirschning-Jansen 1984 + boarddd thickness",
-     "Zdiff": 90.00000000311631,
-     "Zcommon": 34.52028415678384,
-     "Zodd": 45.000000001558156,
-     "Zeven": 69.04056831356768,
-     "eps_eff_odd": 2.652621275999152,
-     "eps_eff_even": 3.3480142800532406,
+     "Zdiff": 89.99999998714544,
+     "Zcommon": 34.34129024638961,
+     "Zodd": 44.99999999357272,
+     "Zeven": 68.68258049277922,
+     "eps_eff_odd": 2.6672024561959224,
+     "eps_eff_even": 3.3546136824380803,
      "flags": []
     }
    }
@@ -3072,16 +3163,16 @@
     "vary": "s"
    },
    "expect": {
-    "value": 0.06892344655550431,
+    "value": 0.06788234585727021,
     "result": {
      "model": "coupled_microstrip",
      "method": "Kirschning-Jansen 1984 + boarddd thickness",
-     "Zdiff": 90.00000000695896,
-     "Zcommon": 50.453790236839204,
-     "Zodd": 45.00000000347948,
-     "Zeven": 100.90758047367841,
-     "eps_eff_odd": 2.353783340459727,
-     "eps_eff_even": 3.1419495315425485,
+     "Zdiff": 90.00000000358752,
+     "Zcommon": 50.556646013272264,
+     "Zodd": 45.00000000179376,
+     "Zeven": 101.11329202654453,
+     "eps_eff_odd": 2.360037179072733,
+     "eps_eff_even": 3.143665508947482,
      "flags": []
     }
    }
@@ -3097,14 +3188,14 @@
    "target": 100,
    "opts": {},
    "expect": {
-    "value": 0.11256832854048567,
+    "value": 0.11367319247648558,
     "result": {
      "model": "coupled_stripline",
      "method": "Cohn 1955 + boarddd thickness",
-     "Zdiff": 99.99999999540914,
-     "Zcommon": 34.36016823746086,
-     "Zodd": 49.99999999770457,
-     "Zeven": 68.72033647492172,
+     "Zdiff": 100.00000001004919,
+     "Zcommon": 34.11880727301671,
+     "Zodd": 50.000000005024596,
+     "Zeven": 68.23761454603341,
      "eps_eff_odd": 4.1,
      "eps_eff_even": 4.1,
      "flags": []
@@ -3126,14 +3217,14 @@
     "vary": "s"
    },
    "expect": {
-    "value": 0.37117027696972676,
+    "value": 0.3619475681671768,
     "result": {
      "model": "coupled_stripline",
      "method": "Cohn 1955 + boarddd thickness",
-     "Zdiff": 112.89845143708806,
-     "Zcommon": 29.99999999936483,
-     "Zodd": 56.44922571854403,
-     "Zeven": 59.99999999872966,
+     "Zdiff": 112.80509007717873,
+     "Zcommon": 30.000000000637474,
+     "Zodd": 56.402545038589366,
+     "Zeven": 60.00000000127495,
      "eps_eff_odd": 4.1,
      "eps_eff_even": 4.1,
      "flags": []
@@ -3802,11 +3893,12 @@
      "t": 0.035,
      "h": 0.1,
      "er": 4.5,
+     "c": 0.01,
+     "erc": 3.3,
      "s": 0.15
     },
     "warnings": [
-     "B.Mask: no epsilon_r, using 3.3",
-     "microstrip differential: the solder mask is not modelled (tier 1)"
+     "B.Mask: no epsilon_r, using 3.3"
     ]
    }
   },
@@ -3831,11 +3923,12 @@
      "t": 0.035,
      "h": 0.1,
      "er": 4.5,
+     "c": 0.01,
+     "erc": 3.3,
      "gap": 0.15
     },
     "warnings": [
-     "F.Mask: no epsilon_r, using 3.3",
-     "coplanar_grounded single: the solder mask is not modelled (tier 1)"
+     "F.Mask: no epsilon_r, using 3.3"
     ]
    }
   },
@@ -4050,21 +4143,21 @@
      "layer": "F.Cu",
      "model": "coupled_microstrip",
      "key": "Zdiff",
-     "value": 91.26061296595172,
+     "value": 88.54534986793293,
      "target": 90,
-     "deviation_pct": 1.4006810732796913,
+     "deviation_pct": -1.6162779245189698,
      "ok": true,
      "width": 0.15,
      "synthesized": false,
      "result": {
       "model": "coupled_microstrip",
-      "method": "Kirschning-Jansen 1984 + boarddd thickness",
-      "Zdiff": 91.26061296595172,
-      "Zcommon": 28.812574909084578,
-      "Zodd": 45.63030648297586,
-      "Zeven": 57.625149818169156,
-      "eps_eff_odd": 2.7716567391824447,
-      "eps_eff_even": 3.3434282099087875,
+      "method": "Kirschning-Jansen 1984 + boarddd thickness + boarddd mask model",
+      "Zdiff": 88.54534986793293,
+      "Zcommon": 28.15628076731844,
+      "Zodd": 44.272674933966464,
+      "Zeven": 56.31256153463688,
+      "eps_eff_odd": 3.0114891630556544,
+      "eps_eff_even": 3.5212666029025677,
       "flags": [
        {
         "code": "t/h",
@@ -4076,29 +4169,28 @@
       ]
      },
      "warnings": [
-      "F.Mask: no epsilon_r, using 3.3",
-      "microstrip differential: the solder mask is not modelled (tier 1)"
+      "F.Mask: no epsilon_r, using 3.3"
      ]
     },
     {
      "layer": "B.Cu",
      "model": "coupled_microstrip",
      "key": "Zdiff",
-     "value": 90.00000001310872,
+     "value": 89.99999999861696,
      "target": 90,
-     "deviation_pct": 1.4565241852121996e-8,
+     "deviation_pct": -1.5367144593862274e-9,
      "ok": true,
-     "width": 0.1545114192643856,
+     "width": 0.14459663559184502,
      "synthesized": true,
      "result": {
       "model": "coupled_microstrip",
-      "method": "Kirschning-Jansen 1984 + boarddd thickness",
-      "Zdiff": 90.00000001310872,
-      "Zcommon": 28.361189460463205,
-      "Zodd": 45.00000000655436,
-      "Zeven": 56.72237892092641,
-      "eps_eff_odd": 2.7820555377138487,
-      "eps_eff_even": 3.3549889981603593,
+      "method": "Kirschning-Jansen 1984 + boarddd thickness + boarddd mask model",
+      "Zdiff": 89.99999999861696,
+      "Zcommon": 28.688198024324144,
+      "Zodd": 44.99999999930848,
+      "Zeven": 57.37639604864829,
+      "eps_eff_odd": 3.0028498057236637,
+      "eps_eff_even": 3.5107066964917077,
       "flags": [
        {
         "code": "t/h",
@@ -4110,8 +4202,7 @@
       ]
      },
      "warnings": [
-      "B.Mask: no epsilon_r, using 3.3",
-      "microstrip differential: the solder mask is not modelled (tier 1)"
+      "B.Mask: no epsilon_r, using 3.3"
      ]
     }
    ]
@@ -4147,16 +4238,16 @@
      "layer": "In2.Cu",
      "model": "stripline",
      "key": "Z0",
-     "value": 70.6172612319393,
+     "value": 70.61804146809226,
      "target": 50,
-     "deviation_pct": 41.23452246387859,
+     "deviation_pct": 41.23608293618452,
      "ok": null,
      "width": 0.1,
      "synthesized": false,
      "result": {
       "model": "stripline",
       "method": "Cohn 1954 + Wheeler 1978 thickness + boarddd offset",
-      "Z0": 70.6172612319393,
+      "Z0": 70.61804146809226,
       "eps_eff": 4.5,
       "flags": []
      },
@@ -4166,16 +4257,16 @@
      "layer": "In1.Cu",
      "model": "stripline",
      "key": "Z0",
-     "value": 50.000000004225335,
+     "value": 49.999999996214775,
      "target": 50,
-     "deviation_pct": 8.450669497506169e-9,
+     "deviation_pct": -7.570449156446557e-9,
      "ok": null,
-     "width": 0.09057500587161178,
+     "width": 0.09066408489812837,
      "synthesized": true,
      "result": {
       "model": "stripline",
       "method": "Cohn 1954 + Wheeler 1978 thickness + boarddd offset",
-      "Z0": 50.000000004225335,
+      "Z0": 49.999999996214775,
       "eps_eff": 4.5,
       "flags": []
      },
@@ -4207,16 +4298,16 @@
      "layer": "In2.Cu",
      "model": "stripline",
      "key": "Z0",
-     "value": 51.617975097358716,
+     "value": 51.62518468924131,
      "target": 50,
-     "deviation_pct": 3.2359501947174323,
+     "deviation_pct": 3.250369378482617,
      "ok": true,
      "width": 0.12,
      "synthesized": false,
      "result": {
       "model": "stripline",
       "method": "Cohn 1954 + Wheeler 1978 thickness + boarddd offset",
-      "Z0": 51.617975097358716,
+      "Z0": 51.62518468924131,
       "eps_eff": 4.566666666666666,
       "flags": []
      },
