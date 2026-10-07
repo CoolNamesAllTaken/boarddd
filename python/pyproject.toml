@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "boarddd"
-version = "0.2.1"
+version = "0.3.0"
 description = "PCB board and part ingestion (server side) for boarddd: the normalised board model and format readers."
 readme = "README.md"
 license = "MIT"
