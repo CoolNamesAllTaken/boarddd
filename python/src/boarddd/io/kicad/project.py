@@ -46,7 +46,9 @@ def read_kicad_pro(source: str | Path | dict) -> KicadProject:
     if isinstance(source, dict):
         data = source
     else:
-        text = source if isinstance(source, str) and source.lstrip().startswith("{") else Path(source).read_text("utf-8")
+        text = (
+            source if isinstance(source, str) and source.lstrip().startswith("{") else Path(source).read_text("utf-8")
+        )
         data = json.loads(text)
     ns = data.get("net_settings") or {}
     patterns = [

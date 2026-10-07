@@ -61,7 +61,13 @@ def test_stackup_grammar(board):
     assert (st.thickness, st.copper_layers, st.finish, st.impedance_controlled) == (1.56252, 4, "ENIG", True)
     by = {la.name: la for la in st.layers}
     mask = by["F.Mask"]
-    assert (mask.kind, mask.thickness, mask.material, mask.epsilon_r, mask.color) == ("mask", 0.01, "Epoxy", 3.8, "Blue")
+    assert (mask.kind, mask.thickness, mask.material, mask.epsilon_r, mask.color) == (
+        "mask",
+        0.01,
+        "Epoxy",
+        3.8,
+        "Blue",
+    )
     d1 = by["dielectric 1"]
     assert (d1.dielectric, d1.locked, d1.frequency, d1.dielectric_model) == ("prepreg", True, 1e9, "djordjevic_sarkar")
     assert len(d1.sublayers) == 2 and d1.thickness == 0.13626 and d1.epsilon_r == 4.3 and d1.material == "R-1551(W)"
@@ -81,7 +87,15 @@ def test_kicad10_board(board):
     assert [(n.name, n.pair) for n in board.nets] == [("GND", None), ("/USB/D+", None)]
     assert board.source.generator == "pcbnew 10.0" and board.origin.aux == (100.0, -120.0)
     (c,) = board.components
-    assert (c.ref, c.side, c.x, c.y, c.rotation, c.populate, c.mount) == ("R1", "bottom", 110.0, -105.0, 90.0, False, "smd")
+    assert (c.ref, c.side, c.x, c.y, c.rotation, c.populate, c.mount) == (
+        "R1",
+        "bottom",
+        110.0,
+        -105.0,
+        90.0,
+        False,
+        "smd",
+    )
     fp = board.footprints["Lib:R"]
     # flipped back to the library form: y mirrored, B -> F, pad angles relative to the footprint
     assert [p.at for p in fp.pads] == [(-0.5, 0.0, 0.0), (0.5, -0.2, 0.0)]
@@ -94,7 +108,12 @@ def test_kicad10_board(board):
 def test_outline_with_cutouts(board):
     o = board.outline
     assert not o.approximate and signed_area(o.board) > 0
-    assert len(o.board) == 4 and {p for p in o.board} == {(100.0, -100.0), (130.0, -100.0), (130.0, -120.0), (100.0, -120.0)}
+    assert len(o.board) == 4 and {p for p in o.board} == {
+        (100.0, -100.0),
+        (130.0, -100.0),
+        (130.0, -120.0),
+        (100.0, -120.0),
+    }
     assert len(o.cutouts) == 2 and all(signed_area(c) < 0 for c in o.cutouts)
     circle, square = sorted(o.cutouts, key=lambda c: len(c), reverse=True)
     assert len(circle) == 72 and all(math.isclose(math.dist(p, (120, -110)), 1, abs_tol=1e-6) for p in circle)
@@ -206,7 +225,11 @@ def test_symbols():
     lib = read_kicad_sym(SYM)
     op = lib["OPAMP"]
     assert op.unit_count == 2 and op.pin_name_offset == 0.254
-    assert [(p["number"], p["type"], p["unit"]) for p in op.pins] == [("3", "input", 1), ("1", "output", 1), ("8", "power_in", 2)]
+    assert [(p["number"], p["type"], p["unit"]) for p in op.pins] == [
+        ("3", "input", 1),
+        ("1", "output", 1),
+        ("8", "power_in", 2),
+    ]
     assert op.shapes[0]["kind"] == "polyline" and len(op.shapes[0]["pts"]) == 4
     derived = lib["OPAMP2"]
     assert derived.extends == "OPAMP" and len(derived.pins) == 3 and derived.properties["Value"] == "OPAMP2"

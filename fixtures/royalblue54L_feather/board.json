@@ -133,7 +133,7 @@
    }
   ],
   "generator": "KiCad Pcbnew 10.0.6 (fab outputs); pcbnew 9.0 (board file)",
-  "reader": "boarddd io.kicad.read_kicad_pcb + fixtures/royalblue54L_feather/make_board.py (fab files)",
+  "reader": "boarddd io.kicad.read_kicad_pcb (kicad/) + io.package.read_package (fab/)",
   "created": "2025-02-12",
   "commit": null,
   "ref": null
@@ -1054,7 +1054,7 @@
    ],
    "format": "gerber",
    "polarity": "positive",
-   "function": "Profile",
+   "function": "Profile,NP",
    "plated": null
   },
   {
@@ -1067,7 +1067,7 @@
    ],
    "format": "gerber",
    "polarity": "positive",
-   "function": "SolderPaste,Top",
+   "function": "Paste,Top",
    "plated": null
   },
   {
@@ -1080,7 +1080,7 @@
    ],
    "format": "gerber",
    "polarity": "positive",
-   "function": "SolderPaste,Bot",
+   "function": "Paste,Bot",
    "plated": null
   },
   {
@@ -1119,7 +1119,7 @@
    ],
    "format": "gerber",
    "polarity": "negative",
-   "function": "SolderMask,Top",
+   "function": "Soldermask,Top",
    "plated": null
   },
   {
@@ -1132,7 +1132,7 @@
    ],
    "format": "gerber",
    "polarity": "negative",
-   "function": "SolderMask,Bot",
+   "function": "Soldermask,Bot",
    "plated": null
   },
   {
@@ -58952,7 +58952,7 @@
   }
  ],
  "warnings": [
-  "183 vias have a 0 mm drill in the drill file (the demo board's vias use a 0.00001 mm placeholder drill)"
+  "183 holes have a 0 mm drill in the drill file (a placeholder diameter, kept as 0)"
  ],
  "meta": {}
 }

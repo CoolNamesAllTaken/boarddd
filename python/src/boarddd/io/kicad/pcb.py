@@ -31,7 +31,7 @@ from ... import model as m
 from .footprint import footprint_angle, graphic_points, read_footprint
 from .geom import arc_through, r, ring_points, rotate, signed_area
 from .project import KicadProject, assign_nets, read_kicad_pro
-from .sexpr import Atom, Node, dumps, load as load_sexpr, parse
+from .sexpr import Atom, Node, dumps, parse
 
 __all__ = ["read_kicad_pcb", "read_stackup", "read_nets", "load", "PcbFile", "PcbFootprint", "Item", "Zone"]
 
@@ -109,8 +109,12 @@ def read_kicad_pcb(
             created=str(tb.value("date")) if tb is not None and tb.value("date") is not None else None,
         ),
         origin=m.Origin(
-            aux=to_board(_xy(setup.child("aux_axis_origin"))) if setup is not None and setup.child("aux_axis_origin") else None,
-            grid=to_board(_xy(setup.child("grid_origin"))) if setup is not None and setup.child("grid_origin") else None,
+            aux=to_board(_xy(setup.child("aux_axis_origin")))
+            if setup is not None and setup.child("aux_axis_origin")
+            else None,
+            grid=to_board(_xy(setup.child("grid_origin")))
+            if setup is not None and setup.child("grid_origin")
+            else None,
         ),
         outline=read_outline(tree, warnings),
         stackup=read_stackup(tree),
@@ -192,7 +196,9 @@ def _chain(segs: list[list], tol: float = 1e-4) -> tuple[list[list], int]:
         loop = segs.pop(0)
         while math.dist(loop[0], loop[-1]) > tol:
             end = loop[-1]
-            i = next((i for i, sg in enumerate(segs) if min(math.dist(sg[0], end), math.dist(sg[-1], end)) <= tol), None)
+            i = next(
+                (i for i, sg in enumerate(segs) if min(math.dist(sg[0], end), math.dist(sg[-1], end)) <= tol), None
+            )
             if i is None:
                 break
             sg = segs.pop(i)
@@ -297,15 +303,13 @@ def read_stackup(tree: Node) -> m.Stackup:
             material=str(first["material"]) if first.get("material") else None,
             color=str(first["color"]) if first.get("color") else None,
             epsilon_r=_num_or_none(first.get("epsilon_r")) or None,
-            loss_tangent=_num_or_none(first.get("loss_tangent")),
+            loss_tangent=_num_or_none(first.get("loss_tangent")) if first.get("loss_tangent") else None,
             layer=name if kind == "copper" else STACKUP_LAYER.get(name),
             dielectric=ltype if ltype in ("prepreg", "core") else None,
             locked=True if any(p.get("locked") for p in parts) else None,
             frequency=lay.num("spec_frequency", None),
             dielectric_model=str(lay.value("dielectric_model")) if lay.value("dielectric_model") else None,
         )
-        if sl.loss_tangent is None or not first.get("loss_tangent"):
-            sl.loss_tangent = _num_or_none(first.get("loss_tangent")) if first.get("loss_tangent") else None
         if len(parts) > 1:
             _combine_sublayers(sl, parts)
         layers.append(sl)
@@ -463,7 +467,9 @@ def read_components(tree: Node, warnings: list[str] | None = None) -> tuple[dict
                 in_pos="exclude_from_pos_files" not in attr,
                 mpn=[m.PartNumber(mpn=mpn, manufacturer=props.get("Manufacturer"))] if mpn else [],
                 models=[_model_ref(md) for md in fp.children("model")],
-                attributes={k: v for k, v in sorted(props.items()) if k not in ("Reference", "Value", "Footprint") and v},
+                attributes={
+                    k: v for k, v in sorted(props.items()) if k not in ("Reference", "Value", "Footprint") and v
+                },
             )
         )
     seen: dict[str, int] = {}
@@ -866,7 +872,9 @@ def _pad_box(pad: Node, tf, fprot: float):
     a = (pad.child("at").nums() + [0, 0, 0])[2] if pad.child("at") is not None else 0.0
     sw, sh = ((pad.nums("size") or []) + [0.0, 0.0])[:2]
     cx, cy = tf((px, py))
-    corners = [rotate(dx, dy, a) for dx, dy in ((-sw / 2, -sh / 2), (sw / 2, -sh / 2), (sw / 2, sh / 2), (-sw / 2, sh / 2))]
+    corners = [
+        rotate(dx, dy, a) for dx, dy in ((-sw / 2, -sh / 2), (sw / 2, -sh / 2), (sw / 2, sh / 2), (-sw / 2, sh / 2))
+    ]
     return box_of([(cx + dx, cy + dy) for dx, dy in corners])
 
 
@@ -1021,7 +1029,18 @@ def _zone(z: Node, nets) -> Zone:
         dumps(c)
         for c in z.children()
         if c.name
-        not in ("polygon", "filled_polygon", "uuid", "tstamp", "fill_segments", "net", "net_name", "layer", "layers", "name")
+        not in (
+            "polygon",
+            "filled_polygon",
+            "uuid",
+            "tstamp",
+            "fill_segments",
+            "net",
+            "net_name",
+            "layer",
+            "layers",
+            "name",
+        )
     )
     fill = str(hash(" ".join(dumps(c) for c in z.children("filled_polygon"))))
     return Zone(
@@ -1048,7 +1067,12 @@ def load(text: str) -> PcbFile:
             # (0 "F.Cu" signal): the head is the ordinal
             if len(a) >= 2:
                 layers.append(
-                    {"ordinal": str(c[0]), "name": str(a[0]), "type": str(a[1]), "user_name": str(a[2]) if len(a) > 2 else None}
+                    {
+                        "ordinal": str(c[0]),
+                        "name": str(a[0]),
+                        "type": str(a[1]),
+                        "user_name": str(a[2]) if len(a) > 2 else None,
+                    }
                 )
                 all_names.append(str(a[0]))
     copper = [ly["name"] for ly in layers if ly["name"].endswith(".Cu")]
@@ -1074,16 +1098,40 @@ def load(text: str) -> PcbFile:
             if kind == "outline":
                 edge_pts.extend(pts)
             items.append(
-                Item(kind, lay, dumps(c, drop=("uuid", "tstamp")), box_of(pts), net_of(c, nets), str(c.value("uuid", "") or ""))
+                Item(
+                    kind,
+                    lay,
+                    dumps(c, drop=("uuid", "tstamp")),
+                    box_of(pts),
+                    net_of(c, nets),
+                    str(c.value("uuid", "") or ""),
+                )
             )
         elif nm in ("gr_text", "gr_text_box"):
             txt = str(c.arg(0, ""))
             items.append(
-                Item("text", item_layers(c), dumps(c, drop=("uuid", "tstamp")), text_box(c, txt), "", str(c.value("uuid", "") or ""), text=txt)
+                Item(
+                    "text",
+                    item_layers(c),
+                    dumps(c, drop=("uuid", "tstamp")),
+                    text_box(c, txt),
+                    "",
+                    str(c.value("uuid", "") or ""),
+                    text=txt,
+                )
             )
         elif nm == "dimension":
             pts = [pt(x) for x in (c.child("pts").children("xy") if c.child("pts") else [])]
-            items.append(Item("graphic", item_layers(c), dumps(c, drop=("uuid", "tstamp")), box_of(pts), "", str(c.value("uuid", "") or "")))
+            items.append(
+                Item(
+                    "graphic",
+                    item_layers(c),
+                    dumps(c, drop=("uuid", "tstamp")),
+                    box_of(pts),
+                    "",
+                    str(c.value("uuid", "") or ""),
+                )
+            )
     for fp in footprints:  # footprint-embedded Edge.Cuts (slots, cut-outs) count for the size
         edge_pts.extend(fp.edge_pts)
     setup = root.child("setup")
@@ -1094,9 +1142,17 @@ def load(text: str) -> PcbFile:
             if c.name == "stackup":
                 for ly in c.children("layer"):
                     stackup[str(ly.arg(0, ""))] = {
-                        k: str(ly.value(k)) for k in ("type", "color", "material", "thickness") if ly.value(k) is not None
+                        k: str(ly.value(k))
+                        for k in ("type", "color", "material", "thickness")
+                        if ly.value(k) is not None
                     }
-                for k in ("copper_finish", "dielectric_constraints", "edge_connector", "castellated_pads", "edge_plating"):
+                for k in (
+                    "copper_finish",
+                    "dielectric_constraints",
+                    "edge_connector",
+                    "castellated_pads",
+                    "edge_plating",
+                ):
                     if c.value(k) is not None:
                         stackup[k] = str(c.value(k))
                 setup_key["stackup"] = dumps(c)
@@ -1108,7 +1164,9 @@ def load(text: str) -> PcbFile:
     title = {}
     if tb is not None:
         for c in tb.children():
-            title[c.name if c.name != "comment" else f"comment{c.arg(0)}"] = str(c.arg(1 if c.name == "comment" else 0, ""))
+            title[c.name if c.name != "comment" else f"comment{c.arg(0)}"] = str(
+                c.arg(1 if c.name == "comment" else 0, "")
+            )
     return PcbFile(
         layers=layers,
         copper=copper,
@@ -1122,6 +1180,3 @@ def load(text: str) -> PcbFile:
         edge_box=box_of(edge_pts),
         title=title,
     )
-
-
-_ = load_sexpr

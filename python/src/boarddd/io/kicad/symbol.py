@@ -71,13 +71,13 @@ def _font(node: Node):
     eff = node.child("effects")
     size = (1.27, 1.27)
     justify = []
-    bold = italic = False
+    bold = False
     if eff is not None:
         fn = eff.child("font")
         if fn is not None:
             s = fn.nums("size") or [1.27, 1.27]
             size = (s[0], s[1] if len(s) > 1 else s[0])
-            bold, italic = fn.flag("bold"), fn.flag("italic")
+            bold = fn.flag("bold")
         j = eff.child("justify")
         if j is not None:
             justify = [str(a) for a in j.atoms()]
@@ -114,8 +114,19 @@ class Symbol:
             self.properties[key] = val
             x, y, a = _at(p)
             size, justify, bold = _font(p)
-            self.fields.append(dict(key=key, value=val, x=x, y=y, angle=a, size=size, justify=justify,
-                                    hidden=_hidden(p) or key.startswith("ki_"), bold=bold))
+            self.fields.append(
+                dict(
+                    key=key,
+                    value=val,
+                    x=x,
+                    y=y,
+                    angle=a,
+                    size=size,
+                    justify=justify,
+                    hidden=_hidden(p) or key.startswith("ki_"),
+                    bold=bold,
+                )
+            )
         # graphics source: parent symbol for derived ('extends') symbols
         gsrc = node
         if self.extends and library and self.extends in library:
@@ -194,13 +205,21 @@ class Symbol:
         number = c.child("number")
         alts = [str(al.arg(0, "")) for al in c.children("alternate")]
         return dict(
-            type=str(c.arg(0, "")), shape=str(c.arg(1, "line")),
-            x=x, y=y, angle=a, length=c.num("length", 2.54),
+            type=str(c.arg(0, "")),
+            shape=str(c.arg(1, "line")),
+            x=x,
+            y=y,
+            angle=a,
+            length=c.num("length", 2.54),
             name=str(name.arg(0, "")) if name is not None else "",
             number=str(number.arg(0, "")) if number is not None else "",
             name_size=_font(name)[0] if name is not None else (1.27, 1.27),
             num_size=_font(number)[0] if number is not None else (1.27, 1.27),
-            hidden=c.flag("hide"), unit=unit, body=body, alternates=alts, line=c.line_start,
+            hidden=c.flag("hide"),
+            unit=unit,
+            body=body,
+            alternates=alts,
+            line=c.line_start,
         )
 
     # ------------------------------------------------------------------
@@ -231,10 +250,21 @@ class Symbol:
             "extends": self.extends,
             "pin_types": by_type,
             "hidden_pins": sum(1 for p in pins if p["hidden"]),
-            "pins": [{"number": p["number"], "name": p["name"], "type": p["type"], "shape": p["shape"],
-                      "unit": p["unit"], "hidden": p["hidden"], "pos": [p["x"], p["y"]], "angle": p["angle"],
-                      "length": p["length"], "alternates": p["alternates"]}
-                     for p in sorted(pins, key=lambda p: (p["unit"], _natkey(p["number"])))],
+            "pins": [
+                {
+                    "number": p["number"],
+                    "name": p["name"],
+                    "type": p["type"],
+                    "shape": p["shape"],
+                    "unit": p["unit"],
+                    "hidden": p["hidden"],
+                    "pos": [p["x"], p["y"]],
+                    "angle": p["angle"],
+                    "length": p["length"],
+                    "alternates": p["alternates"],
+                }
+                for p in sorted(pins, key=lambda p: (p["unit"], _natkey(p["number"])))
+            ],
             "pin_names_hidden": self.pin_names_hidden,
             "pin_numbers_hidden": self.pin_numbers_hidden,
         }

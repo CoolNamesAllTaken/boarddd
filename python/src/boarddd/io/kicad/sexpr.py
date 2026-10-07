@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+
 class Atom(str):
     """Unquoted token, e.g. ``smd``, ``yes``, ``1.27``."""
 
@@ -184,7 +185,7 @@ def parse_all(text: str) -> list[Node]:
             j = text.find("|", i + 1)
             if j < 0:
                 raise ParseError(f"unterminated |data| at line {line}")
-            chunk = text[i + 1:j]
+            chunk = text[i + 1 : j]
             line += chunk.count("\n")
             if stack:
                 stack[-1].append(Atom("|" + "".join(chunk.split()) + "|"))

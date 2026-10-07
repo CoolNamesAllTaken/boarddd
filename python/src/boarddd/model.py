@@ -181,9 +181,7 @@ class StackupLayer:
     dielectric_model: Literal["constant", "djordjevic_sarkar"] | None = _f(
         "How epsilon_r/loss_tangent vary with frequency (KiCad dielectric_model).", default=None
     )
-    locked: bool | None = _f(
-        "Thickness fixed for impedance control (KiCad '(thickness ... locked)').", default=None
-    )
+    locked: bool | None = _f("Thickness fixed for impedance control (KiCad '(thickness ... locked)').", default=None)
     tolerance: Tolerance | None = _f("Manufacturing tolerances, when the source gives them.", default=None)
     finished_thickness: float | None = _f(
         "Copper: plated (finished) thickness, mm, when it differs from the base foil.", default=None, minimum=0
@@ -424,7 +422,9 @@ class Net:
     """An electrical net."""
 
     name: str = _f("Net name as the source writes it ('/USB/D+', 'GND').")
-    net_class: str | None = _f("The NetClass.name it belongs to ('Default' when the source assigns none).", default=None)
+    net_class: str | None = _f(
+        "The NetClass.name it belongs to ('Default' when the source assigns none).", default=None
+    )
     pair: str | None = _f(
         "The partner net of a differential pair (KiCad pairs '+'/'-' and 'P'/'N' suffixes).", default=None
     )

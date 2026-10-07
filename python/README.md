@@ -17,9 +17,13 @@ errors = validate_board(json.load(open("board.json")))   # [] when valid
 
 from boarddd.io.package import read_package
 board = read_package("fab/")          # a fab package (folder or .zip) -> Board; see docs/readers.md
+
+from boarddd.io.kicad import read_kicad_pcb
+board = read_kicad_pcb("board.kicad_pcb")   # KiCad 5-10, no pcbnew; the .kicad_pro next to it adds net classes
 ```
 
-Readers: `boarddd.io` (archive, classify, gerber, pads, excellon, outline, gbrjob, pos, bom, package) and
+Readers: `boarddd.io` (archive, classify, gerber, pads, excellon, outline, gbrjob, pos, bom, package),
+`boarddd.io.kicad` (pcb, footprint, project, symbol, sexpr) and
 `boarddd.step` (text, slim, modelfile, registration), stdlib only; `pip install "boarddd[xlsx] @ …"` for
 `.xlsx`/`.xls` BOMs. See [docs/readers.md](../docs/readers.md).
 

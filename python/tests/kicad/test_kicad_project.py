@@ -30,7 +30,9 @@ def test_name_convention(name, want):
     assert (t.kind, t.target, t.common_mode, t.structure) == want and t.source == "name"
 
 
-@pytest.mark.parametrize("name", ["Default", "USB_DIFF", "Power", "DDR4_BYTE0", "pwrhi", "FPGA_HP", "usbdiff", "USB_2.0"])
+@pytest.mark.parametrize(
+    "name", ["Default", "USB_DIFF", "Power", "DDR4_BYTE0", "pwrhi", "FPGA_HP", "usbdiff", "USB_2.0"]
+)
 def test_names_without_a_target(name):
     assert impedance_from_name(name) is None
 
@@ -38,8 +40,17 @@ def test_names_without_a_target(name):
 PRO = {
     "net_settings": {
         "classes": [
-            {"name": "Default", "track_width": 0.2, "clearance": 0.15, "diff_pair_width": 0.2, "diff_pair_gap": 0.25,
-             "via_diameter": 0.6, "via_drill": 0.3, "priority": 2147483647, "tuning_profile": ""},
+            {
+                "name": "Default",
+                "track_width": 0.2,
+                "clearance": 0.15,
+                "diff_pair_width": 0.2,
+                "diff_pair_gap": 0.25,
+                "via_diameter": 0.6,
+                "via_drill": 0.3,
+                "priority": 2147483647,
+                "tuning_profile": "",
+            },
             {"name": "90ohm", "track_width": 0.147, "diff_pair_gap": 0.154, "priority": 2},
             {"name": "50ohm", "track_width": 0.13, "priority": 1},
             {"name": "RF", "priority": 0, "tuning_profile": "CPWG 50"},
@@ -56,17 +67,50 @@ PRO = {
     "tuning_profiles": {
         "meta": {"version": 0},
         "tuning_profiles_impedance_geometric": [
-            {"profile_name": "CPWG 50", "type": 0, "target_impedance": 50.0, "enable_time_domain_tuning": False,
-             "via_prop_delay": 0, "via_overrides": [],
-             "layer_entries": [{"signal_layer": "F.Cu", "top_reference_layer": "UNDEFINED",
-                                "bottom_reference_layer": "In1.Cu", "width": 300000, "diff_pair_gap": 0, "delay": 0}]},
-            {"profile_name": "USB 90", "type": 1, "target_impedance": 90.0, "enable_time_domain_tuning": False,
-             "via_prop_delay": 0, "via_overrides": [],
-             "layer_entries": [
-                 {"signal_layer": "F.Cu", "top_reference_layer": "UNDEFINED", "bottom_reference_layer": "In1.Cu",
-                  "width": 190000, "diff_pair_gap": 180000, "delay": 0},
-                 {"signal_layer": "In2.Cu", "top_reference_layer": "In1.Cu", "bottom_reference_layer": "In3.Cu",
-                  "width": 150000, "diff_pair_gap": 125000, "delay": 0}]},
+            {
+                "profile_name": "CPWG 50",
+                "type": 0,
+                "target_impedance": 50.0,
+                "enable_time_domain_tuning": False,
+                "via_prop_delay": 0,
+                "via_overrides": [],
+                "layer_entries": [
+                    {
+                        "signal_layer": "F.Cu",
+                        "top_reference_layer": "UNDEFINED",
+                        "bottom_reference_layer": "In1.Cu",
+                        "width": 300000,
+                        "diff_pair_gap": 0,
+                        "delay": 0,
+                    }
+                ],
+            },
+            {
+                "profile_name": "USB 90",
+                "type": 1,
+                "target_impedance": 90.0,
+                "enable_time_domain_tuning": False,
+                "via_prop_delay": 0,
+                "via_overrides": [],
+                "layer_entries": [
+                    {
+                        "signal_layer": "F.Cu",
+                        "top_reference_layer": "UNDEFINED",
+                        "bottom_reference_layer": "In1.Cu",
+                        "width": 190000,
+                        "diff_pair_gap": 180000,
+                        "delay": 0,
+                    },
+                    {
+                        "signal_layer": "In2.Cu",
+                        "top_reference_layer": "In1.Cu",
+                        "bottom_reference_layer": "In3.Cu",
+                        "width": 150000,
+                        "diff_pair_gap": 125000,
+                        "delay": 0,
+                    },
+                ],
+            },
         ],
     },
 }

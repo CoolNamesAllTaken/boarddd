@@ -13,12 +13,13 @@ import math
 from pathlib import Path
 
 import pytest
-from conftest import FIXTURES
 
 from boarddd import model as m
 from boarddd.io.kicad import read_kicad_pcb
 from boarddd.io.kicad.geom import norm_angle, pad_copper, pad_offset, rotate
 from boarddd.validate import validate_board
+
+from conftest import FIXTURES
 
 RB = FIXTURES / "royalblue54L_feather"
 PCB = RB / "kicad" / "RoyalBlue54L-Feather.kicad_pcb"
@@ -46,7 +47,10 @@ def test_reproduces_the_golden_board(data, golden):
         if key not in FAB_FIELDS:
             assert data[key] == golden[key], key
     assert data["source"]["kind"] == "kicad_pcb" and data["source"]["created"] == golden["source"]["created"]
-    assert [f["path"] for f in data["source"]["files"]] == ["RoyalBlue54L-Feather.kicad_pcb", "RoyalBlue54L-Feather.kicad_pro"]
+    assert [f["path"] for f in data["source"]["files"]] == [
+        "RoyalBlue54L-Feather.kicad_pcb",
+        "RoyalBlue54L-Feather.kicad_pro",
+    ]
     assert data["layers"] == [] and data["warnings"] == []
 
 
@@ -62,9 +66,14 @@ def test_drills_match_the_drill_files(data, golden):
     assert len(data["drills"]) == len(fab) == 278
     left = list(fab)
     for d in data["drills"]:
-        i = min(range(len(left)), key=lambda i: sum(math.dist(p, q) for p, q in zip(ends(d), ends(left[i]), strict=True)))
+        i = min(
+            range(len(left)), key=lambda i: sum(math.dist(p, q) for p, q in zip(ends(d), ends(left[i]), strict=True))
+        )
         f = left.pop(i)
-        assert sum(math.dist(p, q) for p, q in zip(ends(d), ends(f), strict=True)) < 2e-3, (d, f)  # the drill file has 3 decimals
+        assert sum(math.dist(p, q) for p, q in zip(ends(d), ends(f), strict=True)) < 2e-3, (
+            d,
+            f,
+        )  # the drill file has 3 decimals
         assert (d["plated"], d["function"]) == (f["plated"], f["function"])
         assert abs(d["diameter"] - f["diameter"]) < 1e-3  # the vias' 0.00001 mm placeholder is 0 in the drill file
     assert sum(d["x2"] is not None for d in data["drills"]) == sum(d["x2"] is not None for d in fab) > 0
@@ -75,6 +84,11 @@ def place(c: m.Component, p) -> tuple[float, float]:
     qy = p[1] if c.side == "bottom" else -p[1]
     a = math.radians(c.rotation)
     return c.x + math.cos(a) * p[0] - math.sin(a) * qy, c.y + math.sin(a) * p[0] + math.cos(a) * qy
+
+
+def to_kicad(c: m.Component, q) -> tuple[float, float]:
+    x, y = place(c, q)
+    return (x, -y)
 
 
 def test_pads_land_on_pcbnew(board):
@@ -88,17 +102,16 @@ def test_pads_land_on_pcbnew(board):
         assert len(pads) == len(gold.get(c.ref, [])), c.ref
         for pad, g in zip(pads, gold.get(c.ref, []), strict=True):
             where = f"{c.ref} pad {pad.number}"
-            to_kicad = lambda q: (lambda b: (b[0], -b[1]))(place(c, q))  # noqa: E731
-            assert math.dist(to_kicad(pad.at[:2]), g["at"]) < 1e-5, where
+            assert math.dist(to_kicad(c, pad.at[:2]), g["at"]) < 1e-5, where
             want = norm_angle(c.rotation - pad.at[2]) if c.side == "bottom" else norm_angle(c.rotation + pad.at[2])
             assert abs(norm_angle(want - g["angle"])) < 1e-6, where
             ox, oy = rotate(*pad_offset(pad), pad.at[2])
-            assert math.dist(to_kicad((pad.at[0] + ox, pad.at[1] + oy)), g["copper_center"]) < 1e-5, where
+            assert math.dist(to_kicad(c, (pad.at[0] + ox, pad.at[1] + oy)), g["copper_center"]) < 1e-5, where
             assert (pad.drill is not None) == (g["hole"] is not None), where
             if pad.drill is not None:
                 assert sorted(pad.drill.size) == pytest.approx(sorted(g["hole"]), abs=1e-6), where
             if pad.shape != "custom":
-                pts = [to_kicad(q) for q in pad_copper(pad, 16)[0]]
+                pts = [to_kicad(c, q) for q in pad_copper(pad, 16)[0]]
                 xs, ys = [q[0] for q in pts], [q[1] for q in pts]
                 assert [min(xs), min(ys), max(xs), max(ys)] == pytest.approx(g["copper_bbox"], abs=0.01), where
             checked += 1
@@ -136,4 +149,6 @@ def test_stackup(board):
         assert a.thickness == b["Thickness"], (a.name, b["Name"])
         if b["Type"] == "Dielectric":
             assert a.material == b["Material"]
-    assert sum(la.thickness for la in st.layers if la.thickness and la.kind in ("copper", "dielectric")) == pytest.approx(1.58)
+    assert sum(
+        la.thickness for la in st.layers if la.thickness and la.kind in ("copper", "dielectric")
+    ) == pytest.approx(1.58)

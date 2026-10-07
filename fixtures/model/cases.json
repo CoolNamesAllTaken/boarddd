@@ -31,5 +31,9 @@
  {"name": "half a slot", "patch": [["delete", "/drills/1/y2"]], "errors": ["/drills/1: x2 and y2 must both be set (slot) or both be null (round hole)"]},
  {"name": "drill layer unknown", "patch": [["set", "/drills/0/layer", "NPTH"]], "errors": ["/drills/0/layer: 'NPTH' is not a layer id"]},
  {"name": "copper count", "patch": [["set", "/stackup/copper_layers", 4]], "errors": ["/stackup/copper_layers: 4 but /stackup/layers has 2 copper layers"]},
- {"name": "not an object", "replace": [1, 2], "errors": ["/: expected object"]}
+ {"name": "not an object", "replace": [1, 2], "errors": ["/: expected object"]},
+ {"name": "nets and an impedance-controlled class", "patch": [["set", "/nets", [{"name": "/D+", "net_class": "DP_90_MS", "pair": "/D-"}, {"name": "/D-", "net_class": "DP_90_MS", "pair": "/D+"}]], ["set", "/net_classes", [{"name": "DP_90_MS", "nets": ["/D+", "/D-"], "impedance": {"kind": "differential", "target": 90, "source": "name", "structure": "microstrip", "layers": [{"layer": "F.Cu", "width": 0.2, "gap": 0.15}]}}]]], "errors": []},
+ {"name": "impedance target must be > 0", "patch": [["set", "/net_classes", [{"name": "DP_90_MS", "nets": ["/D+", "/D-"], "impedance": {"kind": "differential", "target": 0, "source": "name", "structure": "microstrip", "layers": [{"layer": "F.Cu", "width": 0.2, "gap": 0.15}]}}]]], "errors": ["/net_classes/0/impedance/target: must be > 0"]},
+ {"name": "unknown transmission-line structure", "patch": [["set", "/net_classes", [{"name": "DP_90_MS", "nets": ["/D+", "/D-"], "impedance": {"kind": "differential", "target": 90, "source": "name", "structure": "slotline", "layers": [{"layer": "F.Cu", "width": 0.2, "gap": 0.15}]}}]]], "errors": ["/net_classes/0/impedance/structure: must be one of [\"microstrip\", \"stripline\", \"coplanar\", \"coplanar_grounded\", null]"]},
+ {"name": "stackup sublayers and prepreg/core", "patch": [["set", "/stackup/layers", [{"name": "dielectric 1", "kind": "dielectric", "side": "inner", "thickness": 0.2, "dielectric": "prepreg", "sublayers": [{"thickness": 0.1, "epsilon_r": 4.3}, {"thickness": -0.1}]}]]], "errors": ["/stackup/layers/0/sublayers/1/thickness: must be >= 0"]}
 ]

@@ -35,7 +35,7 @@ from .geom import (
     rotate,
     stroke_loops,
 )
-from .sexpr import Atom, Node, load
+from .sexpr import Node, load
 
 __all__ = ["read_kicad_mod", "read_footprint", "KicadFootprint", "expand_layers", "decode_embedded"]
 
@@ -104,7 +104,9 @@ def graphic_points(n: Node) -> dict | None:
     kind = re.sub(r"^(fp|gr)_", "", n.name)
     width, filled = _stroke_width(n), _is_filled(n)
     if kind == "line":
-        return dict(kind=kind, pts=[_xy(n.child("start")), _xy(n.child("end"))], width=width, closed=False, filled=False)
+        return dict(
+            kind=kind, pts=[_xy(n.child("start")), _xy(n.child("end"))], width=width, closed=False, filled=False
+        )
     if kind == "rect":
         (x0, y0), (x1, y1) = _xy(n.child("start")), _xy(n.child("end"))
         return dict(kind=kind, pts=[(x0, y0), (x1, y0), (x1, y1), (x0, y1)], width=width, closed=True, filled=filled)
@@ -120,7 +122,11 @@ def graphic_points(n: Node) -> dict | None:
         return dict(kind=kind, pts=arc_through(s, mid, e), width=width, closed=False, filled=False)
     if kind == "poly":
         return dict(
-            kind=kind, pts=_poly_pts(n), width=width, closed=True, filled=filled or (n.name == "gr_poly" and not n.child("fill"))
+            kind=kind,
+            pts=_poly_pts(n),
+            width=width,
+            closed=True,
+            filled=filled or (n.name == "gr_poly" and not n.child("fill")),
         )
     return None
 
@@ -206,7 +212,9 @@ def read_pad(n: Node, fp_angle: float = 0.0, bottom: bool = False, *, board: boo
     if (prims := n.child("primitives")) is not None:
         loops = [lp for g in prims.children() for lp in _primitive_loops(graphic_points(g))]
         # a mirror reverses winding: flip the point order back for bottom-side pads
-        pad.primitives = [m.Primitive(pts=[(r(px), r(sy * py)) for px, py in (lp[::-1] if bottom else lp)]) for lp in loops]
+        pad.primitives = [
+            m.Primitive(pts=[(r(px), r(sy * py)) for px, py in (lp[::-1] if bottom else lp)]) for lp in loops
+        ]
     if n.child("solder_mask_margin") is not None:
         pad.solder_mask_margin = r(n.num("solder_mask_margin"))
     if n.child("solder_paste_margin") is not None:
@@ -289,12 +297,15 @@ def _attach_paste(pads: list[m.Pad], loop) -> None:
     pad = max(hosts, key=lambda p: p.size[0] * p.size[1])
     cx, cy = _to_pad_local(pad, centre)
     local = [_to_pad_local(pad, p) for p in loop]
-    pad.paste = [*(pad.paste or []), m.Aperture(
-        shape="polygon",
-        size=(r(max(xs) - min(xs)), r(max(ys) - min(ys))),
-        center=(r(cx), r(cy)),
-        polygon=[(r(px - cx), r(py - cy)) for px, py in local],
-    )]
+    pad.paste = [
+        *(pad.paste or []),
+        m.Aperture(
+            shape="polygon",
+            size=(r(max(xs) - min(xs)), r(max(ys) - min(ys))),
+            center=(r(cx), r(cy)),
+            polygon=[(r(px - cx), r(py - cy)) for px, py in local],
+        ),
+    ]
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -560,7 +571,10 @@ class KicadFootprint:
         for p in c.children("polygon"):
             polys.append([tuple(q.nums()[:2]) for q in (p.child("pts") or Node()).children("xy")])
         return dict(
-            layers=expand_layers(layers), polys=polys, keepout=c.child("keepout") is not None, name=str(c.value("name", "") or "")
+            layers=expand_layers(layers),
+            polys=polys,
+            keepout=c.child("keepout") is not None,
+            name=str(c.value("name", "") or ""),
         )
 
     def _model(self, c: Node):
@@ -614,7 +628,3 @@ def decode_embedded(data: str) -> bytes:
 
         return zstandard.ZstdDecompressor().decompressobj().decompress(raw)
     return raw
-
-
-# Atom is re-exported for callers that test flags
-_ = Atom

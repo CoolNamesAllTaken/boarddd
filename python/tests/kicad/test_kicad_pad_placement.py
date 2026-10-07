@@ -12,11 +12,12 @@ import math
 from pathlib import Path
 
 import pytest
-from conftest import REPO
 
 from boarddd.io.kicad import KicadFootprint, read_kicad_mod
 from boarddd.io.kicad.geom import pad_copper, pad_offset, rotate, signed_area
 from boarddd.io.kicad.sexpr import load
+
+from conftest import REPO
 
 FIX = Path(__file__).parent / "fixtures" / "pad_placement"
 GOLDEN = json.loads((FIX / "golden.json").read_text())
@@ -66,7 +67,12 @@ def test_golden_covers_the_cases():
     rp = read_kicad_mod(FIX / "RP2040-Zero_Castellated.kicad_mod").pads[0]
     assert rp.drill is None and rp.offset == (-0.65, 0.0)
     trapezoids = [p for p in read_kicad_mod(FIX / "Trapezoid_Delta.kicad_mod").pads if p.shape == "trapezoid"]
-    assert len(trapezoids) == 10 and {p.rect_delta for p in trapezoids} >= {(0.4, 0.0), (-0.4, 0.0), (0.0, 0.4), (0.0, -0.4)}
+    assert len(trapezoids) == 10 and {p.rect_delta for p in trapezoids} >= {
+        (0.4, 0.0),
+        (-0.4, 0.0),
+        (0.0, 0.4),
+        (0.0, -0.4),
+    }
 
 
 def test_pad_shapes():
@@ -79,7 +85,9 @@ def test_pad_shapes():
         loops = pad_copper(p, segments=32)
         if p.shape != "custom":
             assert near(bbox(loops[0]), g["bbox"]), where
-            assert math.isclose(abs(signed_area(loops[0])), g["area"], rel_tol=0.01), where  # pcbnew flattens arcs inside (ERROR_INSIDE)
+            assert math.isclose(abs(signed_area(loops[0])), g["area"], rel_tol=0.01), (
+                where
+            )  # pcbnew flattens arcs inside (ERROR_INSIDE)
         else:  # unioned in pcbnew: the loops together cover the same box
             assert near(bbox([q for lp in loops for q in lp]), g["bbox"], 0.02), where
         if g["hole"] is None:
