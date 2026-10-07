@@ -74,6 +74,29 @@ test('mapNodesToRefs by position: shuffled opaque nodes, shifted origin', () => 
   for (const [ref, [k]] of r.byRef) assert.equal(`R${order[k] + 1}`, ref);
 });
 
+test('mapNodesToRefs: panel copies share a name, each node goes to the nearest copy', () => {
+  // 4 copies of a 12-part board; every copy exports as "R1".."R12"; a third of the bodies sit 5 mm
+  // off their placement (a model offset: beyond the position tolerance)
+  const one = board(12, 4);
+  const comps = [];
+  for (const [n, [dx, dy]] of [[0, 0], [100, 0], [0, 80], [100, 80]].entries()) {
+    for (const c of one) comps.push({ ...c, ref: `${c.ref}·${n}`, name: c.ref, x: c.x + dx, y: c.y + dy });
+  }
+  const shift = { x: -40, y: 25 };
+  const nodes = comps.map((c, i) => {
+    const a = toBoardFrame(c);
+    const off = i % 3 === 0 ? 5 : 0;
+    return { name: c.name, x: a.x + shift.x + off, y: a.y + shift.y, cx: a.x + shift.x + off, cy: a.y + shift.y };
+  });
+  const r = mapNodesToRefs(nodes, comps);
+  assert.equal(r.byRef.size, 48);
+  assert.equal(r.method, 'name');
+  for (const [ref, [k]] of r.byRef) assert.equal(comps[k].ref, ref);
+  assert.ok(Math.abs(r.offset.x - shift.x) < 0.05 && Math.abs(r.offset.y - shift.y) < 0.05, JSON.stringify(r.offset));
+  // without names the offset bodies are lost
+  assert.equal(mapNodesToRefs(nodes, comps.map(({ name, ...c }) => c)).byRef.size, 32);
+});
+
 test('mapNodesToRefs mixed: names for some, positions for the rest', () => {
   const comps = board(20, 3);
   const nodes = nodesFor(comps, { x: 0, y: 0 });
