@@ -68,7 +68,7 @@ export function createStage(container, options = {}) {
   let flip = !!opt.flip;
   let view = { cx: 0, cy: 0, s: 1 };
   let autoFit = true; // still the fitted view: refit when the panes resize
-  let pendingRegion = opt.region || null; // a region asked for before any pane had a size
+  let pending = opt.region ? { region: opt.region } : null; // a region / box asked for before any pane had a size
   let tool = 'pan';
   let measure = [];
   let destroyed = false;
@@ -150,7 +150,12 @@ export function createStage(container, options = {}) {
       delete s.taken;
     }
     for (const o of overlays) o.dirty = true;
-    if (pendingRegion && panes.length) { view = viewForRegion(pendingRegion, size().pw); autoFit = false; pendingRegion = null; }
+    if (pending && panes.length) {
+      const { pw, ph } = size();
+      view = pending.region ? viewForRegion(pending.region, pw) : viewForBox(pending.box, pw, ph, pending.options);
+      autoFit = false;
+      pending = null;
+    }
     if (autoFit) fitNow(); else requestFrame();
     settle(0);
   }
@@ -449,7 +454,7 @@ export function createStage(container, options = {}) {
 
   // --- public
   function getRegion() {
-    if (pendingRegion) return { ...pendingRegion };
+    if (pending?.region) return { ...pending.region };
     return autoFit ? null : regionOf(view, size().pw);
   }
 
@@ -476,13 +481,17 @@ export function createStage(container, options = {}) {
     },
     fit() { fitNow(); settle(); },
     /** Zoom to a world box; small boxes get at least `minMm` of context. */
-    zoomTo(b, o) { const { pw, ph } = size(); setViewNow(viewForBox(b, pw, ph, o)); },
+    zoomTo(b, o) {
+      if (!panes.length) { pending = { box: b, options: o }; return; }
+      const { pw, ph } = size();
+      setViewNow(viewForBox(b, pw, ph, o));
+    },
     getView() { return { ...view }; },
     setView(v) { setViewNow(v); },
     /** The region on show ({ cx, cy, w } mm), or null while it is the fitted view. */
     getRegion,
     setRegion(r) {
-      if (!panes.length) { pendingRegion = r; return; }
+      if (!panes.length) { pending = r ? { region: r } : null; return; }
       if (!r) { fitNow(); settle(); } else setViewNow(viewForRegion(r, size().pw));
     },
     getState() { return { region: getRegion(), flip, tool, measure: measure.slice() }; },

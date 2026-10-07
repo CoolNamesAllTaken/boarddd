@@ -411,9 +411,21 @@ test('view state: get / format / parse / set restores the same picture', async (
     const s = window.v2.mount({ bounds: bounds.pic, region });
     const early = view2d.sameRegion(s.getRegion(), region);
     s.setScene([{ layers: [] }, { layers: [] }]);
-    return [early, view2d.sameRegion(s.getRegion(), region)];
+    const out = [early, view2d.sameRegion(s.getRegion(), region)];
+    // zoomTo before any pane: sized for the panes once they exist, as if called after
+    const box = { minX: 140, maxX: 150, minY: -92, maxY: -86 };
+    const early2 = window.v2.mount({ bounds: bounds.pic });
+    early2.zoomTo(box);
+    early2.setScene([{ layers: [] }]);
+    const a = early2.getView();
+    const late = window.v2.mount({ bounds: bounds.pic });
+    late.setScene([{ layers: [] }]);
+    late.zoomTo(box);
+    const b = late.getView();
+    out.push(Math.abs(a.s - b.s) < 1e-9 && Math.abs(a.cx - b.cx) < 1e-9 && Math.abs(a.cy - b.cy) < 1e-9);
+    return out;
   }, params);
-  expect(same).toEqual([true, true]);
+  expect(same).toEqual([true, true, true]);
 });
 
 test('render on demand: still is free; zoom re-renders sharper once settled', async ({ page }) => {
