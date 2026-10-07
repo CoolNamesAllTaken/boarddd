@@ -1,0 +1,18 @@
+{
+ "source": "slots.kicad_pcb",
+ "files": [
+  "slots-B_Cu.gbr",
+  "slots-B_Mask.gbr",
+  "slots-B_Paste.gbr",
+  "slots-B_Silkscreen.gbr",
+  "slots-Edge_Cuts.gbr",
+  "slots-F_Cu.gbr",
+  "slots-F_Mask.gbr",
+  "slots-F_Paste.gbr",
+  "slots-F_Silkscreen.gbr",
+  "slots-NPTH.drl",
+  "slots-PTH.drl"
+ ],
+ "glb": null,
+ "note": "slots-board without H1 (the copper-diff base)"
+}

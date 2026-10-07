@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>boarddd smoke</title>
+<script src="/test/browser/pages/importmap.js"></script>
+<canvas id="c" width="64" height="64"></canvas>
+<script type="module">
+  import * as THREE from 'three';
+  const mods = await Promise.all(['geom', 'board', 'footprint', 'models', 'scene'].map((m) => import(`/src/${m}/index.js`)));
+  const gl = document.getElementById('c').getContext('webgl2');
+  window.smoke = { three: THREE.REVISION, modules: mods.length, webgl2: !!gl };
+</script>
