@@ -70,20 +70,16 @@ def test_source_files_are_the_goldens_fab_files(board, gold):
     assert len(ours) == 19
 
 
-def test_layers_equal_the_golden_but_for_the_function_spelling(board, gold):
-    """Ids, roles, sides, order, format, polarity and plating match; `function` is the file's own %TF
-    (`Soldermask,Top`), where the golden copied the gbrjob's FilesAttributes (`SolderMask,Top`)."""
-    keys = ("id", "role", "side", "order", "format", "polarity", "plated")
-    assert [{k: la[k] for k in keys} for la in board["layers"]] == [{k: la[k] for k in keys} for la in gold["layers"]]
-    assert [["fab/" + f for f in la["files"]] for la in board["layers"]] == [la["files"] for la in gold["layers"]]
-    differ = {la["id"]: (la["function"], g["function"]) for la, g in zip(board["layers"], gold["layers"], strict=True)}
-    differ = {k: v for k, v in differ.items() if v[0] != v[1]}
-    assert differ == {
-        "Edge.Cuts": ("Profile,NP", "Profile"),
-        "F.Paste": ("Paste,Top", "SolderPaste,Top"),
-        "B.Paste": ("Paste,Bot", "SolderPaste,Bot"),
-        "F.Mask": ("Soldermask,Top", "SolderMask,Top"),
-        "B.Mask": ("Soldermask,Bot", "SolderMask,Bot"),
+def test_layers_equal_the_golden(board, gold):
+    """The golden's layers are read_package's (make_board.py builds the fab half with it): ids, roles, sides,
+    order, format, polarity, plating and `function`, the file's own %TF (`Soldermask,Top`, not the gbrjob's
+    `SolderMask,Top`); the golden's paths are under fab/."""
+    ours = [{**la, "files": ["fab/" + f for f in la["files"]]} for la in board["layers"]]
+    assert ours == gold["layers"]
+    assert {la["id"]: la["function"] for la in board["layers"] if la["role"] in ("mask", "outline")} == {
+        "Edge.Cuts": "Profile,NP",
+        "F.Mask": "Soldermask,Top",
+        "B.Mask": "Soldermask,Bot",
     }
 
 

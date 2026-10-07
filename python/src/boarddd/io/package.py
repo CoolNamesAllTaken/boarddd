@@ -81,13 +81,6 @@ _KICAD_SUFFIX = {"mask": "Mask", "paste": "Paste", "silk": "Silkscreen", "fab": 
 _DRILL_FUNCTION = {"viadrill": "via", "componentdrill": "component", "mechanicaldrill": "mechanical"}
 _TF_POLARITY = re.compile(r"%TF\.FilePolarity,(\w+)\*%")
 _DRILL_FILE_FUNCTION = re.compile(r"TF\.FileFunction,([^\r\n*]+)")
-_STACKUP_KIND = {
-    "legend": "silk",
-    "solderpaste": "paste",
-    "soldermask": "mask",
-    "copper": "copper",
-    "dielectric": "dielectric",
-}
 
 
 def r(value: float) -> float:
@@ -302,59 +295,9 @@ def _plated(function: str | None, rel: str) -> bool | None:
 
 
 def _stackup(job: dict, layers: list[m.Layer]) -> m.Stackup:
-    """The gbrjob's GeneralSpecs and MaterialStackup. (To be replaced by gbrjob.read_stackup.)"""
-    specs = job.get("GeneralSpecs") if isinstance(job.get("GeneralSpecs"), dict) else {}
-
-    def num(value) -> float | None:
-        try:
-            return r(value) if value is not None and float(value) == float(value) else None
-        except (TypeError, ValueError):
-            return None
-
-    entries = [e for e in (job.get("MaterialStackup") or []) if isinstance(e, dict)]
-    kinds = [_STACKUP_KIND.get(str(e.get("Type") or "").replace(" ", "").lower(), "other") for e in entries]
-    coppers = [i for i, k in enumerate(kinds) if k == "copper"]
+    """The gbrjob's GeneralSpecs and MaterialStackup, linked to the package's layers."""
     copper_ids = [la.id for la in sorted((la for la in layers if la.role == "copper"), key=lambda la: la.order)]
-    out: list[m.StackupLayer] = []
-    for i, (entry, kind) in enumerate(zip(entries, kinds, strict=True)):
-        if not coppers or i < coppers[0] or (kind == "copper" and i == coppers[0]):
-            side = "top"
-        elif i > coppers[-1] or (kind == "copper" and i == coppers[-1]):
-            side = "bottom"
-        else:
-            side = "inner"
-        layer = None
-        if kind == "copper":
-            index = coppers.index(i)
-            layer = copper_ids[index] if index < len(copper_ids) and len(copper_ids) == len(coppers) else None
-        elif kind in ("silk", "paste", "mask"):
-            layer = layer_id(kind, side, None, None)
-        out.append(
-            m.StackupLayer(
-                name=str(entry.get("Name") or entry.get("Type") or ""),
-                kind=kind,
-                side=side,
-                thickness=num(entry.get("Thickness")),
-                material=str(entry["Material"]) if entry.get("Material") else None,
-                color=str(entry["Color"]) if entry.get("Color") else None,
-                epsilon_r=num(entry.get("DielectricConstant")),
-                loss_tangent=num(entry.get("LossTangent")),
-                layer=layer,
-            )
-        )
-
-    def color(kind: str, side: str) -> str | None:
-        return next((la.color for la in out if la.kind == kind and la.side == side and la.color), None)
-
-    count = specs.get("LayerNumber")
-    return m.Stackup(
-        thickness=num(specs.get("BoardThickness")),
-        copper_layers=count if isinstance(count, int) and count > 0 else (len(coppers) or None),
-        finish=str(specs["Finish"]) if specs.get("Finish") else None,
-        mask_color=m.SideValues(top=color("mask", "top"), bottom=color("mask", "bottom")),
-        silk_color=m.SideValues(top=color("silk", "top"), bottom=color("silk", "bottom")),
-        layers=out,
-    )
+    return gbrjob.read_stackup(job, copper_ids, lambda kind, side: layer_id(kind, side, None, None))
 
 
 def _source_files(files: Mapping[str, bytes], found: dict, layers: list[m.Layer]) -> list[m.SourceFile]:
