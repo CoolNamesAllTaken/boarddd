@@ -4,7 +4,7 @@
 #     bash fixtures/royalblue54L_feather/make_fab.sh && python fixtures/royalblue54L_feather/make_board.py
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
-cli=${KICAD_CLI:-/workspace/projects/kipr-tools/bin/kicad-cli}
+cli=${KICAD_CLI:-kicad-cli}
 pcb=$here/kicad/RoyalBlue54L-Feather.kicad_pcb
 rm -rf "$here/fab" && mkdir -p "$here/fab"
 "$cli" pcb export gerbers -o "$here/fab/" --no-protel-ext \

@@ -1,6 +1,6 @@
 """Regenerate golden.json: where KiCad itself puts each pad's copper and hole, and each 3D model.
 
-    /workspace/projects/kipr-tools/bin/kicad-python tests/library/fixtures/pad_placement/make_golden.py
+    python3 test/fixtures/pad_placement/make_golden.py   # a Python with KiCad's pcbnew (e.g. KiCad's own)
 
 Needs KiCad's `pcbnew` Python module (KiCad 10). Values are KiCad footprint coordinates, mm, y down.
 """
