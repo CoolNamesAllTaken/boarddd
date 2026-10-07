@@ -70,8 +70,9 @@ const s = formatViewState(cmp.getState());                        // { z, mode, 
 
 | | |
 |---|---|
-| `createStage(el, opts)` | panes sharing one view; wheel / drag / pinch, double-click fits; `setScene`, `setView` / `setRegion` / `zoomTo` / `fit`, `toScreen` / `toWorld`, `setTool('measure')`, `addOverlay`, `on(view / click / move / measure / render / error)`, `ready`, `capture` |
+| `createStage(el, opts)` | panes sharing one view; wheel / drag / pinch, double-click fits; `setScene`, `setView` / `setRegion` / `zoomTo` / `fit`, `toScreen` / `toWorld`, `setTool('measure')`, `addOverlay`, `on(view / click / move / measure / render / error)`, `ready`, `capture`. `paddingPx` (fit margin in px), `interactive: false` (a picture: no pan / zoom, pointer events go through), `pixelSnap` (tiles at the screen's own resolution on the device pixel grid: crisp at rest) |
 | `face`, `layers`, `diff`, `image`, `inkdiff`, `draw` | pane content: a realistic face, single-colour layers, the GPU layer diff, an SVG / image over a mm rect, its ink diff, app drawing |
+| `layers(list, { outline, substrate, holes })`, `repeat(content, placements, rect)` | a board in an app's own colours (`inverted: true` layers fill to the outline, clipped to it, laminate inside, holes cut through); content drawn once and placed at turned / moved copies (a panel) |
 | `createCompare(stage, { base, head, diff?, underlay? })` | compare modes; the diff defaults to the layer diff of layer stacks or the ink diff of images |
 | `layerStack`, `faceBoard`, `layerColor`, `sortLayers` | files → paint order, KiCad colours, default visibility; files → a face for `face()` |
 | `addOverlay({ space: 'world' \| 'screen', draw })` | app markers: an SVG group in mm moved with the view, or in pane px redrawn per view |

@@ -26,7 +26,7 @@ export const STAGE_CSS = `
 .bd2-pane{position:relative;flex:1 1 0;min-width:0;overflow:hidden;touch-action:none;user-select:none;cursor:grab}
 .bd2-pane.bd2-grabbing{cursor:grabbing}
 .bd2-pane.bd2-measuring{cursor:crosshair}
-.bd2-pane.bd2-static{pointer-events:none;cursor:auto}
+.bd2-stage.bd2-static,.bd2-pane.bd2-static{pointer-events:none;cursor:auto}
 .bd2-slot{position:absolute;inset:0;pointer-events:none}
 .bd2-slot canvas{position:absolute;left:0;top:0;transform-origin:0 0}
 .bd2-overlay{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
@@ -79,7 +79,7 @@ export function createStage(container, options = {}) {
   const stats = { frames: 0, renders: 0, pixels: 0 };
   let rendererPromise = null;
 
-  const root = el('div', 'bd2-stage', container);
+  const root = el('div', `bd2-stage${opt.interactive ? '' : ' bd2-static'}`, container);
   if (opt.injectCss) el('style', null, root).textContent = STAGE_CSS; // off under a strict CSP: ship STAGE_CSS in a stylesheet
 
   function emit(name, payload) {
