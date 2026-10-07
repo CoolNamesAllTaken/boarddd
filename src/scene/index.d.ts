@@ -43,11 +43,14 @@ export interface Viewer {
   setBackground(spec: [string, string] | string | null | 'theme'): void;
   setControls(kind: 'trackball' | 'orbit'): void;
   pick(clientX: number, clientY: number): PickHit | null;
+  /** The cube face under a client point ('top', ...), '' for its corner off the cube, null elsewhere. */
+  cubeAt(clientX: number, clientY: number): string | null;
   cubeFacePoint(face: string): { x: number; y: number } | null;
   capture(opts?: CaptureOptions): string;
   captureBlob(opts?: CaptureOptions): Promise<Blob>;
   resize(): void;
   on(event: 'render' | 'view', fn: () => void): () => void;
+  on(event: 'cube', fn: (face: string) => void): () => void;
   dispose(opts?: { content?: boolean }): void;
 }
 export function createViewer(el: HTMLElement, opts?: ViewerOptions): Viewer;

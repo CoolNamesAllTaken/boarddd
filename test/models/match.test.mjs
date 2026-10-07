@@ -140,6 +140,31 @@ test('mapNodesToRefs: a module claims the anonymous solids inside its box, after
   assert.deepEqual(r.leftover, [5]);
 });
 
+test('mapNodesToRefs, frame board: placements in the nodes\' own frame, fixed offset, no names, no extras', () => {
+  // gentoo: the server measured each placement's solids in the STEP's own coordinates (y up), so
+  // nothing is flipped or fitted; node names are occt prototype names and mean nothing.
+  const comps = [
+    { ref: 'R1', x: 10, y: 10 },
+    { ref: 'C1', x: 20, y: 10 },
+    { ref: 'M1', x: 40, y: 40, assembly: true, box: [30, 30, 0, 50, 50, 2] },
+  ];
+  const at = (x, y, z = 1, name = '') => ({ name, x, y, cx: x, cy: y, cz: z });
+  // R1 named 'C1' to prove names are ignored; a solid inside M1's box but 5 mm up is not M1's;
+  // a stray near R1 stays leftover.
+  const nodes = [at(10, 10, 1, 'C1'), at(20.2, 10), at(35, 35), at(45, 45, 1.5), at(40, 40, 7), at(10.5, 10.5)];
+  const r = mapNodesToRefs(nodes, comps, { frame: 'board', offset: { x: 0, y: 0 }, byName: false, joinExtras: false });
+  assert.deepEqual(r.offset, { x: 0, y: 0 });
+  assert.equal(r.byName, 0);
+  // R1's nearest node (0) has a rival 0.7 mm away: ambiguous, settled as each other's nearest.
+  assert.deepEqual(r.byRef.get('R1'), [0]);
+  assert.deepEqual(r.byRef.get('C1'), [1]);
+  assert.deepEqual(r.byRef.get('M1'), [2, 3]);
+  assert.deepEqual(r.leftover.sort(), [4, 5]);
+  // The same nodes in the KiCad frame would have been flipped and missed.
+  const kicad = mapNodesToRefs(nodes, comps, { offset: { x: 0, y: 0 }, byName: false, joinExtras: false });
+  assert.equal(kicad.byRef.size, 0);
+});
+
 test('mapNodesToRefs: nothing to go by falls back to the given offset', () => {
   const r = mapNodesToRefs([], [{ ref: 'R1', x: 1, y: 1 }], { fallbackOffset: { x: 3, y: 4 } });
   assert.deepEqual(r.offset, { x: 3, y: 4 });

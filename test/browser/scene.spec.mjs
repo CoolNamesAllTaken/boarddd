@@ -95,18 +95,22 @@ test('view cube: clicking faces looks from that side', async ({ page }) => {
     const { camera, controls } = window.v;
     return camera.position.clone().sub(controls.target).normalize().toArray().map((x) => Math.round(x * 100) / 100);
   });
+  await page.evaluate(() => { window.cubeClicks = []; window.v.on('cube', (f) => window.cubeClicks.push(f)); });
   for (const [face, want] of [['top', [0, 0, 1]], ['front', [0, -1, 0]], ['right', [1, 0, 0]]]) {
     // From iso, these three faces are visible.
     await page.evaluate(() => window.v.setView('iso'));
     const p = await page.evaluate((f) => window.v.cubeFacePoint(f), face);
     expect(p, face).not.toBeNull();
+    expect(await page.evaluate(([x, y]) => window.v.cubeAt(x, y), [box.x + p.x, box.y + p.y])).toBe(face);
     const before = await page.evaluate(() => window.v.stats.frames);
     await page.mouse.click(box.x + p.x, box.y + p.y);
     await page.waitForTimeout(200);
     expect((await dir()).map((x) => x + 0)).toEqual(want);
     expect(await page.evaluate(() => window.v.stats.frames)).toBeGreaterThan(before);
   }
+  expect(await page.evaluate(() => window.cubeClicks)).toEqual(['top', 'front', 'right']);
   // From the top, the bottom face is hidden, and a click outside the cube does not change the view.
+  expect(await page.evaluate(([x, y]) => window.v.cubeAt(x, y), [box.x + 20, box.y + 20])).toBeNull();
   await page.mouse.click(box.x + 20, box.y + 20);
   await page.waitForTimeout(200);
   expect((await dir()).map((x) => x + 0)).toEqual([1, 0, 0]);

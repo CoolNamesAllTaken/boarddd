@@ -102,11 +102,14 @@ async function toBytes(source, signal) {
  * Tessellate a STEP file. No three.js involved.
  * source: URL string | ArrayBuffer | Uint8Array.
  * opts: {occt: {js, wasm}} URLs of occt-import-js, and/or occtFactory: () => Promise<occt>;
- *   workerUrl (default: step_worker.js beside this module; false = main thread); onProgress(stage).
+ *   workerUrl (default: step_worker.js beside this module; false = main thread); onProgress(stage);
+ *   fallback (default true): when the Worker crashes (usually out of wasm heap), retry on the main
+ *   thread; false rejects instead (the error has workerCrashed: true), for hosts that would rather
+ *   say so than risk the page on a model that just exhausted a worker.
  * Resolves to {root, meshes, triangles} (occt's node tree; meshes with typed arrays).
  */
 export async function readStep(source, opts = {}) {
-  const { occt = null, occtFactory = null, onProgress = null, signal } = opts;
+  const { occt = null, occtFactory = null, onProgress = null, signal, fallback = true } = opts;
   const workerUrl = opts.workerUrl === undefined ? defaultWorkerUrl() : opts.workerUrl;
   const mainThread = async (bytes) => {
     onProgress?.('starting CAD kernel (main thread)');
@@ -133,7 +136,7 @@ export async function readStep(source, opts = {}) {
       if (given) { msg.bytes = given; w.worker.postMessage(msg, [given.buffer]); } else w.worker.postMessage(msg);
     });
   } catch (err) {
-    if (!err.workerCrashed) throw err;
+    if (!err.workerCrashed || !fallback) throw err;
     return mainThread(copy);
   }
 }
@@ -184,9 +187,11 @@ function meshFor(m, materialFor) {
 /**
  * Build three objects from readStep()'s result: a Group (STEP frame: mm, z up) with one child
  * Group per occt node that has geometry, named after the node (or its nearest named ancestor) and
- * placed at its box middle so it can be matched and moved like a GLB node.
+ * placed at its box middle so it can be matched and moved like a GLB node. With center: false each
+ * group stays at the origin and its vertices keep occt's absolute coordinates.
+ * Materials are shared between meshes of one colour: clone them before changing one mesh's.
  */
-export function stepToObject(data, { polygonOffset = true } = {}) {
+export function stepToObject(data, { polygonOffset = true, center = true } = {}) {
   const cache = new Map();
   const materialFor = (rgb) => {
     const k = rgb ? rgb.join(',') : 'none';
@@ -203,10 +208,12 @@ export function stepToObject(data, { polygonOffset = true } = {}) {
       const group = new THREE.Group();
       group.name = name;
       for (const m of own) { used.add(m); group.add(meshFor(m, materialFor)); }
-      const box = new THREE.Box3().setFromObject(group);
-      const c = box.getCenter(new THREE.Vector3());
-      for (const child of group.children) child.geometry.translate(-c.x, -c.y, -c.z);
-      group.position.copy(c);
+      if (center) {
+        const box = new THREE.Box3().setFromObject(group);
+        const c = box.getCenter(new THREE.Vector3());
+        for (const child of group.children) child.geometry.translate(-c.x, -c.y, -c.z);
+        group.position.copy(c);
+      }
       out.add(group);
     }
     for (const child of node.children || []) visit(child, name);
