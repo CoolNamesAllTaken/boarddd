@@ -3,10 +3,11 @@
 //   ?fp=<url of .kicad_mod>            buildFootprint
 //   ?gerber=<dir with manifest.json>   buildGerberBoard (boarddd/gerber injected, harness-gerber.js)
 //   &view=top|bottom|iso  &w=..&h=..  &bg=#rrggbb
+//   &fill=<mm>  fill and cap plated round holes up to this drill   &paste=1  paste deposits (buildPaste)
 // Sets window.harness = {ok, error, info} once the frame is drawn.
 import * as THREE from 'three';
 import { buildFootprint, parseKicadFootprint } from '/src/footprint/index.js';
-import { buildGerberBoard } from '/src/board/index.js';
+import { buildGerberBoard, buildPaste } from '/src/board/index.js';
 import { gerberApi } from '/test/browser/pages/harness-gerber.js';
 
 const q = new URLSearchParams(location.search);
@@ -28,8 +29,10 @@ async function main() {
   let object;
   if (q.get('fp')) {
     const fp = parseKicadFootprint(await (await fetch(q.get('fp'))).text());
-    const built = buildFootprint(fp);
+    const built = buildFootprint(fp, { fillUpTo: +q.get('fill') || null, paste: q.get('paste') === '1' });
     object = built.group;
+    info.paste = built.meshes.paste.length;
+    info.barrels = built.meshes.barrels.length;
     info.outline = built.outline;
     info.pads = fp.pads.length;
   } else {
@@ -37,8 +40,14 @@ async function main() {
     const manifest = await (await fetch(dir + 'manifest.json')).json();
     const files = await Promise.all(manifest.files.map(async (name) => ({ name, text: await (await fetch(dir + name)).text() })));
     const { api, renderer: gr } = await gerberApi();
-    const built = await buildGerberBoard(api, gr, files, { thickness: 1.6 });
+    const built = await buildGerberBoard(api, gr, files, { thickness: 1.6, fillUpTo: +q.get('fill') || null });
     object = built.group;
+    info.filled = built.fab.holes.filter((h) => h.filled).length;
+    if (q.get('paste') === '1') {
+      const paste = await buildPaste(api, gr, built.fab, built.painted, { thickness: 1.6 });
+      object.add(paste.group);
+      info.paste = Object.fromEntries(Object.entries(paste.meshes).map(([k, m]) => [k, m ? new THREE.Box3().setFromObject(m).min.z : null]));
+    }
     info.outline = built.outline;
     info.holes = { kept: built.holes.kept.length, rejected: built.holes.rejected, leftOut: built.holes.leftOut };
     info.texture = built.painted.size;

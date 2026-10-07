@@ -14,7 +14,7 @@
 - `royalblue54L_components.json`: KiCad demo data (`demos/royalblue54L_feather`), placements from
   `kicad-cli pcb export pos` (KiCad 10.0.6), y flipped back to KiCad's y-down; pairs with
   `examples/data/royalblue54L_feather/board.glb`.
-- `pic_programmer/`: from the wasm-gerber-viewer fork's `examples/board-diff` (at `92976b5`): Gerber and
+- `pic_programmer/`: (`base/manifest.json` lists the files for the browser harness) from the wasm-gerber-viewer fork's `examples/board-diff` (at `92976b5`): Gerber and
   Excellon exports (`kicad-cli pcb export gerbers`, `export drill --excellon-separate-th`, KiCad 10.0.6) of
   KiCad's `demos/pic_programmer` (**KiCad demo data**). `head/` has three edits: mounting hole P101 moved
   from (77.47, 135.89) to (80.47, 133.89) mm, the first two F.Cu and four B.Cu track segments deleted, the

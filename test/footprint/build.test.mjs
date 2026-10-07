@@ -113,3 +113,23 @@ test('buildFootprint decals: layer pictures become transparent sheets in their g
   built.dispose();
   assert.equal(silkTop.source.data !== null, true);   // the caller's textures are not disposed by us
 });
+
+test('buildFootprint: paste on request; fillUpTo caps round plated pad holes (no hole, no barrel)', () => {
+  const fp = parseKicadFootprint(read('pad_placement/USB_C_Receptacle_CNCTech_C-ARA1-AK51X.kicad_mod'));
+  const plain = buildFootprint(fp);
+  assert.equal(plain.meshes.paste.length, 0);
+  const pasted = buildFootprint(fp, { paste: true });
+  const onPaste = fp.pads.filter((p) => p.layers.some((l) => /Paste$/.test(l))).length;
+  assert.ok(onPaste > 0 && pasted.meshes.paste.length >= onPaste);
+  for (const m of pasted.meshes.paste) {
+    assert.equal(m.userData.group, 'paste');
+    const box = new THREE.Box3().setFromObject(m);
+    assert.ok(box.min.z >= BOARD_THICKNESS + COPPER_THICKNESS - 1e-6 || box.max.z <= -COPPER_THICKNESS + 1e-6);
+  }
+  const round = fp.pads.filter((p) => p.type === 'thru_hole' && typeof p.drill === 'object' && p.drill && p.drill.shape !== 'oval');
+  const filled = buildFootprint(fp, { fillUpTo: 0.4 });
+  assert.ok(round.length > 0);
+  assert.equal(filled.meshes.barrels.length, plain.meshes.barrels.length - round.length);
+  assert.equal(buildFootprint(fp, { fillUpTo: 0.39 }).meshes.barrels.length, plain.meshes.barrels.length);
+  for (const b of [plain, pasted, filled]) b.dispose();
+});

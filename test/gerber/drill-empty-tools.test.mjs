@@ -150,3 +150,20 @@ test("the WASM rejects a zero-diameter tool; parseDrillLayerPayload drops it and
   assert.ok(parsed.bounds.minX > 8 && parsed.bounds.maxX < 22, JSON.stringify(parsed.bounds));
   assert.ok(parsed.bounds.minY > 8 && parsed.bounds.maxY < 12, JSON.stringify(parsed.bounds));
 });
+
+test("parseExcellon marks KiCad's ViaDrill tools; holesToExcellon reads back to the same holes", async () => {
+  const { holesToExcellon } = await import("../../src/gerber/drills.js");
+  const text = [
+    "M48", "METRIC",
+    "; #@! TA.AperFunction,Plated,PTH,ViaDrill", "T1C0.300",
+    "; #@! TA.AperFunction,Plated,PTH,ComponentDrill", "T2C1.000",
+    "%", "G90", "G05", "T1", "X1.0Y2.0", "X3.5Y-4.25", "T2", "X10.0Y10.0G85X12.0Y10.0", "M30",
+  ].join("\n");
+  const holes = parseExcellon(text);
+  assert.deepEqual(holes.map((h) => !!h.via), [true, true, false]);
+  const npth = { x: 7, y: 8, diameter: 3.2, plated: false, x2: null, y2: null };
+  const back = parseExcellon(holesToExcellon([...holes, npth]));
+  const strip = ({ via, ...h }) => h;
+  assert.deepEqual(back.map(strip), [...holes, npth].map(strip));
+  assert.equal(parseExcellon(holesToExcellon([])).length, 0);
+});
