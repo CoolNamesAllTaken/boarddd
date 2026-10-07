@@ -235,6 +235,9 @@ def royalblue_usb() -> dict:
     copper.nets = [n for n in copper.nets if n in used]
     copper.warnings.append("a subset: the copper within 3 mm of the USB pair (fixtures/impedance/route)")
     board.footprints, board.components = {}, []  # not needed for the analysis
+    # no version in the fixture: it must survive releases (python/tests/test_fixture_versions.py)
+    board.source.reader = "boarddd io.kicad.read_kicad_pcb"
+    copper.source.reader = "boarddd io.kicad.read_kicad_copper"
     return {"board": board.to_dict(), "copper": copper.to_dict()}
 
 
