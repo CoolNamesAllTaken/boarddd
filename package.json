@@ -1,6 +1,6 @@
 {
   "name": "boarddd",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "PCB rendering for the browser: 2D Gerber/Excellon rendering (wasm), board solids from Gerber/Excellon, KiCad footprints, GLB/STEP models, a small three.js viewer.",
   "license": "MIT",
   "type": "module",
@@ -34,6 +34,10 @@
       "default": "./src/gerber/index.js"
     },
     "./gerber/contour-worker.js": "./src/gerber/contour-worker.js",
+    "./view2d": {
+      "types": "./src/view2d/index.d.ts",
+      "default": "./src/view2d/index.js"
+    },
     "./model": {
       "types": "./src/model/index.d.ts",
       "default": "./src/model/index.js"
@@ -60,7 +64,7 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:browser": "playwright test",
     "serve": "node scripts/serve.mjs",
-    "typecheck": "tsc --noEmit --lib es2022,dom --moduleResolution bundler --module esnext src/geom/index.d.ts src/board/index.d.ts src/footprint/index.d.ts src/models/index.d.ts src/scene/index.d.ts src/model/index.d.ts src/gerber/index.d.ts src/impedance/index.d.ts && tsc -p test/types/tsconfig.json",
+    "typecheck": "tsc --noEmit --lib es2022,dom --moduleResolution bundler --module esnext src/geom/index.d.ts src/board/index.d.ts src/footprint/index.d.ts src/models/index.d.ts src/scene/index.d.ts src/model/index.d.ts src/gerber/index.d.ts src/view2d/index.d.ts src/impedance/index.d.ts && tsc -p test/types/tsconfig.json",
     "build:wasm": "bash scripts/build-wasm.sh",
     "check:wasm": "bash scripts/build-wasm.sh --check"
   },
@@ -70,6 +74,7 @@
   "devDependencies": {
     "@playwright/test": "1.62.1",
     "@types/three": "^0.185.0",
+    "esbuild": "0.28.2",
     "occt-import-js": "0.0.23",
     "three": "0.185.0",
     "typescript": "^5.9.3"
