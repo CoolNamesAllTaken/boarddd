@@ -277,6 +277,18 @@ test('ink diff of SVG sheets: R7 10K -> 4.7K is red and green, in one region', a
   await shotFor(page, testInfo, 'inkdiff');
   expect(await countIn(page, r, (p) => p[0] > 180 && p[1] < 90)).toBeGreaterThan(10);
   expect(await countIn(page, r, (p) => p[1] > 130 && p[0] < 90)).toBeGreaterThan(10);
+  // a side over its own rect: head drawn 10 mm to the right of its true place, the R7 change moves along
+  const moved = await page.evaluate(async () => {
+    const { view2d, sheets } = window.v2;
+    const r = sheets.rect;
+    const s = window.v2.mount({ bounds: r, background: '#ffffff' });
+    const shifted = { minX: r.minX + 10, maxX: r.maxX + 10, minY: r.minY, maxY: r.maxY };
+    s.setScene([{ layers: [{ content: view2d.inkdiff(sheets.base, { src: sheets.head, rect: shifted }, r) }] }]);
+    await s.ready();
+    return s.info(0, 0);
+  });
+  expect(moved.regions.length).toBeGreaterThan(1); // everything moved: many changed areas
+  expect(moved.counts.added).toBeGreaterThan(info.info.counts.added * 10);
   // side by side: the sheets themselves
   await page.evaluate(async () => { window.cmp.setMode('side'); await window.stage.ready(); });
   await grab(page);
@@ -451,4 +463,141 @@ test('a broken source reports an error event, the rest of the scene still draws'
   });
   expect(res.errors.length).toBe(1);
   expect(res.tiles).toEqual([true, false]);
+});
+
+// --- a board drawn from single-colour layers (an app's own palette): gentoo's flat views
+
+/** royalblue54L's outline rings (world mm) and holes. */
+async function rbBoard(page) {
+  return page.evaluate(() => {
+    const { gerber, files, file, holes } = window.v2;
+    const o = gerber.boardOutline(file(files.rb, 'Edge_Cuts').source);
+    window.rbRings = [o.outer, ...o.holes];
+    window.rbHoles = [...holes(files.rb, 'NPTH'), ...holes(files.rb, '-PTH')];
+    return { bounds: o.bounds, holes: window.rbHoles.filter((h) => h.x2 == null && h.diameter >= 2).map((h) => [h.x, h.y, h.diameter]) };
+  });
+}
+
+test('layers as a board: the mask inverted to the outline, clipped to it, laminate, holes open', async ({ page }, testInfo) => {
+  const rb = await rbBoard(page);
+  const green = (p) => p[3] > 200 && p[1] > 60 && p[1] > p[0] + 25 && p[1] > p[2] + 10;
+  const empty = (p) => p[3] === 0;
+  const [hx, hy, d] = rb.holes[0];
+  // 0.35 mm inside the left and right edges (no opening there), outside the rounded corner, the
+  // mounting hole, and the mask right next to it
+  const probes = [[rb.bounds.minX + 0.35, -105], [rb.bounds.maxX - 0.35, -105], [rb.bounds.minX + 0.2, rb.bounds.minY + 0.2], [hx, hy], [hx + d / 2 + 0.4, hy]];
+  const draw = (withOutline) => page.evaluate(async ([withOutline, probes]) => {
+    const { view2d, files, file, bounds } = window.v2;
+    const s = window.v2.mount({ bounds: bounds.rb });
+    const mask = { ...file(files.rb, 'F_Mask'), color: [0.05, 0.32, 0.16], alpha: 1, inverted: true };
+    s.setScene([{ layers: [{ content: view2d.layers([mask], withOutline ? { outline: window.rbRings, holes: window.rbHoles } : {}) }] }]);
+    await s.ready();
+    return probes.map(([x, y]) => window.v2.capturePixel(0, ...s.toScreen(x, y)));
+  }, [withOutline, probes]);
+  const loose = await draw(false);
+  const tight = await draw(true);
+  await grab(page);
+  await shotFor(page, testInfo, 'layers-board');
+  // inverted with nothing to invert against, the mask stops where its own file's openings stop
+  expect(loose.slice(0, 2).every(empty)).toBe(true);
+  // handed the outline, it fills the board to its edge ...
+  expect(tight.slice(0, 2).every(green)).toBe(true);
+  // ... and no further, the holes open
+  expect(empty(tight[2])).toBe(true);
+  expect(empty(tight[3])).toBe(true);
+  expect(green(tight[4])).toBe(true);
+  expect(green(loose[4])).toBe(true);
+});
+
+test('layers as a board without a renderer: laminate only, holes open; and repeat() places copies, turned', async ({ page }, testInfo) => {
+  const rb = await rbBoard(page);
+  const res = await page.evaluate(async () => {
+    const { view2d, bounds } = window.v2;
+    const b = bounds.rb;
+    const cx = (b.minX + b.maxX) / 2;
+    const cy = (b.minY + b.maxY) / 2;
+    // the second copy: half a turn about the origin, then moved to sit right of the first, 4 mm gap
+    const w = b.maxX - b.minX;
+    const second = { x: 2 * cx + w + 4, y: 2 * cy, rotation: 180 };
+    const all = { minX: b.minX, maxX: b.maxX + w + 4, minY: b.minY, maxY: b.maxY };
+    const s = window.v2.mount({ bounds: all, renderer: undefined }); // no renderer at all
+    const errors = [];
+    s.on('error', (e) => errors.push(String(e.error?.message || e.error)));
+    const board = view2d.layers([], { outline: window.rbRings, substrate: '#ff00ff', holes: window.rbHoles });
+    s.setScene([{ layers: [{ content: view2d.repeat(board, [{ x: 0, y: 0 }, second], b) }] }]);
+    await s.ready();
+    return { errors, second, renders: s.stats().renders, rect: view2d.contentRect(view2d.repeat(board, [{ x: 0, y: 0 }, second], b)), all };
+  });
+  expect(res.errors).toEqual([]);
+  expect(res.renders).toBe(1); // drawn once, placed twice
+  for (const k of ['minX', 'maxX', 'minY', 'maxY']) expect(Math.abs(res.rect[k] - res.all[k])).toBeLessThan(1e-6);
+  await grab(page);
+  await shotFor(page, testInfo, 'repeat');
+  const magenta = (p) => p[0] > 200 && p[1] < 60 && p[2] > 200;
+  const [hx, hy, d] = rb.holes[0];
+  const turned = (x, y) => [-x + res.second.x, -y + res.second.y];
+  expect(near(await pixel(page, 0, [hx, hy]), BG)).toBe(true);
+  expect(near(await pixel(page, 0, turned(hx, hy)), BG)).toBe(true);
+  expect(magenta(await pixel(page, 0, [hx + d / 2 + 0.6, hy]))).toBe(true);
+  expect(magenta(await pixel(page, 0, turned(hx + d / 2 + 0.6, hy)))).toBe(true);
+  expect(near(await pixel(page, 0, [rb.bounds.maxX + 2, hy]), BG)).toBe(true); // the gap
+});
+
+test('a picture (interactive: false) ignores the pointer; paddingPx frames with a margin in pixels', async ({ page }) => {
+  const res = await page.evaluate(async () => {
+    const { view2d, bounds } = window.v2;
+    const s = window.v2.mount({ bounds: bounds.pic, interactive: false, padding: 0, paddingPx: 30 });
+    s.setScene([{ layers: [] }]);
+    await s.ready();
+    const b = bounds.pic;
+    const [x0, y0] = s.toScreen(b.minX, b.maxY);
+    const [x1, y1] = s.toScreen(b.maxX, b.minY);
+    const pane = s.panes[0].el;
+    const r = pane.getBoundingClientRect();
+    return { x0, y0, x1, y1, w: r.width, h: r.height, view: s.getView(), pe: getComputedStyle(pane).pointerEvents,
+             hit: document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.id };
+  });
+  // the limiting side has exactly 30 px either side
+  const xs = [res.x0, res.w - res.x1];
+  const ys = [res.y0, res.h - res.y1];
+  const margins = Math.min(...xs) < Math.min(...ys) ? xs : ys;
+  for (const m of margins) expect(Math.abs(m - 30)).toBeLessThan(0.01);
+  expect(res.pe).toBe('none');
+  expect(res.hit).toBe('host'); // what is under the stage gets the pointer
+  await page.mouse.move(400, 250);
+  await page.mouse.wheel(0, -600);
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(() => window.stage.getView())).toEqual(res.view);
+});
+
+test('pixelSnap: at rest a tile is drawn at the screen resolution on the device pixel grid', async ({ page }) => {
+  const tiles = await page.evaluate(async () => {
+    const { view2d, files, file, bounds } = window.v2;
+    const s = window.v2.mount({ bounds: bounds.pic, pixelSnap: true, dpr: 1 });
+    s.setScene([{ layers: [{ content: view2d.layers([{ ...file(files.picBase, 'top_layer'), color: [1, 0, 0], alpha: 1 }]) }] }]);
+    await s.ready();
+    const out = [];
+    const place = () => {
+      const t = s.stats().tiles[0][0].base;
+      const c = s.panes[0].el.querySelector('canvas');
+      const m = new DOMMatrix(getComputedStyle(c).transform);
+      out.push({ r: t.r, s: s.getView().s, a: m.a, e: m.e, f: m.f, renders: s.stats().renders });
+    };
+    place();
+    s.setView({ ...s.getView(), cx: s.getView().cx + 0.37 / s.getView().s }); // a fractional pan
+    await s.ready();
+    place();
+    s.setFlip(true);
+    await s.ready();
+    place();
+    return out;
+  });
+  for (const t of tiles) {
+    expect(Math.abs(t.r / t.s - 1)).toBeLessThan(1e-9); // screen resolution, not a sqrt(2) step
+    expect(Math.abs(Math.abs(t.a) - 1)).toBeLessThan(1e-6); // one tile pixel per screen pixel
+    expect(Math.abs(t.e - Math.round(t.e))).toBeLessThan(1e-3);
+    expect(Math.abs(t.f - Math.round(t.f))).toBeLessThan(1e-3);
+  }
+  expect(tiles[1].renders).toBeGreaterThan(tiles[0].renders); // moved off the grid: drawn again
+  expect(tiles[2].a).toBeLessThan(0); // mirrored
 });

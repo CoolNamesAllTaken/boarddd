@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 322" width="400" height="322" role="img" aria-label="SOP-8_3.76x4.96mm_P1.27mm">
+<style>
+.fp-bg{fill:var(--fp-bg,transparent)}
+.fp-pad{fill:var(--fp-pad,#c8a14a);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-paste{fill:none;stroke:var(--fp-paste,#7a7a7a);stroke-width:1px;stroke-dasharray:3 2;vector-effect:non-scaling-stroke}
+.fp-drill{fill:var(--fp-bg,#fff);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-court{fill:none;stroke:var(--fp-courtyard,#d040d0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-body{fill:none;stroke:var(--fp-body,#6080a0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-pin1{fill:var(--fp-pin1,#e03030)}
+.fp-origin{stroke:var(--fp-origin,#2a8a2a);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-dim{stroke:var(--fp-dim,#3070c0);fill:none;stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-text{fill:var(--fp-text,#222);font:600 11px system-ui,sans-serif;text-anchor:middle;dominant-baseline:central}
+.fp-dimtext{fill:var(--fp-dim,#3070c0);font:11px system-ui,sans-serif;text-anchor:middle}
+.fp-old{fill:none;stroke:var(--fp-old,#d04040);stroke-width:2px;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.fp-new{fill:var(--fp-new,#3a8ad0);fill-opacity:.35;stroke:var(--fp-new,#3a8ad0);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-same{fill:var(--fp-pad,#c8a14a);fill-opacity:.55;stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-changed{fill:none;stroke:var(--fp-changed,#e09000);stroke-width:3px;vector-effect:non-scaling-stroke}
+.fp-legend{fill:var(--fp-text,#222);font:11px system-ui,sans-serif}
+</style>
+<rect class="fp-bg" width="400" height="322"/>
+<g transform="translate(200 152.2222) scale(45.5026 -45.5026)">
+<polyline class="fp-court" points="-3.78,2.73 -3.78,-2.73"/>
+<polyline class="fp-court" points="-3.78,-2.73 3.78,-2.73"/>
+<polyline class="fp-court" points="3.78,2.73 -3.78,2.73"/>
+<polyline class="fp-court" points="3.78,-2.73 3.78,2.73"/>
+<polyline class="fp-body" points="-1.88,1.54 -0.94,2.48"/>
+<polyline class="fp-body" points="-1.88,-2.48 -1.88,1.54"/>
+<polyline class="fp-body" points="-0.94,2.48 1.88,2.48"/>
+<polyline class="fp-body" points="1.88,2.48 1.88,-2.48"/>
+<polyline class="fp-body" points="1.88,-2.48 -1.88,-2.48"/>
+<rect class="fp-pad" x="-3.525" y="1.58" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-paste" x="-3.525" y="1.58" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-pad" x="-3.525" y="0.31" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-paste" x="-3.525" y="0.31" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-pad" x="-3.525" y="-0.96" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-paste" x="-3.525" y="-0.96" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-pad" x="-3.525" y="-2.23" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-paste" x="-3.525" y="-2.23" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-pad" x="1.55" y="-2.23" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-paste" x="1.55" y="-2.23" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-pad" x="1.55" y="-0.96" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-paste" x="1.55" y="-0.96" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-pad" x="1.55" y="0.31" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-paste" x="1.55" y="0.31" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-pad" x="1.55" y="1.58" width="1.975" height="0.65" rx="0.1625"/>
+<rect class="fp-paste" x="1.55" y="1.58" width="1.975" height="0.65" rx="0.1625"/>
+<path class="fp-origin" d="M-0.1758 0H0.1758M0 -0.1758V0.1758"/>
+</g>
+<text class="fp-text" x="84.537" y="65.5397" style="font-size:11px">1</text>
+<text class="fp-text" x="84.537" y="123.328" style="font-size:11px">2</text>
+<text class="fp-text" x="84.537" y="181.1164" style="font-size:11px">3</text>
+<text class="fp-text" x="84.537" y="238.9048" style="font-size:11px">4</text>
+<text class="fp-text" x="315.463" y="238.9048" style="font-size:11px">5</text>
+<text class="fp-text" x="315.463" y="181.1164" style="font-size:11px">6</text>
+<text class="fp-text" x="315.463" y="123.328" style="font-size:11px">7</text>
+<text class="fp-text" x="315.463" y="65.5397" style="font-size:11px">8</text>
+<path class="fp-dim" d="M98.537 65.5397V123.328M94.537 65.5397h8M94.537 123.328h8"/>
+<text class="fp-dimtext" x="120.537" y="98.4339">1.27</text>
+<text class="fp-legend" x="8" y="316">SOP-8_3.76x4.96mm_P1.27mm</text>
+</svg>

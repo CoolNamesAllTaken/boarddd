@@ -9,6 +9,15 @@ import {
 const close = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) <= eps, `${a} != ${b}`);
 const B = { minX: 10, maxX: 110, minY: -20, maxY: 30 }; // 100 x 50 mm
 
+test('fit with a margin in pixels: padPx either side of the limiting side, plus the fraction', () => {
+  const v = fitBounds(B, 800, 600, 0, 40);
+  close(v.s, (800 - 80) / 100);
+  const [x0] = toScreen(v, 800, 600, B.minX, B.maxY);
+  close(x0, 40);
+  close(fitBounds(B, 800, 600, 0.05, 40).s, ((800 - 80) / 100) * 0.9);
+  close(fitBounds(B, 200, 2000, 0, 150).s, 1 / 100); // never less than one pixel to fit into
+});
+
 test('fit centres the bounds and leaves the padding on the limiting side', () => {
   const v = fitBounds(B, 800, 600, 0.05);
   assert.deepEqual([v.cx, v.cy], [60, 5]);

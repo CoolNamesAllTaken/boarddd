@@ -15,7 +15,7 @@ export type Region = { cx: number; cy: number; w: number };
 export declare const MIN_SCALE: number;
 export declare const MAX_SCALE: number;
 export declare function boundsSize(b: Bounds): { w: number; h: number };
-export declare function fitBounds(bounds: Bounds, pw: number, ph: number, pad?: number): View;
+export declare function fitBounds(bounds: Bounds, pw: number, ph: number, pad?: number, padPx?: number): View;
 export declare function clampScale(s: number, min?: number, max?: number): number;
 export declare function toScreen(v: View, pw: number, ph: number, x: number, y: number, flip?: boolean): [number, number];
 export declare function toWorld(v: View, pw: number, ph: number, px: number, py: number, flip?: boolean): [number, number];
@@ -46,21 +46,42 @@ export type StackLayer = {
   name?: string;
   /** false: skipped. */
   visible?: boolean;
+  /** Drawn inverted (a solder mask: the file marks the openings), filled to the content's outline when it has one. */
+  inverted?: boolean;
 };
+/** World mm. `[board, ...cutouts]` or `{ board, cutouts }`. */
+export type Ring = Array<[number, number]>;
+export type Outline = Ring[] | { board: Ring; cutouts?: Ring[] };
+/** A drill in world mm; a slot has (x2, y2); a filled hole is not cut. */
+export type Hole = { x: number; y: number; d?: number; diameter?: number; x2?: number | null; y2?: number | null; filled?: boolean };
+export type LayersOptions = {
+  /** Inverted layers fill to it; the layers are clipped to it (even-odd) unless `clip: false`. */
+  outline?: Outline | null;
+  clip?: boolean;
+  /** CSS colour inside the outline, under the layers (laminate). */
+  substrate?: string | null;
+  /** Cut out of the drawing: what is under the stage shows through. */
+  holes?: Hole[] | null;
+};
+/** Where a repeat places its content: turned `rotation` degrees CCW about the world origin, then moved by (x, y). */
+export type Placement = { x?: number; y?: number; rotation?: number };
 export type FaceContent = { type: 'face'; board: BoardDescription; side: 'top' | 'bottom'; palette: BoardPalette | BoardPaletteOptions; options: BoardLayerOptions };
-export type LayersContent = { type: 'layers'; layers: StackLayer[] };
+export type LayersContent = { type: 'layers'; layers: StackLayer[]; options: Omit<LayersOptions, 'outline'> & { outline: Ring[] | null } };
+export type RepeatContent = { type: 'repeat'; content: Content; placements: Placement[]; rect: Bounds | null };
 export type DiffContent = {
   type: 'diff'; base: DiffSide; head: DiffSide; regions: boolean;
   options: { style?: DiffStyle; colors?: { removed?: RGBColor; added?: RGBColor; unchanged?: RGBColor }; showUnchanged?: boolean; underlay?: Array<{ source: GerberSource; name?: string; color?: RGBColor; alpha?: number }> };
 };
 export type ImageContent = { type: 'image'; src: ImageInput; rect: Bounds };
+/** An image, or an image over its own world rect. */
+export type InkSide = ImageInput | { src: ImageInput; rect: Bounds };
 export type InkDiffContent = {
-  type: 'inkdiff'; base: ImageInput | null; head: ImageInput | null; rect: Bounds;
+  type: 'inkdiff'; base: InkSide | null; head: InkSide | null; rect: Bounds;
   options: { mode: 'ink' | 'alpha'; tol: number; colors: InkColors; regionGapMm: number };
 };
 export type RasterJob = { rect: Bounds; width: number; height: number; r: number };
 export type DrawContent = { type: 'draw'; draw: (ctx: CanvasRenderingContext2D, job: RasterJob) => void | Promise<void>; rect: Bounds | null };
-export type Content = FaceContent | LayersContent | DiffContent | ImageContent | InkDiffContent | DrawContent;
+export type Content = FaceContent | LayersContent | RepeatContent | DiffContent | ImageContent | InkDiffContent | DrawContent;
 
 /** A changed area in world mm. */
 export type ChangeRegion = Bounds & { pixels: number; kind?: 'added' | 'removed' | 'mixed' };
@@ -72,14 +93,20 @@ export type ContentInfo = {
 };
 
 export declare function face(board: BoardDescription, options?: BoardLayerOptions & { palette?: BoardPalette | BoardPaletteOptions }): FaceContent;
-export declare function layers(list: StackLayer[]): LayersContent;
+export declare function layers(list: StackLayer[], options?: LayersOptions): LayersContent;
+/** `content` drawn once over `rect` (default: its own) and placed at each placement (a panel's copies). */
+export declare function repeat(content: Content, placements: Placement[], rect?: Bounds | null): RepeatContent;
+/** Rings from either outline form; null without a usable board ring. */
+export declare function outlineRings(outline: Outline | null | undefined): Ring[] | null;
+/** Round holes and stadium slots (world mm) as one Path2D; filled holes left out. */
+export declare function holesPath(holes: Hole[] | null | undefined): Path2D;
 export declare function diff(
   base: DiffSide,
   head: DiffSide,
   options?: DiffContent['options'] & { /** Also report changed regions (an extra analysis pass). */ regions?: boolean },
 ): DiffContent;
 export declare function image(src: ImageInput, rect: Bounds): ImageContent;
-export declare function inkdiff(base: ImageInput | null, head: ImageInput | null, rect: Bounds, options?: Partial<InkDiffContent['options']>): InkDiffContent;
+export declare function inkdiff(base: InkSide | null, head: InkSide | null, rect: Bounds, options?: Partial<InkDiffContent['options']>): InkDiffContent;
 export declare function draw(fn: DrawContent['draw'], rect?: Bounds | null): DrawContent;
 export declare function contentRect(c: Content): Bounds | null;
 export declare function isEmptySource(source: GerberSource, drill?: boolean): boolean;
@@ -167,6 +194,8 @@ export type SceneLayer = {
   className?: string;
 };
 export type PaneSpec = {
+  /** Extra classes on the pane element (it always has `bd2-pane`, and `data-side` when `side` is set). */
+  className?: string;
   label?: string;
   labelRight?: string;
   /** Free tag handed back in events and overlay contexts ('base', 'head', ...). */
@@ -198,6 +227,8 @@ export type StageEvents = {
   measure: { points: Array<{ x: number; y: number }>; result: MeasureResult | null };
   render: { pane: number; layer: number; content: Content; info: ContentInfo; r: number };
   error: { error: unknown; pane?: number; layer?: number; content?: Content };
+  /** A re-render is scheduled or running (true), or the panes are up to date (false). */
+  busy: { busy: boolean };
 };
 export type StageState = { region: Region | null; flip: boolean; tool: 'pan' | 'measure'; measure: Array<{ x: number; y: number }> };
 export type StageOptions = {
@@ -208,6 +239,16 @@ export type StageOptions = {
   flip?: boolean;
   /** Fit margin, fraction of the pane (default 0.02). */
   padding?: number;
+  /** Fit margin in CSS px on every side, besides `padding` (default 0). */
+  paddingPx?: number;
+  /** false: a picture, no pan / zoom / pointer events (they reach what is under the stage). Default true. */
+  interactive?: boolean;
+  /**
+   * Render at the screen's own resolution (CSS px per mm x dpr, not sqrt(2) steps), each tile on the
+   * device pixel grid: at rest a tile pixel is a screen pixel, as crisp as drawing straight to the
+   * screen. Default false.
+   */
+  pixelSnap?: boolean;
   region?: Region | null;
   /** Re-render this long after the view stops moving (default 180 ms). */
   settleMs?: number;
@@ -222,6 +263,8 @@ export type StageOptions = {
   background?: string | null;
   /** Distance label on the measure line (default true). */
   measureLabel?: boolean;
+  /** Add a <style> with STAGE_CSS (default true). false under a CSP without 'unsafe-inline' styles: ship STAGE_CSS in a stylesheet. */
+  injectCss?: boolean;
 };
 export type TileStats = { r: number; width: number; height: number; rect: Bounds } | null;
 export type Stage = {
@@ -258,6 +301,8 @@ export type Stage = {
   destroy(): void;
 };
 export declare function createStage(container: HTMLElement, options?: StageOptions): Stage;
+/** The stage's base CSS (pane layout, overlay, labels, measure), as createStage injects it. */
+export declare const STAGE_CSS: string;
 export declare function svgEl<K extends keyof SVGElementTagNameMap>(tag: K, attrs?: Record<string, string | number | null | undefined>, parent?: Element | null): SVGElementTagNameMap[K];
 export declare function measureText(m: MeasureResult | null): string;
 

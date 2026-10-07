@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 325" width="400" height="325" role="img" aria-label="SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.3mm">
+<style>
+.fp-bg{fill:var(--fp-bg,transparent)}
+.fp-pad{fill:var(--fp-pad,#c8a14a);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-paste{fill:none;stroke:var(--fp-paste,#7a7a7a);stroke-width:1px;stroke-dasharray:3 2;vector-effect:non-scaling-stroke}
+.fp-drill{fill:var(--fp-bg,#fff);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-court{fill:none;stroke:var(--fp-courtyard,#d040d0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-body{fill:none;stroke:var(--fp-body,#6080a0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-pin1{fill:var(--fp-pin1,#e03030)}
+.fp-origin{stroke:var(--fp-origin,#2a8a2a);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-dim{stroke:var(--fp-dim,#3070c0);fill:none;stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-text{fill:var(--fp-text,#222);font:600 11px system-ui,sans-serif;text-anchor:middle;dominant-baseline:central}
+.fp-dimtext{fill:var(--fp-dim,#3070c0);font:11px system-ui,sans-serif;text-anchor:middle}
+.fp-old{fill:none;stroke:var(--fp-old,#d04040);stroke-width:2px;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.fp-new{fill:var(--fp-new,#3a8ad0);fill-opacity:.35;stroke:var(--fp-new,#3a8ad0);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-same{fill:var(--fp-pad,#c8a14a);fill-opacity:.55;stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-changed{fill:none;stroke:var(--fp-changed,#e09000);stroke-width:3px;vector-effect:non-scaling-stroke}
+.fp-legend{fill:var(--fp-text,#222);font:11px system-ui,sans-serif}
+</style>
+<rect class="fp-bg" width="400" height="325"/>
+<g transform="translate(200 153.5135) scale(46.4865 -46.4865)">
+<polyline class="fp-court" points="-3.7,2.46 -2.2,2.46"/>
+<polyline class="fp-court" points="-3.7,-2.46 -3.7,2.46"/>
+<polyline class="fp-court" points="-2.2,2.7 2.2,2.7"/>
+<polyline class="fp-court" points="-2.2,2.46 -2.2,2.7"/>
+<polyline class="fp-court" points="-2.2,-2.46 -3.7,-2.46"/>
+<polyline class="fp-court" points="-2.2,-2.7 -2.2,-2.46"/>
+<polyline class="fp-court" points="2.2,2.7 2.2,2.46"/>
+<polyline class="fp-court" points="2.2,2.46 3.7,2.46"/>
+<polyline class="fp-court" points="2.2,-2.46 2.2,-2.7"/>
+<polyline class="fp-court" points="2.2,-2.7 -2.2,-2.7"/>
+<polyline class="fp-court" points="3.7,2.46 3.7,-2.46"/>
+<polyline class="fp-court" points="3.7,-2.46 2.2,-2.46"/>
+<polyline class="fp-body" points="-0.975,2.45 1.95,2.45 1.95,-2.45 -1.95,-2.45 -1.95,1.475 -0.975,2.45"/>
+<rect class="fp-pad" x="-3.45" y="1.605" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-paste" x="-3.45" y="1.605" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-pad" x="-3.45" y="0.335" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-paste" x="-3.45" y="0.335" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-pad" x="-3.45" y="-0.935" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-paste" x="-3.45" y="-0.935" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-pad" x="-3.45" y="-2.205" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-paste" x="-3.45" y="-2.205" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-pad" x="1.5" y="-2.205" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-paste" x="1.5" y="-2.205" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-pad" x="1.5" y="-0.935" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-paste" x="1.5" y="-0.935" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-pad" x="1.5" y="0.335" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-paste" x="1.5" y="0.335" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-pad" x="1.5" y="1.605" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-paste" x="1.5" y="1.605" width="1.95" height="0.6" rx="0.15"/>
+<rect class="fp-pad" x="-1.205" y="-1.65" width="2.41" height="3.3" rx="0"/>
+<path class="fp-origin" d="M-0.1721 0H0.1721M0 -0.1721V0.1721"/>
+</g>
+<text class="fp-text" x="84.9459" y="64.9568" style="font-size:11px">1</text>
+<text class="fp-text" x="84.9459" y="123.9946" style="font-size:11px">2</text>
+<text class="fp-text" x="84.9459" y="183.0324" style="font-size:11px">3</text>
+<text class="fp-text" x="84.9459" y="242.0703" style="font-size:11px">4</text>
+<text class="fp-text" x="315.0541" y="242.0703" style="font-size:11px">5</text>
+<text class="fp-text" x="315.0541" y="183.0324" style="font-size:11px">6</text>
+<text class="fp-text" x="315.0541" y="123.9946" style="font-size:11px">7</text>
+<text class="fp-text" x="315.0541" y="64.9568" style="font-size:11px">8</text>
+<text class="fp-text" x="200" y="153.5135" style="font-size:11px">9</text>
+<path class="fp-dim" d="M98.9459 64.9568V123.9946M94.9459 64.9568h8M94.9459 123.9946h8"/>
+<text class="fp-dimtext" x="120.9459" y="98.4757">1.27</text>
+<text class="fp-legend" x="8" y="319">SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.3mm</text>
+</svg>

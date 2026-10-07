@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 319" width="400" height="319" role="img" aria-label="Trapezoid_Delta">
+<style>
+.fp-bg{fill:var(--fp-bg,transparent)}
+.fp-pad{fill:var(--fp-pad,#c8a14a);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-paste{fill:none;stroke:var(--fp-paste,#7a7a7a);stroke-width:1px;stroke-dasharray:3 2;vector-effect:non-scaling-stroke}
+.fp-drill{fill:var(--fp-bg,#fff);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-court{fill:none;stroke:var(--fp-courtyard,#d040d0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-body{fill:none;stroke:var(--fp-body,#6080a0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-pin1{fill:var(--fp-pin1,#e03030)}
+.fp-origin{stroke:var(--fp-origin,#2a8a2a);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-dim{stroke:var(--fp-dim,#3070c0);fill:none;stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-text{fill:var(--fp-text,#222);font:600 11px system-ui,sans-serif;text-anchor:middle;dominant-baseline:central}
+.fp-dimtext{fill:var(--fp-dim,#3070c0);font:11px system-ui,sans-serif;text-anchor:middle}
+.fp-old{fill:none;stroke:var(--fp-old,#d04040);stroke-width:2px;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.fp-new{fill:var(--fp-new,#3a8ad0);fill-opacity:.35;stroke:var(--fp-new,#3a8ad0);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-same{fill:var(--fp-pad,#c8a14a);fill-opacity:.55;stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-changed{fill:none;stroke:var(--fp-changed,#e09000);stroke-width:3px;vector-effect:non-scaling-stroke}
+.fp-legend{fill:var(--fp-text,#222);font:11px system-ui,sans-serif}
+</style>
+<rect class="fp-bg" width="400" height="319"/>
+<g transform="translate(197.5775 144.2817) scale(24.2254 -24.2254)">
+<polygon class="fp-pad" points="-7,3.2 -7,4.8 -5,4.4 -5,3.6"/>
+<polygon class="fp-paste" points="-7,3.2 -7,4.8 -5,4.4 -5,3.6"/>
+<polygon class="fp-pad" points="-3,3.6 -3,4.4 -1,4.8 -1,3.2"/>
+<polygon class="fp-paste" points="-3,3.6 -3,4.4 -1,4.8 -1,3.2"/>
+<polygon class="fp-pad" points="0.8,3.4 1.2,4.6 2.8,4.6 3.2,3.4"/>
+<polygon class="fp-paste" points="0.8,3.4 1.2,4.6 2.8,4.6 3.2,3.4"/>
+<polygon class="fp-pad" points="5.2,3.4 4.8,4.6 7.2,4.6 6.8,3.4"/>
+<polygon class="fp-paste" points="5.2,3.4 4.8,4.6 7.2,4.6 6.8,3.4"/>
+<polygon class="fp-pad" points="-5.2,-1 -6.8,-1 -6.4,1 -5.6,1"/>
+<polygon class="fp-paste" points="-5.2,-1 -6.8,-1 -6.4,1 -5.6,1"/>
+<polygon class="fp-pad" points="-2.6959,-1.0946 -3.0361,0.0946 -1.5639,0.9446 -0.7041,0.0554"/>
+<polygon class="fp-paste" points="-2.6959,-1.0946 -3.0361,0.0946 -1.5639,0.9446 -0.7041,0.0554"/>
+<polygon class="fp-pad" points="3.0253,-0.3889 2.3889,-1.0253 0.7626,0.1768 1.8232,1.2374"/>
+<polygon class="fp-paste" points="3.0253,-0.3889 2.3889,-1.0253 0.7626,0.1768 1.8232,1.2374"/>
+<polygon class="fp-pad" points="5,0.55 7,1.05 7,-1.05 5,-0.55"/>
+<polygon class="fp-paste" points="5,0.55 7,1.05 7,-1.05 5,-0.55"/>
+<polygon class="fp-pad" points="-1.4541,-5.3544 -3.2727,-4.3044 -1.7397,-2.6492 -0.7871,-3.1992"/>
+<ellipse class="fp-drill" cx="-1.8134" cy="-3.8768" rx="0.3" ry="0.3"/>
+<polygon class="fp-pad" points="0.7504,-4.2901 1.5581,-3.0943 2.9207,-3.5902 2.7708,-5.0255"/>
+<ellipse class="fp-drill" cx="2" cy="-4" rx="0.25" ry="0.25"/>
+<path class="fp-origin" d="M-0.3302 0H0.3302M0 -0.3302V0.3302"/>
+</g>
+<text class="fp-text" x="52.2254" y="47.3803" style="font-size:11px">1</text>
+<text class="fp-text" x="149.1268" y="47.3803" style="font-size:11px">2</text>
+<text class="fp-text" x="246.0282" y="47.3803" style="font-size:11px">3</text>
+<text class="fp-text" x="342.9296" y="47.3803" style="font-size:11px">4</text>
+<text class="fp-text" x="52.2254" y="144.2817" style="font-size:11px">5</text>
+<text class="fp-text" x="149.1268" y="144.2817" style="font-size:11px">6</text>
+<text class="fp-text" x="246.0282" y="144.2817" style="font-size:11px">7</text>
+<text class="fp-text" x="342.9296" y="144.2817" style="font-size:11px">8</text>
+<text class="fp-text" x="153.6473" y="238.1984" style="font-size:11px">9</text>
+<text class="fp-text" x="246.0282" y="241.1831" style="font-size:11px">10</text>
+<path class="fp-dim" d="M52.2254 33.3803H149.1268M52.2254 29.3803v8M149.1268 29.3803v8"/>
+<text class="fp-dimtext" x="100.6761" y="28.3803">4 mm</text>
+<text class="fp-legend" x="8" y="313">Trapezoid_Delta</text>
+</svg>

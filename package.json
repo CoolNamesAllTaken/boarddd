@@ -1,6 +1,6 @@
 {
   "name": "boarddd",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "PCB rendering for the browser: 2D Gerber/Excellon rendering (wasm), board solids from Gerber/Excellon, KiCad footprints, GLB/STEP models, a small three.js viewer.",
   "license": "MIT",
   "type": "module",
@@ -54,6 +54,7 @@
     "src",
     "schema",
     "third_party/wasm-gerber-renderer/core",
+    "third_party/wasm-gerber-renderer/odb",
     "third_party/wasm-gerber-renderer/LICENSE",
     "third_party/wasm-gerber-renderer/README.md",
     "third_party/wasm-gerber-renderer/FORK_COMMIT",

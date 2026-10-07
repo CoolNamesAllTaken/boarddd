@@ -10,7 +10,10 @@ import {
   layerStack,
   layers,
   parseViewState,
+  repeat,
   segmentShape,
+  type Hole,
+  type Placement,
   type CompareMode,
   type MeasureResult,
   type Region,
@@ -42,6 +45,13 @@ async function app(): Promise<string> {
   marks.invalidate();
   const region: Region | null = stage.getRegion();
   cmp.setState({ ...parseViewState(new URLSearchParams("z=1,2,3&mode=onion&op=0.4")), region });
+  // a board in an app's own colours: the mask inverted to the outline, laminate, holes open; a panel's copies
+  const rings: Array<[number, number]>[] = [[[0, 0], [10, 0], [10, 5], [0, 5]]];
+  const holes: Hole[] = [{ x: 1, y: 1, d: 0.8 }, { x: 3, y: 1, diameter: 1, x2: 4, y2: 1, filled: false }];
+  const board = layers([{ source: files[0].source, color: [0.05, 0.32, 0.16], inverted: true }], { outline: { board: rings[0], cutouts: [] }, substrate: "#c9b27c", holes });
+  const copies: Placement[] = [{ x: 0, y: 0 }, { x: 20, y: 10, rotation: 180 }];
+  const picture = createStage(host, { renderer: () => renderer, interactive: false, pixelSnap: true, paddingPx: 16, padding: 0 });
+  picture.setScene([{ layers: [{ content: repeat(board, copies, bounds), opacity: 0.8 }] }]);
   await stage.ready();
   return `${mode} ${new URLSearchParams(formatViewState(cmp.getState()))}`;
 }
