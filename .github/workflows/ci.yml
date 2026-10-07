@@ -52,6 +52,8 @@ jobs:
         run: python -m boarddd.model --check
       - name: Golden board.json is reproducible
         run: python ../fixtures/royalblue54L_feather/make_board.py --check
+      - name: Golden copper.json is reproducible
+        run: python ../fixtures/royalblue54L_nfc_antenna/make_copper.py --check
       - run: pytest
         env:
           BOARDDD_REQUIRE_RENDER: "1"

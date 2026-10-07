@@ -12,6 +12,7 @@ fab package / .kicad_pcb / ODB++ / IPC-2581 / STEP ──► boarddd (Python) re
   - `src/model/schema.js`: the same object as an ES module
   - `src/model/board.d.ts`: the TypeScript interfaces
 - **Validation**: `boarddd.validate.validate_board(data)` (Python) and `validateBoard(board)` from `boarddd/model` (JS). Both return the same `"/json/pointer: message"` list, checked by the shared cases in `fixtures/model/cases.json`. Neither has dependencies; the Python tests also check the schema with `jsonschema`.
+- **Copper** (tracks, vias, zone fills, pads with nets) is a separate document, `copper.json` (`boarddd/copper@1`), generated the same way into `schema/copper.schema.json` and `src/copper/`: see [copper.md](copper.md).
 - **Golden data**: [`fixtures/royalblue54L_feather/board.json`](../fixtures/royalblue54L_feather/board.json) (KiCad's demo board, built by `make_board.py` from `boarddd.io.kicad.read_kicad_pcb` and `boarddd.io.package.read_package`; see [readers.md](readers.md)) and `fixtures/model/minimal.json`.
 
 ```python

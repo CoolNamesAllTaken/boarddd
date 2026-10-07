@@ -537,7 +537,7 @@ def to_dict(obj: Any) -> Any:
 
 
 def _hints(cls: type) -> dict[str, Any]:
-    return get_type_hints(cls, globalns=globals(), localns={"Vec2": Vec2, "Vec3": Vec3})
+    return get_type_hints(cls, globalns=vars(sys.modules[cls.__module__]), localns={"Vec2": Vec2, "Vec3": Vec3})
 
 
 def from_dict(cls: type, data: Any) -> Any:
@@ -564,7 +564,7 @@ def _convert(tp: Any, v: Any) -> Any:
     if origin is list:
         return [_convert(args[0], x) for x in v]
     if origin is tuple:
-        return tuple(float(x) for x in v)
+        return tuple(_convert(a, x) for a, x in zip(args, v, strict=True))
     if origin is dict:
         return {k: _convert(args[1], x) for k, x in v.items()}
     if tp is float and isinstance(v, int) and not isinstance(v, bool):

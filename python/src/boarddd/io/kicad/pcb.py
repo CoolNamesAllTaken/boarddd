@@ -9,6 +9,9 @@ drawable layers are fab outputs (Gerbers, drill files), which ``boarddd.io`` rea
 Frames (docs/model.md): KiCad stores page coordinates, y down; the board frame negates y. Footprints are
 stored in library form (see ``footprint.py``).
 
+``read_kicad_copper(path)`` reads the routed copper into a ``boarddd/copper@1`` document (tracks, arcs, vias, zone
+fills, keepouts, pads as copper, net ties; see ``boarddd.copper`` and docs/copper.md).
+
 ``load(text)`` is the other half: kipr's item view of a board for diffing (tracks, vias, zones, graphics with
 canonical keys and bounding boxes, KiCad frame).
 
@@ -27,13 +30,24 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from ... import __version__
+from ... import copper as cu
 from ... import model as m
-from .footprint import footprint_angle, graphic_points, read_footprint
-from .geom import arc_through, r, ring_points, rotate, signed_area
+from .footprint import footprint_angle, graphic_points, read_footprint, read_pad
+from .geom import arc_from_center, arc_through, pad_offset, pad_outline, r, ring_points, rotate, signed_area
 from .project import KicadProject, assign_nets, read_kicad_pro
 from .sexpr import Atom, Node, dumps, parse
 
-__all__ = ["read_kicad_pcb", "read_stackup", "read_nets", "load", "PcbFile", "PcbFootprint", "Item", "Zone"]
+__all__ = [
+    "read_kicad_pcb",
+    "read_kicad_copper",
+    "read_stackup",
+    "read_nets",
+    "load",
+    "PcbFile",
+    "PcbFootprint",
+    "Item",
+    "Zone",
+]
 
 
 def to_board(p) -> tuple[float, float]:
@@ -593,6 +607,395 @@ def _legacy_net_classes(tree: Node, nets: list[m.Net]) -> list[m.NetClass]:
         for n in nets:
             n.net_class = n.net_class or "Default"
     return out
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# copper (boarddd/copper@1): tracks, arcs, vias, zone fills, keepouts, pads, net ties
+
+_COPPER_TYPES = ("signal", "power", "mixed", "jumper")
+_KEEPOUT_RULES = {"tracks": "tracks", "vias": "vias", "pads": "pads", "copperpour": "pours", "footprints": "footprints"}
+
+
+def read_kicad_copper(
+    source: str | Path,
+    *,
+    name: str | None = None,
+    root: str | Path | None = None,
+    check_fills: bool = True,
+    segments: int = 8,
+) -> cu.Copper:
+    """The copper of a ``.kicad_pcb`` (a path, or the file's text) as a ``boarddd/copper@1`` document.
+
+    Zone fills are taken as the file stores them (KiCad saves its last fill): zones with no fill get
+    ``filled: false`` and a warning, and with ``check_fills`` a fill holding copper of another net is marked
+    ``stale`` (with a warning). ``segments``: points per quarter turn when pad corners and circles are flattened.
+    """
+    path = None if isinstance(source, str) and source.lstrip().startswith("(") else Path(source)
+    text = path.read_text(encoding="utf-8") if path else str(source)
+    tree = parse(text)
+    if tree.name != "kicad_pcb":
+        raise ValueError("not a .kicad_pcb file")
+    files = []
+    if path is not None:
+        base = Path(root) if root is not None else path.parent
+        files.append(m.SourceFile(path=_rel(path, base), role="pcb", sha256=_sha256(path)))
+    warnings: list[str] = []
+    copper = copper_layers(tree)
+    nets = {str(n.arg(0)): str(n.arg(1)) for n in tree.children("net") if len(n.atoms()) >= 2}
+    doc = cu.Copper(
+        board=name or (path.stem if path else "board"),
+        source=m.Source(
+            kind="kicad_pcb",
+            files=files,
+            generator=_generator(tree),
+            reader=f"boarddd {__version__} io.kicad copper",
+        ),
+        layers=copper,
+        warnings=warnings,
+    )
+    pruned: list[cu.Via] = []  # 'remove unused layers' vias: their rings depend on what connects to them
+    for n in tree.children():
+        if n.name in ("segment", "arc"):
+            doc.tracks.append(_copper_track(n, nets))
+        elif n.name == "via":
+            doc.vias.append(_copper_via(n, nets, copper))
+            if n.flag("remove_unused_layers"):
+                pruned.append(doc.vias[-1])
+    refs: dict[int, str] = {}
+    for fp in tree.children():
+        if fp.name in ("footprint", "module"):
+            ref = _fp_ref(fp)
+            refs[id(fp)] = ref
+            doc.pads += _copper_pads(fp, ref, nets, copper, warnings, segments)
+            tie = _net_tie(fp, ref, nets)
+            if tie is not None:
+                doc.net_ties.append(tie)
+    zone_nodes = [(z, None) for z in tree.children("zone")]
+    for fp in tree.children():
+        if fp.name in ("footprint", "module"):
+            zone_nodes += [(z, refs[id(fp)]) for z in fp.children("zone")]
+    shapes, strokes = _copper_shapes(tree, copper, nets, warnings)
+    doc.zones += shapes
+    doc.tracks += strokes
+    unfilled = 0
+    for z, ref in zone_nodes:
+        layers = _zone_layers(z, copper)
+        if not layers:
+            continue
+        if z.child("keepout") is not None:
+            doc.keepouts.append(_keepout(z, layers, ref))
+            continue
+        zones = _copper_zones(z, layers, nets)
+        unfilled += sum(not zz.filled for zz in zones)
+        doc.zones += zones
+    if unfilled:
+        warnings.append(
+            f"{unfilled} zone layer(s) have no fill (never filled, or the fill was not saved): fill the zones "
+            "(KiCad: Edit > Fill All Zones) for complete copper"
+        )
+    _via_pad_layers(doc, pruned)
+    doc.nets = _used_nets(doc, [n.name for n in read_nets(tree)])
+    doc.planes = cu.planes(doc.zones, cu.outline_area(read_outline(tree, [])), copper)
+    if check_fills:
+        cu.check_fills(doc)
+    return doc
+
+
+def _generator(tree: Node) -> str:
+    gv = tree.value("generator_version")
+    return f"{tree.value('generator', 'pcbnew')} {gv}" if gv else str(tree.value("generator", "pcbnew"))
+
+
+def copper_layers(tree: Node) -> list[str]:
+    """Copper layer names from the board's (layers ...) table, top to bottom."""
+    names = []
+    lnode = tree.child("layers")
+    for c in lnode.children() if lnode is not None else []:
+        a = c.atoms()
+        if len(a) >= 2 and str(a[0]).endswith(".Cu") and str(a[1]) in _COPPER_TYPES:
+            names.append(str(a[0]))
+    return stack_order(names)
+
+
+def _fp_ref(fp: Node) -> str:
+    for p in fp.children("property"):
+        if str(p.arg(0, "")) == "Reference":
+            return str(p.arg(1, ""))
+    for t in fp.children("fp_text"):
+        if str(t.arg(0, "")) == "reference":
+            return str(t.arg(1, ""))
+    return ""
+
+
+def _copper_track(n: Node, nets) -> cu.Track:
+    mid = n.child("mid")
+    return cu.Track(
+        layer=str(n.value("layer", "")),
+        net=net_of(n, nets),
+        width=r(n.num("width")),
+        start=to_board(_xy(n.child("start"))),
+        end=to_board(_xy(n.child("end"))),
+        mid=to_board(_xy(mid)) if n.name == "arc" and mid is not None else None,
+        id=str(n.value("uuid", n.value("tstamp", ""))) or None,
+    )
+
+
+def _span_type(span: tuple[str, str], copper: list[str]) -> str:
+    if span == (copper[0], copper[-1]):
+        return "through"
+    return "blind" if copper[0] in span or copper[-1] in span else "buried"
+
+
+def _copper_via(n: Node, nets, copper: list[str]) -> cu.Via:
+    order = {c: i for i, c in enumerate(copper)}
+    named = [str(a) for a in (n.child("layers").atoms() if n.child("layers") is not None else [])]
+    named = [c for c in named if c in order] or [copper[0], copper[-1]]
+    a, b = sorted(named, key=order.__getitem__)[0], sorted(named, key=order.__getitem__)[-1]
+    span = (a, b)
+    flags = {str(x) for x in n.atoms()}
+    kind = "micro" if "micro" in flags else _span_type(span, copper)
+    size = r(n.num("size"))
+    via = cu.Via(
+        at=to_board(_xy(n.child("at"))),
+        net=net_of(n, nets),
+        diameter=size,
+        drill=r(n.num("drill")),
+        span=span,
+        type=kind,
+        id=str(n.value("uuid", n.value("tstamp", ""))) or None,
+    )
+    ps = n.child("padstack")
+    if ps is not None and str(ps.value("mode", "normal")) != "normal":
+        inside = copper[order[a] : order[b] + 1]
+        sizes = {c: size for c in inside}
+        for lay in ps.children("layer"):
+            lname = str(lay.arg(0, ""))
+            d = r((lay.nums("size") or [size])[0])
+            targets = [c for c in inside if c not in (copper[0], copper[-1])] if lname == "Inner" else [lname]
+            for c in targets:
+                if c in sizes:
+                    sizes[c] = d
+        if len(set(sizes.values())) > 1:
+            via.diameter = max(sizes.values())
+            via.padstack = [cu.ViaPad(layer=c, diameter=d) for c, d in sizes.items()]
+    if n.flag("remove_unused_layers"):
+        via.pad_layers = [a, b] if n.flag("keep_end_layers") else []  # completed by _via_pad_layers
+    return via
+
+
+def _via_pad_layers(doc: cu.Copper, vias: list[cu.Via]) -> None:
+    """Vias with 'remove unused layers': a ring where a same-net track ends on the via or a same-net fill covers it
+    (KiCad's rule, without pads), plus the end layers when kept."""
+    order = {c: i for i, c in enumerate(doc.layers)}
+    for v in vias:
+        keep = set(v.pad_layers or [])
+        rad = v.diameter / 2
+        for t in doc.tracks:
+            if t.net == v.net and any(math.dist(p, v.at) <= rad for p in (t.start, t.end)):
+                keep.add(t.layer)
+        for z in doc.zones:
+            if z.net == v.net and any(cu.in_fill(v.at, p) for p in z.fill):
+                keep.add(z.layer)
+        lo, hi = order[v.span[0]], order[v.span[1]]
+        v.pad_layers = [c for c in doc.layers[lo : hi + 1] if c in keep]
+
+
+def _pad_copper_layers(names: list[str], copper: list[str]) -> list[str]:
+    out: set[str] = set()
+    for nm in names:
+        if nm in ("*.Cu", "F&B.Cu"):
+            out.update(copper if nm == "*.Cu" else (copper[0], copper[-1]))
+        elif nm in copper:
+            out.add(nm)
+    return [c for c in copper if c in out]
+
+
+def _copper_pads(fp: Node, ref: str, nets, copper, warnings, segments) -> list[cu.CopperPad]:
+    x0, y0 = _xy(fp.child("at"))
+    fa = footprint_angle(fp)
+    out = []
+    for n in fp.children("pad"):
+        layers = _pad_copper_layers([str(a) for a in (n.child("layers") or Node()).atoms()], copper)
+        pad = read_pad(n)  # board form: (at) footprint-local, angle absolute; geometry as stored (flipped)
+        if pad.type == "np_thru_hole" and pad.drill is not None and min(pad.size) <= min(pad.drill.size) + 1e-9:
+            layers = []  # a bare hole: no copper
+        if not layers:
+            continue
+        if n.child("padstack") is not None and str(n.child("padstack").value("mode", "normal")) != "normal":
+            warnings.append(f"pad {ref}.{pad.number}: per-layer padstack: the front shape is used on every layer")
+        dx, dy = rotate(pad.at[0], pad.at[1], fa)
+        cx, cy = x0 + dx, y0 + dy
+        outer, extra = pad_outline(pad, segments)  # pad-local, shape offset applied
+        loops = []
+        for ring in (outer, *extra):
+            pts = [to_board((cx + q[0], cy + q[1])) for q in (rotate(p[0], p[1], pad.at[2]) for p in ring)]
+            loops.append(pts if signed_area(pts) > 0 else pts[::-1])
+        ox, oy = rotate(*pad_offset(pad), pad.at[2])
+        out.append(
+            cu.CopperPad(
+                ref=ref,
+                number=pad.number,
+                net=net_of(n, nets),
+                layers=layers,
+                at=to_board((cx + ox, cy + oy)),
+                rotation=r(pad.at[2] % 360),
+                shape=pad.shape,
+                size=pad.size,
+                polygons=loops,
+                drill=r(min(pad.drill.size)) if pad.drill is not None else None,
+                type=pad.type,
+            )
+        )
+    return out
+
+
+def _net_tie(fp: Node, ref: str, nets) -> cu.NetTie | None:
+    g = fp.child("net_tie_pad_groups")
+    if g is None:
+        return None
+    groups = [[x for x in re.split(r"[\s,]+", str(a)) if x] for a in g.atoms()]
+    groups = [grp for grp in groups if grp]
+    pad_net = {str(p.arg(0, "")): net_of(p, nets) for p in fp.children("pad")}
+    tied = [pad_net.get(num, "") for grp in groups for num in grp]
+    return cu.NetTie(ref=ref, groups=groups, nets=[n for n in dict.fromkeys(tied) if n])
+
+
+def _zone_layers(z: Node, copper: list[str]) -> list[str]:
+    return _pad_copper_layers(item_layers(z), copper)
+
+
+def _zone_outline(z: Node) -> list[tuple[float, float]]:
+    pts = []
+    for p in z.children("polygon"):
+        pts.extend(shape_points(p))
+    return [to_board(p) for p in pts]
+
+
+def _keepout(z: Node, layers: list[str], ref: str | None) -> cu.Keepout:
+    k = z.child("keepout")
+    rules = cu.KeepoutRules(**{v: str(k.value(key, "allowed")) == "not_allowed" for key, v in _KEEPOUT_RULES.items()})
+    outline = _zone_outline(z)
+    if signed_area(outline) < 0:
+        outline.reverse()
+    return cu.Keepout(
+        layers=layers,
+        outline=outline,
+        rules=rules,
+        name=str(z.value("name")) if z.value("name") is not None else None,
+        ref=ref,
+        id=str(z.value("uuid", z.value("tstamp", ""))) or None,
+    )
+
+
+def _copper_zones(z: Node, layers: list[str], nets) -> list[cu.Zone]:
+    name = z.value("name")
+    attr = z.child("attr")
+    teardrop = (attr is not None and attr.child("teardrop") is not None) or str(name or "").startswith("$teardrop")
+    outline = _zone_outline(z)
+    if len(outline) >= 3 and signed_area(outline) < 0:
+        outline.reverse()
+    pri = z.value("priority")
+    fills: dict[str, list[cu.FillPolygon]] = {c: [] for c in layers}
+    for fp in z.children("filled_polygon"):
+        lay = str(fp.value("layer", layers[0]))
+        if lay in fills:
+            ring = [to_board(p) for p in shape_points(fp)]
+            fills[lay] += cu.unfracture(ring)
+    out = []
+    for lay in layers:
+        fill = fills[lay]
+        out.append(
+            cu.Zone(
+                layer=lay,
+                net=net_of(z, nets),
+                kind="teardrop" if teardrop else "pour",
+                fill=fill,
+                area=round(cu.fill_area(fill), 6),
+                outline=outline if len(outline) >= 3 else None,
+                priority=int(float(pri)) if pri is not None else None,
+                name=str(name) if name is not None and not teardrop else None,
+                filled=bool(fill),
+                id=str(z.value("uuid", z.value("tstamp", ""))) or None,
+            )
+        )
+    return out
+
+
+def _copper_shapes(tree: Node, copper: list[str], nets, warnings: list[str]) -> tuple[list[cu.Zone], list[cu.Track]]:
+    """Drawings on copper layers (board gr_* and footprint fp_* shapes) as copper, the way a Gerber plot has them:
+    a filled polygon, rectangle or circle is a zone of kind 'shape', a stroke (lines, arcs, outlines; a filled
+    shape's border when it has a width) becomes tracks of the stroke's width, a full circle two half arcs.
+    Text and curves on copper are counted in a warning, not included."""
+    zones: list[cu.Zone] = []
+    tracks: list[cu.Track] = []
+    skipped = 0
+
+    def add(n: Node, tf=None):
+        nonlocal skipped
+        lay = str(n.value("layer", ""))
+        if lay not in copper:
+            return
+        g = graphic_points(n)
+        if g is None or len(g["pts"]) < 2:
+            skipped += 1
+            return
+        net = net_of(n, nets)
+        uid = str(n.value("uuid", n.value("tstamp", ""))) or None
+
+        def b(p):
+            return to_board(tf(p) if tf else p)
+
+        if g["closed"] and g["filled"] and len(g["pts"]) >= 3:
+            fill = cu.unfracture([b(p) for p in g["pts"]])
+            if fill:
+                zones.append(
+                    cu.Zone(layer=lay, net=net, kind="shape", fill=fill, area=round(cu.fill_area(fill), 6), id=uid)
+                )
+        w = r(g["width"])
+        if w <= 0:
+            return
+
+        def track(s, e, mid=None):
+            tracks.append(cu.Track(layer=lay, net=net, width=w, start=s, end=e, mid=mid, id=uid))
+
+        kind = g["kind"]
+        if kind == "line":
+            track(b(g["pts"][0]), b(g["pts"][1]))
+        elif kind == "arc":
+            if n.child("mid") is not None:
+                s, mid, e = _xy(n.child("start")), _xy(n.child("mid")), _xy(n.child("end"))
+            else:
+                s, mid, e = arc_from_center(_xy(n.child("start")), _xy(n.child("end")), n.num("angle", 90.0))
+            track(b(s), b(e), b(mid))
+        elif kind == "circle":
+            c = b(_xy(n.child("center")))
+            for s, e, mid in cu.circle_halves(c, b(_xy(n.child("end")))):
+                track(s, e, mid)
+        else:  # rect, poly outlines (arcs in polygons flattened)
+            ring = [b(p) for p in g["pts"]]
+            for i, p in enumerate(ring):
+                track(p, ring[(i + 1) % len(ring)])
+
+    for c in tree.children():
+        if c.name.startswith("gr_"):
+            add(c)
+        elif c.name in ("footprint", "module"):
+            tf = _footprint_to_page(c)
+            for g in c.children():
+                if g.name.startswith("fp_"):
+                    add(g, tf)
+    if skipped:
+        warnings.append(f"{skipped} copper drawing(s) (text, curves) are not included")
+    return zones, tracks
+
+
+def _used_nets(doc: cu.Copper, order: list[str]) -> list[str]:
+    used = {t.net for t in doc.tracks} | {v.net for v in doc.vias} | {z.net for z in doc.zones}
+    used |= {p.net for p in doc.pads}
+    head = [""] if "" in used else []
+    known = [n for n in order if n in used]
+    rest = sorted(used - set(known) - {""})
+    return head + known + rest
 
 
 # ---------------------------------------------------------------------------------------------------------------------

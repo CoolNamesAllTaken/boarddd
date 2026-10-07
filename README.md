@@ -23,6 +23,10 @@ PR review) and gentoo (a PCB fab shop site). Framework-free ES modules, no build
   stripline, CPW/CPWG, edge-coupled pairs), width synthesis and validity flags, plus a 2D field solver for
   any cross-section (`solveCrossSection`, also in a Worker); the same code is `boarddd.impedance` in
   Python (the solver needs the `field` extra). See [docs/impedance.md](docs/impedance.md).
+- **`boarddd/copper`**: the copper model `boarddd/copper@1` (`copper.json`: tracks and arcs, vias, zone fills
+  with holes, keepouts, pads as copper, net ties, plane coverage, all with nets): `validateCopper`, and
+  `copperFromGerbers` for Gerber X2 uploads in the browser. Server side, `boarddd.io.kicad.read_kicad_copper`
+  and `boarddd.io.gerber_copper` write it. See [docs/copper.md](docs/copper.md).
 
 The Python package in [`python/`](python/README.md) (same repository, same version tag) holds the
 server-side readers and owns the board model. Readers are server-side (Python), renderers are
@@ -318,7 +322,10 @@ coordinates), z up out of the top copper, board bottom face at z = 0 and top fac
   the drill files.
 - `boarddd/impedance`: golden references (Polar, HFSS, Cohn exact, scikit-rf, boarddd's field-solver sweep) and
   JS↔Python parity on `fixtures/impedance/cases.json` and `field-cases.json` (`node fixtures/impedance/make_cases.mjs --check`).
-- Python: `cd python && pip install -e ".[dev]" && pytest` (model, validator, golden board, impedance), `ruff`,
+- `boarddd/copper`: `validateCopper` on the shared cases in `fixtures/copper/`, `copperFromGerbers` on the
+  royalblue54L_feather and NFC-antenna Gerber exports against the KiCad reader's golden (pytest also checks
+  Python = JS on both).
+- Python: `cd python && pip install -e ".[dev]" && pytest` (model, validator, golden board, impedance, copper), `ruff`,
   `python -m boarddd.model --check` (generated schema/typings up to date).
 - `npm run typecheck`: the `.d.ts` files, plus `test/types/` (type-level use of `boarddd/gerber` and `boarddd/view2d`).
 - Fixtures: `fixtures/` is shared golden data for node, Playwright and pytest (licences in
