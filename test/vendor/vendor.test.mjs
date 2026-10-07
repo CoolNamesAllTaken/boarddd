@@ -18,15 +18,17 @@ test.after(() => fs.rmSync(TMP, { recursive: true, force: true }));
 const sh = (cmd, args, cwd) => execFileSync(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] }).toString();
 const git = (cwd, ...args) => sh('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false', '-c', 'tag.gpgsign=false', ...args], cwd);
 
-// A boarddd checkout of this tree's src/, LICENSE and package.json, committed and tagged v9.9.9.
+// A boarddd checkout of what this tree ships (package.json "files"), committed and tagged v9.9.9.
+const PKG = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const SRC = path.join(TMP, 'boarddd');
 fs.mkdirSync(SRC);
-for (const f of ['src', 'LICENSE', 'package.json']) fs.cpSync(path.join(ROOT, f), path.join(SRC, f), { recursive: true });
+for (const f of ['package.json', ...PKG.files]) fs.cpSync(path.join(ROOT, f), path.join(SRC, f), { recursive: true });
 git(SRC, 'init', '-q', '-b', 'main');
 git(SRC, 'add', '.');
 git(SRC, 'commit', '-q', '-m', 'boarddd');
 git(SRC, 'tag', 'v9.9.9');
 const TAGGED = git(SRC, 'rev-parse', 'HEAD').trim();
+const V = PKG.version.replace(/\./g, '\\.');
 
 // npm-pack-like tarballs (package/...) of the installed devDependencies
 function pack(name, entries) {
@@ -109,13 +111,16 @@ test('untar reads git archive output (pax headers, long names)', () => {
 test('subpaths come from the exports map and pull in what they import', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const dirs = exportDirs(pkg);
-  assert.deepEqual([...dirs.keys()], ['geom', 'board', 'footprint', 'models', 'scene']);
+  assert.deepEqual([...dirs.keys()], ['geom', 'board', 'footprint', 'models', 'scene', 'gerber']);
   assert.equal(dirs.get('scene'), 'src/scene');
   // a future export with assets: "./gerber": "./src/gerber/index.js" -> the whole src/gerber dir
   assert.equal(exportDirs({ exports: { './gerber': { types: './src/gerber/index.d.ts', default: './src/gerber/index.js' } } }).get('gerber'), 'src/gerber');
-  const srcFiles = new Map(files(path.join(ROOT, 'src')).map((f) => [`src/${f}`, fs.readFileSync(path.join(ROOT, 'src', f))]));
-  assert.deepEqual(closeSubpaths(srcFiles, dirs, ['footprint']), { subpaths: ['geom', 'board', 'footprint'], added: ['geom', 'board'] });
-  assert.deepEqual(closeSubpaths(srcFiles, dirs, ['scene']).subpaths, ['scene']);
+  const shipped = new Map(files(SRC).filter((f) => !f.startsWith('.git/')).map((f) => [f, fs.readFileSync(path.join(SRC, f))]));
+  // footprint builds on board, board on geom and gerber, gerber on the vendored upstream core (+ wasm)
+  assert.deepEqual(closeSubpaths(shipped, dirs, ['footprint']),
+    { subpaths: ['geom', 'board', 'footprint', 'gerber'], added: ['geom', 'board', 'gerber'], extra: ['third_party/wasm-gerber-renderer'] });
+  assert.deepEqual(closeSubpaths(shipped, dirs, ['scene']), { subpaths: ['scene'], added: [], extra: [] });
+  assert.deepEqual(closeSubpaths(shipped, dirs, ['geom']).subpaths, ['geom']);
 });
 
 test('arguments', () => {
@@ -135,7 +140,7 @@ test('kipr layout: boarddd, three and occt side by side; imports resolve in node
   const args = ['--ref', 'v9.9.9', '--out', `${v}/boarddd`, '--three', THREE_TGZ, '--three-dir', `${v}/three`, '--occt', OCCT_TGZ, '--occt-dir', `${v}/occt-import-js`];
   const r = await vendor(...args);
   assert.equal(r.code, 0);
-  assert.match(r.out, /boarddd 0\.1\.0 v9\.9\.9 \[geom board footprint models scene\] -> .*: \d+ added/);
+  assert.match(r.out, new RegExp(`boarddd ${V} v9\\.9\\.9 \\[geom board footprint models scene gerber\\] -> .*: \\d+ added`));
 
   assert.deepEqual(files(`${v}/three`), ['LICENSE', 'VENDORED.json', 'addons/controls/OrbitControls.js', 'addons/controls/TrackballControls.js',
     'addons/environments/RoomEnvironment.js', 'addons/loaders/GLTFLoader.js', 'addons/utils/BufferGeometryUtils.js',
@@ -151,11 +156,13 @@ test('kipr layout: boarddd, three and occt side by side; imports resolve in node
 
   const commit = fs.readFileSync(`${v}/boarddd/COMMIT`, 'utf8').split('\n');
   assert.equal(commit[0], TAGGED);
-  assert.equal(commit[1], 'boarddd 0.1.0 (tag v9.9.9)');
-  assert.equal(commit[2], 'subpaths: geom board footprint models scene');
-  assert.match(commit[4], new RegExp(`^three: ${THREE_VERSION.replace(/\./g, '\\.')} sha512-[A-Za-z0-9+/]+=* -> \\.\\./three$`));
-  assert.match(commit[5], /^occt-import-js: \S+ sha512-\S+ -> \.\.\/occt-import-js$/);
-  assert.match(commit[6], /--ref v9\.9\.9 .*--three-dir .*--three \S+ .*--occt-dir .*--occt \S+$/);
+  assert.equal(commit[1], `boarddd ${PKG.version} (tag v9.9.9)`);
+  assert.equal(commit[2], 'subpaths: geom board footprint models scene gerber');
+  assert.equal(commit[3], 'with: third_party/wasm-gerber-renderer');
+  assert.equal(commit[4], 'imports: three rewritten to ../three');
+  assert.match(commit[5], new RegExp(`^three: ${THREE_VERSION.replace(/\./g, '\\.')} sha512-[A-Za-z0-9+/]+=* -> \\.\\./three$`));
+  assert.match(commit[6], /^occt-import-js: \S+ sha512-\S+ -> \.\.\/occt-import-js$/);
+  assert.match(commit[7], /--ref v9\.9\.9 .*--three-dir .*--three \S+ .*--occt-dir .*--occt \S+$/);
   const man = JSON.parse(fs.readFileSync(`${v}/three/VENDORED.json`, 'utf8'));
   assert.equal(man.integrity, 'sha512-' + crypto.createHash('sha512').update(fs.readFileSync(THREE_TGZ)).digest('base64'));
 
@@ -164,7 +171,7 @@ test('kipr layout: boarddd, three and occt side by side; imports resolve in node
   fs.writeFileSync(probe, `
     const three = await import('./three/three.module.js');
     const out = {};
-    for (const sp of ['geom', 'board', 'footprint', 'models', 'scene']) out[sp] = Object.keys(await import('./boarddd/src/' + sp + '/index.js')).length;
+    for (const sp of ['geom', 'board', 'footprint', 'models', 'scene', 'gerber']) out[sp] = Object.keys(await import('./boarddd/src/' + sp + '/index.js')).length;
     const { buildBoard } = await import('./boarddd/src/board/index.js');
     const board = buildBoard({ outline: { board: [[0, 0], [10, 0], [10, 5], [0, 5]] } });
     const obj = board instanceof three.Object3D ? board : board.group;
@@ -173,7 +180,7 @@ test('kipr layout: boarddd, three and occt side by side; imports resolve in node
     console.log(JSON.stringify(out));`);
   const res = JSON.parse(sh(process.execPath, [probe], v));
   fs.rmSync(probe);
-  for (const sp of ['geom', 'board', 'footprint', 'models', 'scene']) assert.ok(res[sp] > 0, sp);
+  for (const sp of ['geom', 'board', 'footprint', 'models', 'scene', 'gerber']) assert.ok(res[sp] > 0, sp);
   assert.equal(res.sameThree, true, 'boarddd builds objects of the vendored three');
   assert.equal(res.revision, THREE_VERSION.split('.')[1]);
 
@@ -239,12 +246,15 @@ test('gentoo layout: chosen subpaths, bare imports for its importmap, a note in 
   fs.writeFileSync(note, '## How the page reaches it\n\nThrough `_three_importmap.html`.\n');
   const args = ['--out', v, '--subpaths', 'geom,board,models,scene', '--imports', 'bare', '--no-three', '--note', note];
   assert.equal((await vendor(...args)).code, 0);
-  assert.deepEqual(fs.readdirSync(`${v}/src`).sort(), ['board', 'geom', 'models', 'scene']);
+  assert.deepEqual(fs.readdirSync(`${v}/src`).sort(), ['board', 'geom', 'gerber', 'models', 'scene']);
+  assert.ok(fs.existsSync(`${v}/third_party/wasm-gerber-renderer/core/wasm/wasm_gerber_processor_bg.wasm`));
+  assert.ok(fs.existsSync(`${v}/third_party/wasm-gerber-renderer/LICENSE`));
+  assert.ok(!fs.existsSync(`${v}/third_party/wasm-gerber-renderer/crate`), 'the Rust crate is not shipped');
   for (const f of ['src/scene/viewer.js', 'src/models/step_worker.js', 'src/board/solid.js']) {
     assert.ok(fs.readFileSync(`${v}/${f}`).equals(fs.readFileSync(path.join(ROOT, f))), `${f} is byte-identical`);
   }
   const readme = fs.readFileSync(`${v}/README.md`, 'utf8');
-  assert.match(readme, /^# boarddd 0\.1\.0, vendored at [0-9a-f]{7}$/m);
+  assert.match(readme, new RegExp(`^# boarddd ${V}, vendored at [0-9a-f]{7}$`, 'm'));
   assert.match(readme, /This directory is generated/);
   assert.match(readme, /left bare/);
   assert.ok(readme.endsWith('## How the page reaches it\n\nThrough `_three_importmap.html`.\n'));
@@ -273,7 +283,7 @@ test('the working tree: refused when dirty, recorded as dirty with --allow-dirty
   fs.appendFileSync(path.join(SRC, 'src/geom/loops.js'), '\n// work in progress\n');
   try {
     const v = fresh();
-    await assert.rejects(vendor('--out', v, '--no-three'), /uncommitted changes under src\/[^]*src\/geom\/loops\.js/);
+    await assert.rejects(vendor('--out', v, '--no-three'), /uncommitted changes in what it ships[^]*src\/geom\/loops\.js/);
     assert.equal((await vendor('--out', v, '--no-three', '--allow-dirty')).code, 0);
     assert.equal(fs.readFileSync(`${v}/COMMIT`, 'utf8').split('\n')[0], `${TAGGED}-dirty`);
     assert.match(fs.readFileSync(`${v}/src/geom/loops.js`, 'utf8'), /work in progress/);
@@ -287,7 +297,7 @@ test('the working tree: refused when dirty, recorded as dirty with --allow-dirty
 });
 
 test('unknown subpaths and other bare imports are errors', async () => {
-  await assert.rejects(vendor('--out', fresh(), '--subpaths', 'geom,gerbr', '--no-three'), /unknown subpath gerbr; boarddd 0\.1\.0 exports geom, board, footprint, models, scene/);
+  await assert.rejects(vendor('--out', fresh(), '--subpaths', 'geom,gerbr', '--no-three'), new RegExp(`unknown subpath gerbr; boarddd ${V} exports geom, board, footprint, models, scene, gerber`));
   const other = path.join(TMP, 'other');
   fs.cpSync(SRC, other, { recursive: true });
   fs.appendFileSync(path.join(other, 'src/geom/loops.js'), "\nexport { x } from 'left-pad';\n");

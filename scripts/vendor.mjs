@@ -212,29 +212,40 @@ function walk(dir, rel = '', out = []) {
   return out;
 }
 
-/** {files: Map(path -> Buffer) of src/, LICENSE, package.json; commit, tag, dirty} */
+/** The paths a boarddd checkout ships: src/, LICENSE, package.json and package.json "files". */
+function shippedPaths(pkgText) {
+  let files = [];
+  try { files = JSON.parse(pkgText).files || []; } catch { /* reported later */ }
+  return [...new Set(['package.json', 'LICENSE', 'src', ...files.map((f) => f.replace(/^\.\//, '').replace(/\/+$/, ''))])]
+    .filter((f) => f !== 'README.md' && !f.includes('*'));
+}
+
+/** {files: Map(path -> Buffer) of what the checkout ships; commit, tag, dirty} */
 export function readSource(o) {
-  const want = (f) => f.startsWith('src/') || f === 'LICENSE' || f === 'package.json';
   const hasGit = isGit(o.source);
   if (o.ref) {
     if (!hasGit) fail(`--ref needs a git checkout; ${o.source} is not one`);
     let commit;
     try { commit = git(o.source, ['rev-parse', '--verify', `${o.ref}^{commit}`]).toString().trim(); }
     catch { fail(`${o.ref} is not a commit in ${o.source} (git fetch --tags first?)`); }
-    const files = new Map([...untar(git(o.source, ['archive', '--format=tar', commit, 'src', 'LICENSE', 'package.json']))].filter(([f]) => want(f)));
+    let pkgText = '';
+    try { pkgText = git(o.source, ['show', `${commit}:package.json`]).toString(); } catch { /* reported later */ }
+    const tops = shippedPaths(pkgText).filter((t) => { try { git(o.source, ['cat-file', '-e', `${commit}:${t}`]); return true; } catch { return false; } });
+    const files = untar(git(o.source, ['archive', '--format=tar', commit, '--', ...tops]));
     return { files, commit, tag: tagOf(o.source, commit), dirty: false };
   }
+  const pkgPath = path.join(o.source, 'package.json');
+  const tops = shippedPaths(fs.existsSync(pkgPath) ? fs.readFileSync(pkgPath, 'utf8') : '').filter((t) => fs.existsSync(path.join(o.source, t)));
+  // in a git checkout: tracked + untracked files, not ignored ones (build output, node_modules)
+  const list = hasGit
+    ? git(o.source, ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', ...tops]).toString().split('\0').filter(Boolean)
+    : tops.flatMap((t) => (fs.statSync(path.join(o.source, t)).isDirectory() ? walk(o.source, t) : [t]));
   const files = new Map();
-  for (const top of ['src', 'LICENSE', 'package.json']) {
-    const p = path.join(o.source, top);
-    if (!fs.existsSync(p)) continue;
-    if (fs.statSync(p).isDirectory()) for (const f of walk(o.source, top)) files.set(f, fs.readFileSync(path.join(o.source, f)));
-    else files.set(top, fs.readFileSync(p));
-  }
+  for (const f of list) if (fs.existsSync(path.join(o.source, f))) files.set(f, fs.readFileSync(path.join(o.source, f)));
   if (!hasGit) return { files, commit: null, tag: null, dirty: false };
   const commit = git(o.source, ['rev-parse', 'HEAD']).toString().trim();
-  const status = git(o.source, ['status', '--porcelain', '--untracked-files=all', '--', 'src', 'LICENSE', 'package.json']).toString().trim();
-  if (status && !o.allowDirty) fail(`${o.source} has uncommitted changes under src/ (pass --ref <tag>, commit them, or --allow-dirty):\n${status}`);
+  const status = git(o.source, ['status', '--porcelain', '--untracked-files=all', '--', ...tops]).toString().trim();
+  if (status && !o.allowDirty) fail(`${o.source} has uncommitted changes in what it ships (pass --ref <tag>, commit them, or --allow-dirty):\n${status}`);
   return { files, commit, tag: tagOf(o.source, commit), dirty: !!status };
 }
 
@@ -242,37 +253,52 @@ function tagOf(dir, commit) {
   try { return git(dir, ['describe', '--tags', '--exact-match', commit]).toString().trim(); } catch { return null; }
 }
 
-/** subpath name -> directory under src/, from package.json "exports" */
+/** subpath name -> directory under src/, from package.json "exports" (entry points named index.*) */
 export function exportDirs(pkg) {
   const dirs = new Map();
   for (const [key, val] of Object.entries(pkg.exports || {})) {
     const target = typeof val === 'string' ? val : val && (val.default || val.import);
-    const m = /^\.\/(.+)$/.exec(key);
-    if (!m || typeof target !== 'string' || !target.startsWith('./src/')) continue;
+    const m = /^\.\/([\w-]+)$/.exec(key);
+    if (!m || typeof target !== 'string' || !/^\.\/src\/.+\/index\.m?js$/.test(target)) continue;
     dirs.set(m[1], path.posix.dirname(target.slice(2)));
   }
   return dirs;
 }
 
-/** The subpaths asked for plus every subpath their modules import (relative imports across src/). */
+/**
+ * The directory a module belongs to for vendoring: an export's src/<dir>, any other src/<dir>, or a
+ * third_party/<name> package (taken whole: its code, assets such as wasm, and its LICENSE).
+ */
+function groupOf(f, exportDirList) {
+  for (const d of exportDirList) if (f.startsWith(d + '/')) return d;
+  const m = /^(src|third_party)\/[^/]+(?=\/)/.exec(f);
+  return m ? m[0] : null;
+}
+
+/**
+ * The subpaths asked for plus every subpath they import, and the other directories (third_party
+ * packages, shared src/ dirs) their modules reach through relative imports.
+ */
 export function closeSubpaths(files, dirs, asked) {
-  const byDir = new Map([...dirs].map(([name, dir]) => [dir, name]));
-  const take = new Set(asked), queue = [...asked];
+  const exportList = [...dirs.values()];
+  const take = new Set(asked.map((n) => dirs.get(n))), queue = [...take];
   while (queue.length) {
-    const dir = dirs.get(queue.shift());
+    const dir = queue.shift();
     for (const [f, buf] of files) {
       if (!f.startsWith(dir + '/') || !(isCode(f) || isTypes(f))) continue;
       for (const spec of specifiers(buf.toString('utf8'))) {
         if (!spec.startsWith('.')) continue;
-        const target = path.posix.join(path.posix.dirname(f), spec);
-        for (const [d, name] of byDir) {
-          if (target.startsWith(d + '/') && !take.has(name)) { take.add(name); queue.push(name); }
-        }
+        const target = path.posix.normalize(path.posix.join(path.posix.dirname(f), spec));
+        const g = groupOf(target, exportList);
+        if (!g) fail(`${f} imports ${spec}, outside src/ and third_party/`);
+        if (![...files.keys()].some((k) => k === target || k.startsWith(target + '/') || k.startsWith(g + '/'))) fail(`${f} imports ${spec}, which the checkout does not ship (package.json "files")`);
+        if (!take.has(g)) { take.add(g); queue.push(g); }
       }
     }
   }
-  const subpaths = [...dirs.keys()].filter((n) => take.has(n));   // in exports order
-  return { subpaths, added: subpaths.filter((n) => !asked.includes(n)) };
+  const subpaths = [...dirs.keys()].filter((n) => take.has(dirs.get(n)));   // in exports order
+  const extra = [...take].filter((d) => !exportList.includes(d)).sort();
+  return { subpaths, added: subpaths.filter((n) => !asked.includes(n)), extra };
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -359,11 +385,11 @@ export function boardddFiles(o, source) {
   const asked = o.subpaths || [...dirs.keys()];
   const unknown = asked.filter((s) => !dirs.has(s));
   if (unknown.length) fail(`unknown subpath${unknown.length > 1 ? 's' : ''} ${unknown.join(', ')}; boarddd ${pkg.version} exports ${[...dirs.keys()].join(', ')}`);
-  const { subpaths, added } = closeSubpaths(source.files, dirs, asked);
+  const { subpaths, added, extra } = closeSubpaths(source.files, dirs, asked);
+  const groups = [...subpaths.map((sp) => dirs.get(sp)), ...extra];
 
   const out = new Map(), addons = new Set(), bare = new Set();
-  for (const sp of subpaths) {
-    const dir = dirs.get(sp);
+  for (const dir of groups) {
     for (const [f, buf] of source.files) {
       if (!f.startsWith(dir + '/')) continue;
       let data = buf;
@@ -381,7 +407,7 @@ export function boardddFiles(o, source) {
   }
   if (bare.size && o.imports === 'relative') fail(`bare imports other than three can't be made relative:\n  ${[...bare].join('\n  ')}\n(use --imports bare and map them yourself)`);
   if (source.files.has('LICENSE')) out.set('LICENSE', source.files.get('LICENSE'));
-  return { files: out, pkg, subpaths, added, addons: [...addons].sort() };
+  return { files: out, pkg, subpaths, added, extra, addons: [...addons].sort() };
 }
 
 function describeCommit(source) {
@@ -420,6 +446,7 @@ function commitFile(o, source, b, info) {
     describeCommit(source),
     `boarddd ${b.pkg.version}${source.tag ? ` (tag ${source.tag})` : ''}`,
     `subpaths: ${b.subpaths.join(' ')}`,
+    ...(b.extra.length ? [`with: ${b.extra.join(' ')}`] : []),
     `imports: ${o.imports === 'relative' ? `three rewritten to ${dotted(posix(path.relative(o.out, o.threeDir)))}` : 'bare (three via importmap or bundler)'}`,
   ];
   if (info.three) lines.push(`three: ${info.three.version} ${info.three.integrity} -> ${dotted(posix(path.relative(o.out, o.threeDir)))}`);
@@ -444,7 +471,8 @@ MIT (see LICENSE). https://github.com/CoolNamesAllTaken/boarddd${source.tag ? `,
 
     ${rerunCommand(o, info)}
 
-Taken: ${b.subpaths.map((s) => `\`src/${s}\``).join(', ')} (sources, \`.d.ts\` typings and assets), and LICENSE.
+Taken: ${b.subpaths.map((s) => `\`src/${s}\``).join(', ')} (sources, \`.d.ts\` typings and assets)${b.extra.map((d) => `, \`${d}\``).join('')}
+(what those import, with its own LICENSE), and boarddd's LICENSE.
 Import \`src/<subpath>/index.js\`. ${three}
 The \`.d.ts\` files keep \`from 'three'\` for the type checker (@types/three).
 ${info.occt ? `\nocct-import-js ${info.occt.version} (LGPL-2.1) is in \`${dotted(posix(path.relative(o.out, o.occtDir)))}\`, unmodified; pass its
