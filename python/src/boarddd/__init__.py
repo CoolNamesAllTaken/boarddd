@@ -1,3 +1,3 @@
 """boarddd: PCB board and part ingestion. Readers are server-side (Python), renderers are browser-side (JS)."""
 
-__version__ = "0.4.1"
+__version__ = "0.5.0"
