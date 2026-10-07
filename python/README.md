@@ -14,7 +14,14 @@ from boarddd.validate import validate_board
 
 board = Board.from_json(open("board.json").read())
 errors = validate_board(json.load(open("board.json")))   # [] when valid
+
+from boarddd.io.package import read_package
+board = read_package("fab/")          # a fab package (folder or .zip) -> Board; see docs/readers.md
 ```
+
+Readers: `boarddd.io` (archive, classify, gerber, pads, excellon, outline, gbrjob, pos, bom, package) and
+`boarddd.step` (text, slim, modelfile, registration), stdlib only; `pip install "boarddd[xlsx] @ …"` for
+`.xlsx`/`.xls` BOMs. See [docs/readers.md](../docs/readers.md).
 
 Development (Python 3.11+):
 
