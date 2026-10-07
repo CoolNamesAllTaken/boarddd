@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 418" width="400" height="418" role="img" aria-label="RP2040-Zero_Castellated">
+<style>
+.fp-bg{fill:var(--fp-bg,transparent)}
+.fp-pad{fill:var(--fp-pad,#c8a14a);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-paste{fill:none;stroke:var(--fp-paste,#7a7a7a);stroke-width:1px;stroke-dasharray:3 2;vector-effect:non-scaling-stroke}
+.fp-drill{fill:var(--fp-bg,#fff);stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-court{fill:none;stroke:var(--fp-courtyard,#d040d0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-body{fill:none;stroke:var(--fp-body,#6080a0);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-pin1{fill:var(--fp-pin1,#e03030)}
+.fp-origin{stroke:var(--fp-origin,#2a8a2a);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-dim{stroke:var(--fp-dim,#3070c0);fill:none;stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-text{fill:var(--fp-text,#222);font:600 11px system-ui,sans-serif;text-anchor:middle;dominant-baseline:central}
+.fp-dimtext{fill:var(--fp-dim,#3070c0);font:11px system-ui,sans-serif;text-anchor:middle}
+.fp-old{fill:none;stroke:var(--fp-old,#d04040);stroke-width:2px;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.fp-new{fill:var(--fp-new,#3a8ad0);fill-opacity:.35;stroke:var(--fp-new,#3a8ad0);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.fp-same{fill:var(--fp-pad,#c8a14a);fill-opacity:.55;stroke:var(--fp-pad-stroke,#8a6d2a);stroke-width:1px;vector-effect:non-scaling-stroke}
+.fp-changed{fill:none;stroke:var(--fp-changed,#e09000);stroke-width:3px;vector-effect:non-scaling-stroke}
+.fp-legend{fill:var(--fp-text,#222);font:11px system-ui,sans-serif}
+</style>
+<rect class="fp-bg" width="400" height="418"/>
+<g transform="translate(200 203.0454) scale(13.241 -13.241)">
+<polyline class="fp-court" points="-10.02,13.22 10.02,13.22 10.02,-12.76 -10.02,-12.76"/>
+<polyline class="fp-body" points="-9,10.75 -8,11.75"/>
+<polyline class="fp-body" points="-9,-11.75 -9,10.75"/>
+<polyline class="fp-body" points="-8,11.75 9,11.75"/>
+<polyline class="fp-body" points="9,11.75 9,-11.75"/>
+<polyline class="fp-body" points="9,-11.75 -9,-11.75"/>
+<polyline class="fp-body" points="-4.8,12.97 4.78,12.97 4.78,5.43 -4.8,5.43 -4.8,12.97"/>
+<rect class="fp-pad" x="-9.12" y="9.31" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="-9.12" y="9.31" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="-9.12" y="6.77" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="-9.12" y="6.77" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="-9.12" y="4.23" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="-9.12" y="4.23" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="-9.12" y="1.69" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="-9.12" y="1.69" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="-9.12" y="-0.85" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="-9.12" y="-0.85" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="-9.12" y="-3.39" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="-9.12" y="-3.39" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="-9.12" y="-5.93" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="-9.12" y="-5.93" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="-9.12" y="-8.47" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="-9.12" y="-8.47" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="-9.12" y="-11.01" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="-9.12" y="-11.01" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="-5.93" y="-11.76" width="1.7" height="3.2" rx="0.425"/>
+<rect class="fp-paste" x="-5.93" y="-11.76" width="1.7" height="3.2" rx="0.425"/>
+<rect class="fp-pad" x="-3.39" y="-11.76" width="1.7" height="3.2" rx="0.425"/>
+<rect class="fp-paste" x="-3.39" y="-11.76" width="1.7" height="3.2" rx="0.425"/>
+<rect class="fp-pad" x="-0.85" y="-11.76" width="1.7" height="3.2" rx="0.425"/>
+<rect class="fp-paste" x="-0.85" y="-11.76" width="1.7" height="3.2" rx="0.425"/>
+<rect class="fp-pad" x="1.69" y="-11.76" width="1.7" height="3.2" rx="0.425"/>
+<rect class="fp-paste" x="1.69" y="-11.76" width="1.7" height="3.2" rx="0.425"/>
+<rect class="fp-pad" x="4.23" y="-11.76" width="1.7" height="3.2" rx="0.425"/>
+<rect class="fp-paste" x="4.23" y="-11.76" width="1.7" height="3.2" rx="0.425"/>
+<rect class="fp-pad" x="6.12" y="-11.01" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="6.12" y="-11.01" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="6.12" y="-8.47" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="6.12" y="-8.47" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="6.12" y="-5.93" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="6.12" y="-5.93" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="6.12" y="-3.39" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="6.12" y="-3.39" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="6.12" y="-0.85" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="6.12" y="-0.85" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="6.12" y="1.69" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="6.12" y="1.69" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="6.12" y="4.23" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="6.12" y="4.23" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="6.12" y="6.77" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="6.12" y="6.77" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-pad" x="6.12" y="9.31" width="3" height="1.7" rx="0.425"/>
+<rect class="fp-paste" x="6.12" y="9.31" width="3" height="1.7" rx="0.425"/>
+<path class="fp-origin" d="M-0.6042 0H0.6042M0 -0.6042V0.6042"/>
+</g>
+<text class="fp-text" x="99.1039" y="68.5173" style="font-size:11px">1</text>
+<text class="fp-text" x="99.1039" y="102.1493" style="font-size:11px">2</text>
+<text class="fp-text" x="99.1039" y="135.7814" style="font-size:11px">3</text>
+<text class="fp-text" x="99.1039" y="169.4134" style="font-size:11px">4</text>
+<text class="fp-text" x="99.1039" y="203.0454" style="font-size:11px">5</text>
+<text class="fp-text" x="99.1039" y="236.6774" style="font-size:11px">6</text>
+<text class="fp-text" x="99.1039" y="270.3095" style="font-size:11px">7</text>
+<text class="fp-text" x="99.1039" y="303.9415" style="font-size:11px">8</text>
+<text class="fp-text" x="99.1039" y="337.5735" style="font-size:11px">9</text>
+<text class="fp-text" x="132.736" y="337.5735" style="font-size:11px">10</text>
+<text class="fp-text" x="166.368" y="337.5735" style="font-size:11px">11</text>
+<text class="fp-text" x="200" y="337.5735" style="font-size:11px">12</text>
+<text class="fp-text" x="233.632" y="337.5735" style="font-size:11px">13</text>
+<text class="fp-text" x="267.264" y="337.5735" style="font-size:11px">14</text>
+<text class="fp-text" x="300.8961" y="337.5735" style="font-size:11px">15</text>
+<text class="fp-text" x="300.8961" y="303.9415" style="font-size:11px">16</text>
+<text class="fp-text" x="300.8961" y="270.3095" style="font-size:11px">17</text>
+<text class="fp-text" x="300.8961" y="236.6774" style="font-size:11px">18</text>
+<text class="fp-text" x="300.8961" y="203.0454" style="font-size:11px">19</text>
+<text class="fp-text" x="300.8961" y="169.4134" style="font-size:11px">20</text>
+<text class="fp-text" x="300.8961" y="135.7814" style="font-size:11px">21</text>
+<text class="fp-text" x="300.8961" y="102.1493" style="font-size:11px">22</text>
+<text class="fp-text" x="300.8961" y="68.5173" style="font-size:11px">23</text>
+<path class="fp-dim" d="M113.1039 68.5173V102.1493M109.1039 68.5173h8M109.1039 102.1493h8"/>
+<text class="fp-dimtext" x="135.1039" y="89.3333">2.54</text>
+<text class="fp-legend" x="8" y="412">RP2040-Zero_Castellated</text>
+</svg>
