@@ -15,16 +15,18 @@ from boarddd.validate import validate_board
 board = Board.from_json(open("board.json").read())
 errors = validate_board(json.load(open("board.json")))   # [] when valid
 
-<<<<<<< HEAD
-from boarddd.impedance import microstrip, synthesize
-microstrip(w=0.36, h=0.2104, t=0.035, er=4.4).Z0          # 50.92 Ω; see docs/impedance.md
-=======
 from boarddd.io.package import read_package
 board = read_package("fab/")          # a fab package (folder or .zip) -> Board; see docs/readers.md
->>>>>>> origin/main
+
+from boarddd.io.kicad import read_kicad_pcb
+board = read_kicad_pcb("board.kicad_pcb")   # KiCad 5-10, no pcbnew; the .kicad_pro next to it adds net classes
+
+from boarddd.impedance import microstrip, synthesize
+microstrip(w=0.36, h=0.2104, t=0.035, er=4.4).Z0          # 50.92 Ω; see docs/impedance.md
 ```
 
-Readers: `boarddd.io` (archive, classify, gerber, pads, excellon, outline, gbrjob, pos, bom, package) and
+Readers: `boarddd.io` (archive, classify, gerber, pads, excellon, outline, gbrjob, pos, bom, package),
+`boarddd.io.kicad` (pcb, footprint, project, symbol, sexpr) and
 `boarddd.step` (text, slim, modelfile, registration), stdlib only; `pip install "boarddd[xlsx] @ …"` for
 `.xlsx`/`.xls` BOMs. See [docs/readers.md](../docs/readers.md).
 

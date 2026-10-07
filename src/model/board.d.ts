@@ -36,6 +36,10 @@ export interface Board {
   components?: Component[];
   /** Panel, when the source is one. */
   panel?: Panel | null;
+  /** Nets, when the source has them (KiCad, ODB++, IPC-2581, Gerber X2). */
+  nets?: Net[];
+  /** Net classes with their rules and impedance targets. */
+  net_classes?: NetClass[];
   /** What the reader could not represent or had to guess. */
   warnings?: string[];
   /** Free-form application data (not interpreted by boarddd). */
@@ -106,6 +110,8 @@ export interface Stackup {
   silk_color?: SideValues;
   /** Physical layers top to bottom; empty when the source has no stackup. */
   layers?: StackupLayer[];
+  /** The board is ordered impedance controlled (KiCad dielectric_constraints, gbrjob ImpedanceControlled). */
+  impedance_controlled?: boolean | null;
 }
 
 /** A value per board side. */
@@ -124,18 +130,62 @@ export interface StackupLayer {
   kind: "silk" | "paste" | "mask" | "copper" | "dielectric" | "other";
   /** 'inner' for inner copper and dielectrics. */
   side: "top" | "bottom" | "inner" | "none";
-  /** mm. */
+  /** mm (with sublayers: their sum). */
   thickness?: number | null;
-  /** 'FR4', 'Polyimide'... */
+  /** 'FR4', 'Polyimide'... (with sublayers of different materials: their names joined by ' + '). */
   material?: string | null;
   /** Colour as the source names it: a name ('Blue', 'Matte Black') or '#RRGGBB'. */
+  color?: string | null;
+  /** Dielectric constant (with sublayers: the series value, total thickness / sum(thickness_i / epsilon_r_i)). */
+  epsilon_r?: number | null;
+  /** Dielectric loss tangent (with sublayers: the thickness-weighted mean). */
+  loss_tangent?: number | null;
+  /** The Layer.id this physical layer is drawn by, if any. */
+  layer?: string | null;
+  /** Dielectrics: prepreg or core, when the source says (KiCad type, IPC-2581 DIELPREG/DIELCORE). */
+  dielectric?: "prepreg" | "core" | null;
+  /** Dielectrics the source splits into parts, top to bottom, the first included; empty otherwise. */
+  sublayers?: StackupSublayer[];
+  /** Hz at which epsilon_r and loss_tangent are given (KiCad spec_frequency, ODB++ FrequencyVal). */
+  frequency?: number | null;
+  /** How epsilon_r/loss_tangent vary with frequency (KiCad dielectric_model). */
+  dielectric_model?: "constant" | "djordjevic_sarkar" | null;
+  /** Thickness fixed for impedance control (KiCad '(thickness ... locked)'). */
+  locked?: boolean | null;
+  /** Manufacturing tolerances, when the source gives them. */
+  tolerance?: Tolerance | null;
+  /** Copper: plated (finished) thickness, mm, when it differs from the base foil. */
+  finished_thickness?: number | null;
+  /** Copper: RMS surface roughness, mm (0.0005 = 0.5 um). */
+  roughness_rq?: number | null;
+  /** Copper: conductivity, S/m. */
+  conductivity?: number | null;
+  /** Copper: etch factor (thickness / one side's undercut), for trapezoidal traces. */
+  etch_factor?: number | null;
+  /** Solder mask: thickness over the traces, mm, when it differs from 'thickness' (over the laminate). */
+  thickness_over_copper?: number | null;
+}
+
+/** One part of a dielectric the source splits into several (KiCad ``addsublayer``, gbrjob '(1/2)' entries). */
+export interface StackupSublayer {
+  /** mm. */
+  thickness?: number | null;
+  /** Material name, e.g. '2116 RC58%'. */
+  material?: string | null;
+  /** Colour as the source names it. */
   color?: string | null;
   /** Dielectric constant. */
   epsilon_r?: number | null;
   /** Dielectric loss tangent. */
   loss_tangent?: number | null;
-  /** The Layer.id this physical layer is drawn by, if any. */
-  layer?: string | null;
+}
+
+/** Manufacturing tolerances of a stackup layer, as [minus, plus] deviations (IPC-2581 tolPlus/tolMinus). */
+export interface Tolerance {
+  /** [minus, plus] in mm, e.g. [-0.01, 0.01]. */
+  thickness?: Vec2 | null;
+  /** [minus, plus] of the dielectric constant. */
+  epsilon_r?: Vec2 | null;
 }
 
 /** One drawable layer (a Gerber, an ODB++ layer, a drill file...). */
@@ -212,6 +262,8 @@ export interface Pad {
   layers: string[];
   /** The hole, for thru_hole/np_thru_hole. */
   drill?: PadDrill | null;
+  /** Copper shape offset of a pad without a hole (castellated SMD pads); pads with one keep it in drill.offset. */
+  offset?: Vec2 | null;
   /** roundrect/chamfered: corner radius / shorter side. */
   roundrect_rratio?: number | null;
   /** chamfered_rect: chamfer / shorter side. */
@@ -356,4 +408,74 @@ export interface PanelInstance {
   y: number;
   /** Degrees counter-clockwise. */
   rotation?: number;
+}
+
+/** An electrical net. */
+export interface Net {
+  /** Net name as the source writes it ('/USB/D+', 'GND'). */
+  name: string;
+  /** The NetClass.name it belongs to ('Default' when the source assigns none). */
+  net_class?: string | null;
+  /** The partner net of a differential pair (KiCad pairs '+'/'-' and 'P'/'N' suffixes). */
+  pair?: string | null;
+}
+
+/** A net class (KiCad .kicad_pro net_settings) with its design rules and impedance target. */
+export interface NetClass {
+  /** Class name. */
+  name: string;
+  /** Net names in the class. */
+  nets?: string[];
+  /** Assignment patterns (KiCad netclass_patterns, wildcards). */
+  patterns?: string[];
+  /** mm. */
+  track_width?: number | null;
+  /** mm. */
+  clearance?: number | null;
+  /** mm. */
+  diff_pair_width?: number | null;
+  /** mm. */
+  diff_pair_gap?: number | null;
+  /** mm. */
+  via_diameter?: number | null;
+  /** mm. */
+  via_drill?: number | null;
+  /** KiCad priority (lower wins; Default is the largest). */
+  priority?: number | null;
+  /** KiCad 10 tuning profile name, when set. */
+  tuning_profile?: string | null;
+  /** Controlled-impedance target, when known. */
+  impedance?: ImpedanceTarget | null;
+}
+
+/** A controlled-impedance target. */
+export interface ImpedanceTarget {
+  /** Single-ended Z0 or differential Zdiff. */
+  kind: "single" | "differential";
+  /** Ohms. */
+  target: number;
+  /** Allowed deviation, percent (10 = +-10 %); null = unspecified. */
+  tolerance_pct?: number | null;
+  /** Differential: common-mode target, ohms, when given (class names like BAL_D90_C30). */
+  common_mode?: number | null;
+  /** Transmission-line structure, when the source says (MS, SL, CPW, CPWG). */
+  structure?: "microstrip" | "stripline" | "coplanar" | "coplanar_grounded" | null;
+  /** Where the target comes from: a KiCad tuning profile, an IPC-2581/ODB++ spec, the class name convention (SE_50_CP, DP_90_MS, 90ohm...) or a user entry. */
+  source: "tuning_profile" | "ipc2581" | "odbpp" | "name" | "user";
+  /** Per-layer geometry, when the source gives it. */
+  layers?: ImpedanceLayer[];
+}
+
+/** Geometry a target applies to on one signal layer (KiCad tuning profile layer entry, IPC-2581 Impedance). */
+export interface ImpedanceLayer {
+  /** Signal layer ('F.Cu', 'In1.Cu'). */
+  layer: string;
+  /** Track width, mm. */
+  width?: number | null;
+  /** Differential pair gap, mm. */
+  gap?: number | null;
+  /** Reference plane above, if any. */
+  ref_top?: string | null;
+  /** Reference plane below, if any. */
+  ref_bottom?: string | null;
 }
