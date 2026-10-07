@@ -40,7 +40,8 @@
   "scripts": {
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:browser": "playwright test",
-    "serve": "node scripts/serve.mjs"
+    "serve": "node scripts/serve.mjs",
+    "typecheck": "tsc --noEmit --lib es2022,dom --moduleResolution bundler --module esnext src/geom/index.d.ts src/board/index.d.ts src/footprint/index.d.ts"
   },
   "peerDependencies": {
     "three": ">=0.160.0",
@@ -53,7 +54,9 @@
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",
-    "occt-import-js": "^0.0.23",
-    "three": "0.185.0"
+    "@types/three": "^0.185.0",
+    "occt-import-js": "0.0.23",
+    "three": "0.185.0",
+    "typescript": "^5.9.3"
   }
 }

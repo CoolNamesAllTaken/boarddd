@@ -1,0 +1,17 @@
+{
+ "source": "RoyalBlue54L-Feather.kicad_pcb",
+ "files": [
+  "RoyalBlue54L-Feather-B_Cu.gbr",
+  "RoyalBlue54L-Feather-B_Mask.gbr",
+  "RoyalBlue54L-Feather-B_Paste.gbr",
+  "RoyalBlue54L-Feather-B_Silkscreen.gbr",
+  "RoyalBlue54L-Feather-Edge_Cuts.gbr",
+  "RoyalBlue54L-Feather-F_Cu.gbr",
+  "RoyalBlue54L-Feather-F_Mask.gbr",
+  "RoyalBlue54L-Feather-F_Paste.gbr",
+  "RoyalBlue54L-Feather-F_Silkscreen.gbr",
+  "RoyalBlue54L-Feather-NPTH.drl",
+  "RoyalBlue54L-Feather-PTH.drl"
+ ],
+ "glb": "board.glb"
+}
