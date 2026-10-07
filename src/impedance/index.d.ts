@@ -50,9 +50,10 @@ export interface MicrostripParams { w: number; h: number; t?: number; er: number
 export interface CoatedMicrostripParams extends MicrostripParams { c: number; erc: number }
 /** Trace between planes: h1 dielectric to one plane, h2 (default h1) to the other. */
 export interface StriplineParams { w: number; h1: number; h2?: number; t?: number; er: number }
-/** Coplanar: signal width w, gap to each coplanar ground, substrate height h. */
-export interface CoplanarParams { w: number; gap: number; h: number; t?: number; er: number }
-export interface CoupledMicrostripParams extends MicrostripParams { s: number }
+/** Coplanar: signal width w, gap to each coplanar ground, substrate height h; cpwg only: optional solder mask c, erc. */
+export interface CoplanarParams { w: number; gap: number; h: number; t?: number; er: number; c?: number; erc?: number }
+/** Optional solder mask c (over laminate and copper), erc (boarddd mask model). */
+export interface CoupledMicrostripParams extends MicrostripParams { s: number; c?: number; erc?: number }
 export interface CoupledStriplineParams extends StriplineParams { s: number }
 
 /** Impedance of free space, Ω. */
@@ -130,6 +131,8 @@ export interface LineFromStackupOptions {
   mask?: boolean;
   /** 'field' also returns the real cross-section for the tier-2 field solver (default 'closedform'). */
   solver?: 'closedform' | 'field';
+  /** Field solver: a trapezoid trace whose top is this much narrower than `width`, mm (default 0). */
+  etch?: number;
 }
 
 /**
@@ -253,8 +256,9 @@ export function solveCrossSection(section: CrossSection, opts?: FieldOptions): F
 export type FieldModelId = Exclude<ModelId, `ipc2141_${string}`> | 'coupled_cpw' | 'coupled_cpwg';
 
 /**
- * The cross-section of a tier-1 model's parameters. Outer structures also take a conformal solder mask `c`,
- * `erc`; coplanar ones `fence` (via-fence distance from the gap, cpwg) and `gnd` (coplanar ground width).
+ * The cross-section of a tier-1 model's parameters. Every model also takes `etch` (trapezoid: top narrower than
+ * w by etch); outer structures a conformal solder mask `c` (over laminate), `ct` (over copper), `cs` (in a pair's
+ * gap), `erc`; coplanar ones `fence` (via-fence distance from the gap, cpwg) and `gnd` (coplanar ground width).
  */
 export function sectionFor(model: FieldModelId, params: Record<string, number>): CrossSection;
 

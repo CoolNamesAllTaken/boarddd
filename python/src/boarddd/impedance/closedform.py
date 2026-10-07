@@ -28,7 +28,34 @@ _FIT = {
     "coupledMicrostrip": {"even": 0.95, "odd": 0.915},
     "coupledStripline": {"decay": 3.04},
     "offset": {"lo": 0.193, "span": 30},
+    "maskCpwg": {"k": 1.55, "a": 0.266, "p": 1.1, "b": 1.45},
+    "maskCoupledEven": {"k": 2.32, "a": 0.269, "p": 0.8, "b": -0.0854},
+    "maskCoupledOdd": {"k": 2.54, "a": 0.32, "p": 1.09, "b": 0.658},
 }
+
+
+# Solder mask on CPWG and coupled microstrip (boarddd), the coated-microstrip form per mode: a conformal coating
+# c thick (εr erc) only replaces air, so Cair is unchanged and εeff rises by the air's share of the mode's field
+# (1 - q) times the share F inside the coating, F = 1 - exp(-k u^-a (c/h)^p (1 + b h/s)) with s the gap (CPWG)
+# or the pair spacing; k, a, p, b fitted per mode to fixtures/impedance/field-mask-sweep.json.
+def _mask_mode(Z, ee, er, u, ch, gh, erc, m):
+    q = (ee - 1) / ((er - 1) or 1)
+    F = 1 - exp(-m["k"] * u ** -m["a"] * ch ** m["p"] * (1 + m["b"] / gh))
+    ee2 = ee + ((1 - q) * F * (erc - 1)) / (1 + _FIT["mask"]["kappa"] * (erc - 1))
+    return Z * sqrt(ee / ee2), ee2
+
+
+def _mask_params(c, erc, h, flags) -> bool:
+    """Check and flag the optional mask parameters of CPWG and coupled microstrip; True when there is a mask."""
+    if c is None or c == 0:
+        return False
+    if not c >= 0:
+        raise ValueError(f"c must be a number >= 0 (got {c})")
+    if erc is None or not erc >= 1:
+        raise ValueError(f"erc must be >= 1 (got {erc})")
+    _range(flags, "c/h", c / h, 0, 0.25, "boarddd mask model")
+    _range(flags, "erc", erc, 2.5, 5, "boarddd mask model")
+    return True
 
 
 @dataclass(frozen=True)
@@ -345,7 +372,16 @@ def _tanh_ratio(a: float, b: float) -> tuple[float, float]:
     return k, sqrt(one * (1 + k))
 
 
-def _coplanar(w: float, gap: float, h: float, er: float, t: float, grounded: bool) -> LineResult:
+def _coplanar(
+    w: float,
+    gap: float,
+    h: float,
+    er: float,
+    t: float,
+    grounded: bool,
+    mask_c: float | None = None,
+    erc: float | None = None,
+) -> LineResult:
     _positive({"w": w, "gap": gap, "h": h, "er": er, "t": t}, ["w", "gap", "h"])
     g = gap
     k0, k0p = w / (w + 2 * g), (2 * sqrt(g * (w + g))) / (w + 2 * g)
@@ -369,18 +405,30 @@ def _coplanar(w: float, gap: float, h: float, er: float, t: float, grounded: boo
         # Air above and below (2 r0), plus the dielectric's share of the lower half-plane.
         c_air = 2 * r0 + dt
         c = 2 * r0 + dt + (er - 1) * r1
-    method = src + (" + boarddd thickness" if t > 0 else "")
-    return LineResult("cpwg" if grounded else "cpw", method, ETA0 / (2 * sqrt(c * c_air)), c / c_air, flags)
+    eps_eff, Z0, masked = c / c_air, ETA0 / (2 * sqrt(c * c_air)), False
+    if grounded and _mask_params(mask_c, erc, h, flags):
+        Z0, eps_eff = _mask_mode(Z0, eps_eff, er, w / h, mask_c / h, g / h, erc, _FIT["maskCpwg"])
+        masked = True
+    elif not grounded and mask_c:
+        raise ValueError("cpw has no mask model (c): use the field solver")
+    method = src + (" + boarddd thickness" if t > 0 else "") + (" + boarddd mask model" if masked else "")
+    return LineResult("cpwg" if grounded else "cpw", method, Z0, eps_eff, flags)
 
 
-def cpw(*, w: float, gap: float, h: float, er: float, t: float = 0) -> LineResult:
+def cpw(
+    *, w: float, gap: float, h: float, er: float, t: float = 0, c: float | None = None, erc: float | None = None
+) -> LineResult:
     """Coplanar waveguide on a substrate of height h with no plane under it (Ghione-Naldi 1984)."""
-    return _coplanar(w, gap, h, er, t, False)
+    return _coplanar(w, gap, h, er, t, False, c, erc)
 
 
-def cpwg(*, w: float, gap: float, h: float, er: float, t: float = 0) -> LineResult:
-    """Grounded (conductor-backed) CPW (Ghione-Naldi 1987): infinite coplanar grounds, the plane h below."""
-    return _coplanar(w, gap, h, er, t, True)
+def cpwg(
+    *, w: float, gap: float, h: float, er: float, t: float = 0, c: float | None = None, erc: float | None = None
+) -> LineResult:
+    """Grounded (conductor-backed) CPW (Ghione-Naldi 1987): infinite coplanar grounds, the plane h below.
+
+    Optional solder mask: c thick (over laminate and copper), εr erc (boarddd mask model)."""
+    return _coplanar(w, gap, h, er, t, True, c, erc)
 
 
 # ── edge-coupled microstrip: Kirschning & Jansen 1984 ─────────────────────────────────────────────────────
@@ -438,9 +486,13 @@ def _caps(Z: float, ee: float) -> tuple[float, float]:
     return (ETA0 * sqrt(ee)) / Z, ETA0 / (Z * sqrt(ee))
 
 
-def coupled_microstrip(*, w: float, s: float, h: float, er: float, t: float = 0) -> CoupledResult:
-    """Edge-coupled microstrip pair: each trace w wide, s edge to edge (Kirschning-Jansen 1984, boarddd thickness)."""
-    _positive(locals(), ["w", "s", "h"])
+def coupled_microstrip(
+    *, w: float, s: float, h: float, er: float, t: float = 0, c: float | None = None, erc: float | None = None
+) -> CoupledResult:
+    """Edge-coupled microstrip pair: each trace w wide, s edge to edge (Kirschning-Jansen 1984, boarddd thickness).
+
+    Optional solder mask: c thick (over laminate and copper), εr erc (boarddd mask model)."""
+    _positive({"w": w, "s": s, "h": h, "er": er, "t": t}, ["w", "s", "h"])
     u, g, T = w / h, s / h, t / h
     z_even, ee_even, z_odd, ee_odd = _kj_modes(u, g, er)
     if T > 0:
@@ -463,7 +515,11 @@ def coupled_microstrip(*, w: float, s: float, h: float, er: float, t: float = 0)
     _range(flags, "s/h", g, 0.1, 10, src)
     _range(flags, "er", er, 1, 18, src)
     _range(flags, "t/h", T, 0, 0.35, "boarddd coupled thickness")
-    method = src + (" + boarddd thickness" if T > 0 else "")
+    masked = _mask_params(c, erc, h, flags)
+    if masked:
+        z_even, ee_even = _mask_mode(z_even, ee_even, er, u, c / h, g, erc, _FIT["maskCoupledEven"])
+        z_odd, ee_odd = _mask_mode(z_odd, ee_odd, er, u, c / h, g, erc, _FIT["maskCoupledOdd"])
+    method = src + (" + boarddd thickness" if T > 0 else "") + (" + boarddd mask model" if masked else "")
     return _coupled("coupled_microstrip", method, z_even, z_odd, ee_even, ee_odd, flags)
 
 

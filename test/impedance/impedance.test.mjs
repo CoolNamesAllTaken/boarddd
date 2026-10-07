@@ -134,6 +134,26 @@ test("accuracy envelope against boarddd's field-solver sweep (fixtures/impedance
   }
 });
 
+test("mask terms (CPWG, coupled microstrip) against boarddd's field-solver mask sweep (field-mask-sweep.json)", () => {
+  const rows = JSON.parse(readFileSync(new URL('../../fixtures/impedance/field-mask-sweep.json', import.meta.url), 'utf8')).rows;
+  const bare = new Map(rows.filter((r) => r[1].c == null).map((r) => [JSON.stringify(r[1]), r]));
+  const errs = {};
+  for (const [model, args, ref] of rows) {
+    if (args.c == null || z.calculate(model, args).flags.length) continue;
+    const { c, erc, ...b } = args;
+    const [, , bref] = bare.get(JSON.stringify(b));
+    for (const k of Object.keys(ref)) {
+      const ratio = z.calculate(model, args)[k] / z.calculate(model, b)[k];
+      (errs[`${model} ${k}`] ??= []).push(100 * (ratio / (ref[k] / bref[k]) - 1));
+    }
+  }
+  assert.equal(Object.keys(errs).length, 3);
+  for (const [name, e] of Object.entries(errs)) {
+    const max = Math.max(...e.map(Math.abs)), rms = Math.sqrt(e.reduce((s, x) => s + x * x, 0) / e.length);
+    assert.ok(max < 2.5 && rms < 0.6, `${name}: max ${max.toFixed(2)} %, rms ${rms.toFixed(2)} %`);
+  }
+});
+
 test('stackup lines and ImpedanceTarget evaluation (shared cases)', () => {
   for (const c of cases.stackup_lines) close(JSON.parse(JSON.stringify(z.lineFromStackup(cases.stackups[c.stackup], c.layer, c.opts))), c.expect, `${c.stackup} ${c.layer}`);
   for (const c of cases.stackup_targets) {

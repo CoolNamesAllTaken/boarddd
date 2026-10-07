@@ -244,6 +244,8 @@ def _axis(breaks: list[tuple[float, float]], lo: float, hi: float, growth: float
         seg = [a]
         x, h = a, size_at(a)
         while x + h < b:
+            if not x + h > x:
+                raise ArithmeticError("field solver: grid cell size underflow")
             x += h
             seg.append(x)
             h = size_at(x)
@@ -270,6 +272,12 @@ def _breakpoints(g, axis_: str, hc: float, hd: float, lo: float, hi: float) -> l
         for v in (d[a], d[b]):
             if _finite(v):
                 raw.append((v, hd))
+    tol = 1e-9 * g["size"]
+    snap: dict[float, float] = {}
+    for v in sorted({x for x, _ in raw}):
+        prev = next((u for u in snap if snap[u] == u and v - u <= tol), None) if snap else None
+        snap[v] = v if prev is None else prev
+    raw = [(snap[x], h) for x, h in raw]
     xs = sorted({x for x, _ in raw})
     out = []
     for x, h in raw:
@@ -324,9 +332,10 @@ def _paint(g, X, Y):
         my = (cy >= d["y0"]) & (cy <= d["y1"])
         er[np.ix_(my, mx)] = d["er"]
     owner = np.full((len(Y), len(X)), -1, dtype=np.int64)
+    e = 1e-9 * g["size"]
     for i, c in enumerate(g["conductors"]):
-        mx = (X >= c["x0"]) & (X <= c["x1"])
-        my = (Y >= c["y0"]) & (Y <= c["y1"])
+        mx = (X >= c["x0"] - e) & (X <= c["x1"] + e)
+        my = (Y >= c["y0"] - e) & (Y <= c["y1"] + e)
         owner[np.ix_(my, mx)] = i
     return er, owner
 
@@ -560,18 +569,61 @@ def _traces(w, s, y, t):
     ]
 
 
-def _coating(rects, y, c, erc):
-    if not c > 0:
-        return []
-    out = [{"y0": y, "y1": y + c, "er": erc}]
-    for r in rects:
-        d = {"y0": y, "y1": r["y1"] + c, "er": erc}
-        if r.get("x0") is not None:
-            d["x0"] = r["x0"] - c
-        if r.get("x1") is not None:
-            d["x1"] = r["x1"] + c
-        out.append(d)
+def etched(box: dict, etch: float = 0) -> list[dict]:
+    """The copper rectangles of a trace box: itself, or with `etch` > 0 a trapezoid whose top is `etch` narrower
+    than its base, as four steps at the trapezoid's width at each step's mid-height (the JS `etched`)."""
+    if not (etch and etch > 0) or not box["y1"] > box["y0"]:
+        return [box]
+    out = []
+    h = (box["y1"] - box["y0"]) / 4
+    for k in range(4):
+        inset = (etch / 2) * ((k + 0.5) / 4)
+        out.append(
+            {
+                **box,
+                "x0": box["x0"] + inset,
+                "x1": box["x1"] - inset,
+                "y0": box["y0"] + k * h,
+                "y1": box["y1"] if k == 3 else box["y0"] + (k + 1) * h,
+            }
+        )
     return out
+
+
+def mask(boxes, y, *, c, er, ct=None, cs=None, pair_gap=None) -> list[dict]:
+    """A conformal solder mask on copper boxes at y: c over the laminate, ct over the copper, cs in a pair's gap."""
+    ct = c if ct is None else ct
+    cs = c if cs is None else cs
+    if not (c > 0 or ct > 0):
+        return []
+    out = []
+    if c > 0:
+        out.append({"y0": y, "y1": y + c, "er": er})
+    if pair_gap is not None and cs != c and cs > 0:
+        out.append({"x0": pair_gap[0], "x1": pair_gap[1], "y0": y, "y1": y + cs, "er": er})
+    if ct > 0:
+        for r in boxes:
+            d = {"y0": y, "y1": r["y1"] + ct, "er": er}
+            if r.get("x0") is not None:
+                d["x0"] = r["x0"] - ct
+            if r.get("x1") is not None:
+                d["x1"] = r["x1"] + ct
+            # keys in the JS order: x0, x1, y0, y1, er
+            out.append({k: d[k] for k in ("x0", "x1", "y0", "y1", "er") if k in d})
+    return out
+
+
+def _mask_of(p, boxes, y):
+    c = p.get("c") or 0
+    return mask(
+        boxes,
+        y,
+        c=c,
+        ct=p["ct"] if p.get("ct") is not None else c,
+        cs=p["cs"] if p.get("cs") is not None else c,
+        er=p.get("erc") or 1,
+        pair_gap=(-p["s"] / 2, p["s"] / 2) if p.get("s") is not None else None,
+    )
 
 
 def section_for(model: str, p: dict) -> dict:
@@ -582,11 +634,11 @@ def section_for(model: str, p: dict) -> dict:
         _req(p, ["w", "h", "s"] if pair else ["w", "h"])
         tr = _traces(p["w"], p["s"] if pair else None, p["h"], t)
         return {
-            "conductors": [{"y0": -max(t, p["h"] / 20), "y1": 0, "net": "gnd"}, *tr],
-            "dielectrics": [
-                {"y0": 0, "y1": p["h"], "er": p["er"]},
-                *_coating(tr, p["h"], p.get("c") or 0, p.get("erc") or 1),
+            "conductors": [
+                {"y0": -max(t, p["h"] / 20), "y1": 0, "net": "gnd"},
+                *[r for b in tr for r in etched(b, p.get("etch") or 0)],
             ],
+            "dielectrics": [{"y0": 0, "y1": p["h"], "er": p["er"]}, *_mask_of(p, tr, p["h"])],
         }
     if model in ("stripline", "coupled_stripline"):
         pair = model == "coupled_stripline"
@@ -598,7 +650,11 @@ def section_for(model: str, p: dict) -> dict:
             "conductors": [
                 {"y0": -tp, "y1": 0, "net": "gnd"},
                 {"y0": b, "y1": b + tp, "net": "gnd"},
-                *_traces(p["w"], p["s"] if pair else None, p["h1"], t),
+                *[
+                    r
+                    for b in _traces(p["w"], p["s"] if pair else None, p["h1"], t)
+                    for r in etched(b, p.get("etch") or 0)
+                ],
             ],
             "dielectrics": [{"y0": 0, "y1": b, "er": p["er"]}],
         }
@@ -617,7 +673,7 @@ def section_for(model: str, p: dict) -> dict:
             left = {"x0": -(e + gw), **left}
             right = {**right, "x1": e + gw}
         gnds = [left, right]
-        conductors = [*tr, *gnds]
+        conductors = [*[r for b in tr for r in etched(b, p.get("etch") or 0)], *gnds]
         if grounded:
             conductors.append({"y0": -tg, "y1": 0, "net": "gnd"})
             if p.get("fence") is not None:
@@ -628,10 +684,7 @@ def section_for(model: str, p: dict) -> dict:
                 ]
         return {
             "conductors": conductors,
-            "dielectrics": [
-                {"y0": 0, "y1": h, "er": p["er"]},
-                *_coating([*tr, *gnds], h, p.get("c") or 0, p.get("erc") or 1),
-            ],
+            "dielectrics": [{"y0": 0, "y1": h, "er": p["er"]}, *_mask_of(p, [*tr, *gnds], h)],
         }
     raise ValueError(f"the field solver has no builder for model {model}")
 

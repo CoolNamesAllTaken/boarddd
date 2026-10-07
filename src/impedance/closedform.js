@@ -21,7 +21,31 @@ const FIT = {
   coupledMicrostrip: { even: 0.95, odd: 0.915 },
   coupledStripline: { decay: 3.04 },
   offset: { lo: 0.193, span: 30 },
+  maskCpwg: { k: 1.55, a: 0.266, p: 1.1, b: 1.45 },
+  maskCoupledEven: { k: 2.32, a: 0.269, p: 0.8, b: -0.0854 },
+  maskCoupledOdd: { k: 2.54, a: 0.32, p: 1.09, b: 0.658 },
 };
+
+// Solder mask on CPWG and coupled microstrip (boarddd), the coated-microstrip form per mode: a conformal coating
+// c thick (εr erc) only replaces air, so Cair is unchanged and εeff rises by the air's share of the mode's field
+// (1 - q) times the share F inside the coating, F = 1 - exp(-k u^-a (c/h)^p (1 + b h/s)) with s the gap (CPWG)
+// or the pair spacing; k, a, p, b fitted per mode to fixtures/impedance/field-mask-sweep.json.
+function maskMode(Z, ee, er, u, ch, gh, erc, m) {
+  const q = (ee - 1) / (er - 1 || 1);
+  const F = 1 - exp(-m.k * u ** -m.a * ch ** m.p * (1 + m.b / gh));
+  const ee2 = ee + ((1 - q) * F * (erc - 1)) / (1 + FIT.mask.kappa * (erc - 1));
+  return [Z * sqrt(ee / ee2), ee2];
+}
+
+/** Check and flag the optional mask parameters c, erc of CPWG and coupled microstrip; true when there is a mask. */
+function maskParams(p, h, flags) {
+  if (p.c == null || p.c === 0) return false;
+  if (!(p.c >= 0)) throw new RangeError(`c must be a number >= 0 (got ${p.c})`);
+  if (!(p.erc >= 1)) throw new RangeError(`erc must be >= 1 (got ${p.erc})`);
+  range(flags, 'c/h', p.c / h, 0, 0.25, 'boarddd mask model');
+  range(flags, 'erc', p.erc, 2.5, 5, 'boarddd mask model');
+  return true;
+}
 
 // ── elliptic integrals ──────────────────────────────────────────────────────────────────────────────────────
 
@@ -287,9 +311,13 @@ function coplanar(p, grounded) {
     Cair = 2 * r0 + dt;
     C = 2 * r0 + dt + (er - 1) * r1;
   }
-  const eps_eff = C / Cair;
-  return { model: grounded ? 'cpwg' : 'cpw', method: `${src}${t > 0 ? ' + boarddd thickness' : ''}`,
-    Z0: ETA0 / (2 * sqrt(C * Cair)), eps_eff, flags };
+  let eps_eff = C / Cair, Z0 = ETA0 / (2 * sqrt(C * Cair)), masked = false;
+  if (grounded && maskParams(p, h, flags)) {
+    [Z0, eps_eff] = maskMode(Z0, eps_eff, er, w / h, p.c / h, g / h, p.erc, FIT.maskCpwg);
+    masked = true;
+  } else if (!grounded && p.c > 0) throw new RangeError('cpw has no mask model (c): use the field solver');
+  return { model: grounded ? 'cpwg' : 'cpw', method: `${src}${t > 0 ? ' + boarddd thickness' : ''}${masked ? ' + boarddd mask model' : ''}`,
+    Z0, eps_eff, flags };
 }
 
 /**
@@ -385,7 +413,12 @@ export function coupledMicrostrip(p) {
   range(flags, 's/h', g, 0.1, 10, src);
   range(flags, 'er', er, 1, 18, src);
   range(flags, 't/h', T, 0, 0.35, 'boarddd coupled thickness');
-  return coupledResult('coupled_microstrip', `${src}${T > 0 ? ' + boarddd thickness' : ''}`,
+  const masked = maskParams(p, p.h, flags);
+  if (masked) {
+    [Zeven, eps_eff_even] = maskMode(Zeven, eps_eff_even, er, u, p.c / p.h, g, p.erc, FIT.maskCoupledEven);
+    [Zodd, eps_eff_odd] = maskMode(Zodd, eps_eff_odd, er, u, p.c / p.h, g, p.erc, FIT.maskCoupledOdd);
+  }
+  return coupledResult('coupled_microstrip', `${src}${T > 0 ? ' + boarddd thickness' : ''}${masked ? ' + boarddd mask model' : ''}`,
     Zeven, Zodd, eps_eff_even, eps_eff_odd, flags);
 }
 

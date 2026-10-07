@@ -116,6 +116,10 @@ for (const [w, h, t, er] of [[0.36, 0.2104, 0.035, 4.4], [0.1, 0.1, 0, 3], [3, 1
   add('ipc2141_coupled_microstrip', { w, s: w / 2, h, t, er });
 }
 add('coated_microstrip', { w: 0.3, h: 0.1, t: 0.035, er: 4.2, c: 0.06, erc: 6 });
+add('cpwg', { w: 0.3, gap: 0.15, h: 0.2, t: 0.035, er: 4.4, c: 0.02, erc: 3.8 });
+add('cpwg', { w: 0.3, gap: 0.15, h: 0.2, t: 0.035, er: 4.4, c: 0.08, erc: 6 });
+add('coupled_microstrip', { w: 0.2, s: 0.15, h: 0.2, t: 0.035, er: 4.4, c: 0.02, erc: 3.8 });
+add('coupled_microstrip', { w: 0.1, s: 0.03, h: 0.2, t: 0.035, er: 4.4, c: 0.06, erc: 3.3 });
 add('coated_microstrip', { w: 0.3, h: 0.3, t: 0.018, er: 4.2, c: 0, erc: 3.5 });
 for (const [w, h1, h2, t, er] of [[0.15, 0.2, 0.2, 0.035, 4.1], [0.15, 0.2, undefined, 0, 4.1], [0.1, 0.1, 0.3, 0.018, 3.8], [0.3, 0.05, 0.4, 0.035, 4], [1, 0.2, 0.4, 0.035, 4.2], [0.02, 0.5, 0.1, 0.07, 3]]) {
   const args = h2 === undefined ? { w, h1, t, er } : { w, h1, h2, t, er };
@@ -266,6 +270,9 @@ const FIELD_MODELS = [
   ['coupled_stripline', { w: 0.1, s: 0.15, h1: 0.15, h2: 0.3, t: 0.018, er: 4.1 }, {}],
   ['coupled_cpwg', { w: 0.1, s: 0.15, gap: 0.2, gnd: 0.5, h: 0.15, t: 0.018, er: 4.1 }, {}],
   ['microstrip', { w: 0.36, h: 0.2104, t: 0.035, er: 4.4 }, { symmetry: false, tol: 0.003 }],
+  // JLC's calculator geometry: trapezoid (top 0.7 mil narrower), mask 1.2 / 0.6 / 1.2 mil at εr 3.8
+  ['coupled_microstrip', { w: 0.2332, s: 0.15, h: 0.2104, t: 0.04064, er: 4.4, c: 0.03048, ct: 0.01524, cs: 0.02, erc: 3.8, etch: 0.01778 }, {}],
+  ['cpwg', { w: 0.3, gap: 0.15, h: 0.2104, t: 0.04064, er: 4.4, c: 0.03048, ct: 0.01524, erc: 3.8, etch: 0.01778, fence: 0.5 }, {}],
 ];
 const FIELD_LINES = [
   ['royalblue', 'F.Cu', { width: 0.15 }],
@@ -276,6 +283,7 @@ const FIELD_LINES = [
   ['synthetic', 'In2.Cu', { width: 0.12, refTop: 'F.Cu' }],
   ['synthetic', 'In2.Cu', { width: 0.12, structure: 'coplanar_grounded', coplanarGap: 0.15 }],
   ['synthetic', 'B.Cu', { width: 0.2, structure: 'coplanar', coplanarGap: 0.2 }],
+  ['synthetic', 'F.Cu', { width: 0.2, kind: 'differential', gap: 0.15, etch: 0.018 }],
 ];
 const lean = (r) => { const o = clean(r); delete o.ms; return o; };
 const fieldOut = {

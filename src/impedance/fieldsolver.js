@@ -154,7 +154,10 @@ function axis(breaks, lo, hi, growth) {
     const a = xs[s], b = xs[s + 1];
     const seg = [a];
     let x = a, h = sizeAt(a);
-    while (x + h < b) { x += h; seg.push(x); h = sizeAt(x); }
+    while (x + h < b) {
+      if (!(x + h > x)) throw new Error('field solver: grid cell size underflow');
+      x += h; seg.push(x); h = sizeAt(x);
+    }
     // The last cell would end at x + h >= b: end there and squeeze, or drop x and stretch, whichever is closer.
     const L = b - a;
     let end = x + h;
@@ -177,6 +180,13 @@ function breakpoints(g, dir, hc, hd, lo, hi) {
     for (const v of [c[a], c[b]]) if (finite(v)) raw.push({ x: v, h: corner ? hc : hd });
   }
   for (const d of g.dielectrics) for (const v of [d[a], d[b]]) if (finite(v)) raw.push({ x: v, h: hd });
+  // Coordinates closer than 1e-9 of the structure are one grid line (float noise from mask and etch offsets).
+  const tol = 1e-9 * g.size, sorted = [...new Set(raw.map((r) => r.x))].sort((p, q) => p - q), snap = new Map();
+  for (const v of sorted) {
+    const prev = snap.size ? sorted.find((u) => snap.get(u) === u && v - u <= tol) : undefined;
+    snap.set(v, prev ?? v);
+  }
+  for (const r of raw) r.x = snap.get(r.x);
   const xs = [...new Set(raw.map((r) => r.x))].sort((p, q) => p - q);
   return raw.map((r) => {
     const i = xs.indexOf(r.x);
@@ -215,7 +225,7 @@ function makeGrid(g, level, mirrorAt) {
 
 // ── discretisation ─────────────────────────────────────────────────────────────────────────────────────────
 
-const inRect = (r, x, y) => x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1;
+const inRect = (r, x, y, e = 0) => x >= r.x0 - e && x <= r.x1 + e && y >= r.y0 - e && y <= r.y1 + e;
 
 /** Cell permittivities (with or without dielectrics) and the conductor index at each node (-1: free). */
 function paint(g, X, Y) {
@@ -230,7 +240,7 @@ function paint(g, X, Y) {
   }
   const owner = new Int32Array(nx * ny).fill(-1);
   for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
-    for (let c = 0; c < g.conductors.length; c++) if (inRect(g.conductors[c], X[i], Y[j])) owner[j * nx + i] = c;
+    for (let c = 0; c < g.conductors.length; c++) if (inRect(g.conductors[c], X[i], Y[j], 1e-9 * g.size)) owner[j * nx + i] = c;
   }
   return { er, owner };
 }
@@ -573,20 +583,49 @@ const req = (p, keys) => {
   if (!(p.er >= 1)) throw new RangeError(`er must be >= 1 (got ${p.er})`);
 };
 
-/** Traces (one, or a pair s apart) centred on x = 0 with bottom at y and thickness t. */
+/** Traces (one, or a pair s apart) centred on x = 0 with bottom at y and thickness t, as boxes with their net. */
 const traces = (w, s, y, t) => (s == null
   ? [{ x0: -w / 2, x1: w / 2, y0: y, y1: y + t, net: 'sig' }]
   : [{ x0: -s / 2 - w, x1: -s / 2, y0: y, y1: y + t, net: 'p' }, { x0: s / 2, x1: s / 2 + w, y0: y, y1: y + t, net: 'n' }]);
 
-/** A conformal coating c thick (εr erc) over the laminate at y and over each trace's top and sides. */
-const coating = (list, y, c, erc) => (c > 0 ? [{ y0: y, y1: y + c, er: erc }, ...list.map((r) => ({
-  ...(r.x0 != null && { x0: r.x0 - c }), ...(r.x1 != null && { x1: r.x1 + c }), y0: y, y1: r.y1 + c, er: erc }))] : []);
+/**
+ * The copper rectangles of a trace box: the box itself, or with `etch` > 0 a trapezoid whose top is `etch`
+ * narrower than its base (y0), as four steps at the trapezoid's width at each step's mid-height.
+ */
+export function etched(box, etch = 0) {
+  if (!(etch > 0) || !(box.y1 > box.y0)) return [box];
+  const out = [];
+  for (let k = 0; k < 4; k++) {
+    const inset = (etch / 2) * ((k + 0.5) / 4), h = (box.y1 - box.y0) / 4;
+    out.push({ ...box, x0: box.x0 + inset, x1: box.x1 - inset, y0: box.y0 + k * h, y1: k === 3 ? box.y1 : box.y0 + (k + 1) * h });
+  }
+  return out;
+}
 
 /**
- * The cross-section of a tier-1 model's parameters (same names and units), for the field solver. Outer
- * structures also take a solder mask `c`, `erc` (conformal, as coated_microstrip); coplanar ones a via fence
- * `fence` (distance from the gap's outer edge to a wall stitching the coplanar grounds to the plane; cpwg only)
- * and `gnd` (coplanar ground width; default infinite).
+ * A conformal solder mask (εr er) on copper boxes standing on the laminate at y: `c` thick over the laminate,
+ * `ct` over the copper's top and sides (default c) and `cs` in the gap of a pair (default c; `pairGap` the gap's
+ * x range). Polar's C1, C2 and C3.
+ */
+export function mask(boxes, y, { c, ct = c, cs = c, er, pairGap = null }) {
+  if (!(c > 0 || ct > 0)) return [];
+  const out = [];
+  if (c > 0) out.push({ y0: y, y1: y + c, er });
+  if (pairGap && cs !== c && cs > 0) out.push({ x0: pairGap[0], x1: pairGap[1], y0: y, y1: y + cs, er });
+  if (ct > 0) for (const r of boxes) out.push({ ...(r.x0 != null && { x0: r.x0 - ct }), ...(r.x1 != null && { x1: r.x1 + ct }), y0: y, y1: r.y1 + ct, er });
+  return out;
+}
+
+/** The mask of a model's parameters c, ct, cs, erc. */
+const maskOf = (p, boxes, y) => mask(boxes, y, { c: p.c ?? 0, ct: p.ct ?? p.c ?? 0, cs: p.cs ?? p.c ?? 0, er: p.erc ?? 1,
+  pairGap: p.s != null ? [-p.s / 2, p.s / 2] : null });
+
+/**
+ * The cross-section of a tier-1 model's parameters (same names and units), for the field solver. Every model
+ * also takes `etch` (a trapezoid trace whose top is `etch` narrower than its base `w`); outer structures a
+ * conformal solder mask `c`, `erc` (as coated_microstrip; `ct` over the copper and `cs` in a pair's gap default
+ * to c); coplanar ones a via fence `fence` (distance from the gap's outer edge to a wall stitching the coplanar
+ * grounds to the plane; cpwg only) and `gnd` (coplanar ground width; default infinite).
  */
 export function sectionFor(model, p) {
   const t = p.t ?? 0;
@@ -594,15 +633,16 @@ export function sectionFor(model, p) {
     case 'microstrip': case 'coated_microstrip': case 'coupled_microstrip': {
       req(p, model === 'coupled_microstrip' ? ['w', 'h', 's'] : ['w', 'h']);
       const tr = traces(p.w, model === 'coupled_microstrip' ? p.s : null, p.h, t);
-      return { conductors: [{ y0: -Math.max(t, p.h / 20), y1: 0, net: 'gnd' }, ...tr],
-        dielectrics: [{ y0: 0, y1: p.h, er: p.er }, ...coating(tr, p.h, p.c ?? 0, p.erc ?? 1)] };
+      return { conductors: [{ y0: -Math.max(t, p.h / 20), y1: 0, net: 'gnd' }, ...tr.flatMap((b) => etched(b, p.etch))],
+        dielectrics: [{ y0: 0, y1: p.h, er: p.er }, ...maskOf(p, tr, p.h)] };
     }
     case 'stripline': case 'coupled_stripline': {
       const h2 = p.h2 ?? p.h1;
       req({ ...p, h2 }, model === 'coupled_stripline' ? ['w', 'h1', 'h2', 's'] : ['w', 'h1', 'h2']);
       const b = p.h1 + t + h2, tp = Math.max(t, b / 20);
       return { conductors: [{ y0: -tp, y1: 0, net: 'gnd' }, { y0: b, y1: b + tp, net: 'gnd' },
-        ...traces(p.w, model === 'coupled_stripline' ? p.s : null, p.h1, t)], dielectrics: [{ y0: 0, y1: b, er: p.er }] };
+        ...traces(p.w, model === 'coupled_stripline' ? p.s : null, p.h1, t).flatMap((r) => etched(r, p.etch))],
+      dielectrics: [{ y0: 0, y1: b, er: p.er }] };
     }
     case 'cpw': case 'cpwg': case 'coupled_cpw': case 'coupled_cpwg': {
       const pair = model.startsWith('coupled'), grounded = model.endsWith('cpwg');
@@ -612,14 +652,14 @@ export function sectionFor(model, p) {
       const gw = p.gnd ?? null;
       const gnds = [{ ...(gw != null && { x0: -(e + gw) }), x1: -e, y0: p.h, y1: p.h + t, net: 'gnd' },
         { x0: e, ...(gw != null && { x1: e + gw }), y0: p.h, y1: p.h + t, net: 'gnd' }];
-      const conductors = [...tr, ...gnds];
+      const conductors = [...tr.flatMap((b) => etched(b, p.etch)), ...gnds];
       if (grounded) {
         conductors.push({ y0: -tg, y1: 0, net: 'gnd' });
         if (p.fence != null) {
           conductors.push({ x1: -(e + p.fence), y0: 0, y1: p.h + t, net: 'gnd' }, { x0: e + p.fence, y0: 0, y1: p.h + t, net: 'gnd' });
         }
       }
-      return { conductors, dielectrics: [{ y0: 0, y1: p.h, er: p.er }, ...coating([...tr, ...gnds], p.h, p.c ?? 0, p.erc ?? 1)] };
+      return { conductors, dielectrics: [{ y0: 0, y1: p.h, er: p.er }, ...maskOf(p, [...tr, ...gnds], p.h)] };
     }
     default: throw new RangeError(`the field solver has no builder for model ${model}`);
   }

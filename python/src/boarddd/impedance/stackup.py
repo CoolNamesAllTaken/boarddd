@@ -12,7 +12,7 @@ import dataclasses
 from dataclasses import dataclass, field
 
 from .closedform import CoupledResult, LineResult, calculate, synthesize
-from .fieldsolver import FieldResult
+from .fieldsolver import FieldResult, etched, mask
 
 STACKUP_DEFAULTS = {"copper_thickness": 0.035, "epsilon_r": 4.5, "mask_thickness": 0.01, "mask_epsilon_r": 3.3}
 """Defaults for what a stackup leaves out (KiCad's own defaults); each use adds a warning."""
@@ -169,30 +169,22 @@ def _stackup_section(layers, i, up, down, o: dict, structure: str) -> dict:
         ]
     else:
         traces = [{"x0": -w / 2, "x1": w / 2, **slab, "net": "sig"}]
-    conductors += traces
+    conductors += [r for b in traces for r in etched(b, o.get("etch") or 0)]
     grounds: list[dict] = []
     if structure.startswith("coplanar"):
         e = (s / 2 + w if pair else w / 2) + o["coplanar_gap"]
         grounds = [{"x1": -e, **slab, "net": "gnd"}, {"x0": e, **slab, "net": "gnd"}]
         conductors += grounds
     if mask_at is not None and o.get("mask", True) is not False:
-        over = mask_at.get("thickness_over_copper")
-        if over is None:
-            over = mask_at.get("thickness")
-        if over is None:
-            over = STACKUP_DEFAULTS["mask_thickness"]
-        lam = mask_at.get("thickness")
-        lam = over if lam is None else lam
+        ct = mask_at.get("thickness_over_copper")
+        if ct is None:
+            ct = mask_at.get("thickness")
+        if ct is None:
+            ct = STACKUP_DEFAULTS["mask_thickness"]
+        c = mask_at.get("thickness")
         er = mask_at.get("epsilon_r")
         er = STACKUP_DEFAULTS["mask_epsilon_r"] if er is None else er
-        dielectrics.append({"y0": slab["y0"], "y1": slab["y0"] + lam, "er": er})
-        for r in traces + grounds:
-            d = {"y0": slab["y0"], "y1": slab["y1"] + over, "er": er}
-            if r.get("x0") is not None:
-                d["x0"] = r["x0"] - over
-            if r.get("x1") is not None:
-                d["x1"] = r["x1"] + over
-            dielectrics.append(d)
+        dielectrics += mask(traces + grounds, slab["y0"], c=ct if c is None else c, ct=ct, er=er)
     return {"conductors": conductors, "dielectrics": dielectrics}
 
 
@@ -209,6 +201,7 @@ def line_from_stackup(
     ref_bottom: str | None = None,
     mask: bool = True,
     solver: str = "closedform",
+    etch: float = 0,
 ) -> Line:
     """A signal layer ('F.Cu', 'In1.Cu') of a board model stackup as a closed-form line.
 
@@ -216,7 +209,8 @@ def line_from_stackup(
     (ImpedanceLayer) default to the nearest copper; `mask` models the solder mask on an outer single-ended
     microstrip. `solver="field"` also returns `section`, the real cross-section for the tier-2 field solver
     (every layer's own εr, the mask on any outer structure); then differential coplanar and coplanar on inner
-    layers are allowed too (`model` None when tier 1 has none).
+    layers are allowed too (`model` None when tier 1 has none); `etch` makes the traces trapezoids whose top is
+    `etch` narrower than `width`.
     """
     if solver not in ("closedform", "field"):
         raise ValueError(f"unknown solver {solver}")
@@ -254,10 +248,13 @@ def line_from_stackup(
         if not outer:
             raise ValueError(f"{layer} is an inner layer: tier 1 has no embedded {structure}")
         params.update(h=ref["h"], er=ref["er"])
-        coated = structure == "microstrip" and kind == "single" and mask and open_["mask"] is not None
-        if mask and open_["mask"] is not None and not coated and not is_field:
+        masked = bool(mask) and open_["mask"] is not None
+        coated = masked and structure == "microstrip" and kind == "single"
+        # Tier 1 models the mask on microstrip (single and coupled) and CPWG; not on CPW.
+        with_mask = masked and (structure == "microstrip" or (structure == "coplanar_grounded" and kind == "single"))
+        if masked and not with_mask and not is_field:
             warnings.append(f"{structure} {kind}: the solder mask is not modelled (tier 1)")
-        if coated:
+        if with_mask:
             params.update(open_["mask"])
         model = model_for(structure, kind, coated=coated)
         if structure.startswith("coplanar"):
@@ -272,7 +269,7 @@ def line_from_stackup(
         params["s"] = gap
     section = None
     if is_field:
-        o = {"kind": kind, "width": width, "gap": gap, "coplanar_gap": coplanar_gap, "mask": mask}
+        o = {"kind": kind, "width": width, "gap": gap, "coplanar_gap": coplanar_gap, "mask": mask, "etch": etch}
         section = _stackup_section(layers, i, up, down, o, structure)
     return Line(model, structure, params, warnings, section)
 

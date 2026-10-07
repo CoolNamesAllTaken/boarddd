@@ -4,7 +4,7 @@
 // same code; fixtures/impedance/cases.json ("stackup") keeps them in step.
 
 import { calculate, synthesize } from './closedform.js';
-import { solveCrossSection } from './fieldsolver.js';
+import { etched, mask, solveCrossSection } from './fieldsolver.js';
 
 /** Defaults for what a stackup leaves out (KiCad's own defaults); each use adds a warning. */
 export const STACKUP_DEFAULTS = { copper_thickness: 0.035, epsilon_r: 4.5, mask_thickness: 0.01, mask_epsilon_r: 3.3 };
@@ -62,8 +62,9 @@ function side(layers, i, dir, ref, warnings) {
  * The real cross-section of signal copper i for the field solver: every layer between the reference planes with
  * its own εr (planes skipped in between become resin of the neighbouring layer's εr), the traces in the copper
  * layer's slab (filled with the adjacent prepreg's εr on an inner layer, else the layer above's; air outside),
- * coplanar grounds, and on an outer layer the solder mask as a conformal coating (`thickness` over the laminate,
- * `thickness_over_copper` over the copper). Built from one reference plane outwards, so y runs away from it.
+ * coplanar grounds, and on an outer layer the solder mask as a conformal coating (`thickness` over the laminate
+ * and between traces, `thickness_over_copper` over the copper). With `etch` the traces are trapezoids whose top
+ * is `etch` narrower than the base `width`. Built from one reference plane outwards, so y runs away from it.
  */
 function stackupSection(layers, i, up, down, o, t, structure) {
   const seq = [];
@@ -104,7 +105,7 @@ function stackupSection(layers, i, up, down, o, t, structure) {
   const traces = pair
     ? [{ x0: -s / 2 - w, x1: -s / 2, ...slab, net: 'p' }, { x0: s / 2, x1: s / 2 + w, ...slab, net: 'n' }]
     : [{ x0: -w / 2, x1: w / 2, ...slab, net: 'sig' }];
-  conductors.push(...traces);
+  conductors.push(...traces.flatMap((b) => etched(b, o.etch)));
   const grounds = [];
   if (structure.startsWith('coplanar')) {
     const e = (pair ? s / 2 + w : w / 2) + o.coplanarGap;
@@ -113,12 +114,9 @@ function stackupSection(layers, i, up, down, o, t, structure) {
   }
   if (maskAt && o.mask !== false) {
     const l = maskAt.l;
-    const over = l.thickness_over_copper ?? l.thickness ?? STACKUP_DEFAULTS.mask_thickness;
-    const lam = l.thickness ?? over, er = l.epsilon_r ?? STACKUP_DEFAULTS.mask_epsilon_r;
-    dielectrics.push({ y0: slab.y0, y1: slab.y0 + lam, er });
-    for (const r of [...traces, ...grounds]) {
-      dielectrics.push({ ...(r.x0 != null && { x0: r.x0 - over }), ...(r.x1 != null && { x1: r.x1 + over }), y0: slab.y0, y1: slab.y1 + over, er });
-    }
+    const ct = l.thickness_over_copper ?? l.thickness ?? STACKUP_DEFAULTS.mask_thickness;
+    dielectrics.push(...mask([...traces, ...grounds], slab.y0, { c: l.thickness ?? ct, ct,
+      er: l.epsilon_r ?? STACKUP_DEFAULTS.mask_epsilon_r }));
   }
   return { conductors, dielectrics };
 }
@@ -140,6 +138,7 @@ function stackupSection(layers, i, up, down, o, t, structure) {
  *   default the nearest copper on each side
  * @param {boolean} [o.mask]  include the solder mask on an outer layer (default true)
  * @param {'closedform'|'field'} [o.solver]  'field' adds the cross-section for the tier-2 field solver
+ * @param {number} [o.etch]  field solver: the trace top is this much narrower than `width` (trapezoid), mm
  */
 export function lineFromStackup(stackup, layer, o = {}) {
   const layers = stackup?.layers ?? [];
@@ -171,9 +170,12 @@ export function lineFromStackup(stackup, layer, o = {}) {
   } else {
     if (!outer) throw new RangeError(`${layer} is an inner layer: tier 1 has no embedded ${structure}`);
     Object.assign(params, { h: ref.h, er: ref.er });
-    const coated = structure === 'microstrip' && kind === 'single' && o.mask !== false && open.mask != null;
-    if (o.mask !== false && open.mask != null && !coated && !field) warnings.push(`${structure} ${kind}: the solder mask is not modelled (tier 1)`);
-    if (coated) Object.assign(params, open.mask);
+    const masked = o.mask !== false && open.mask != null;
+    const coated = masked && structure === 'microstrip' && kind === 'single';
+    // Tier 1 models the mask on microstrip (single and coupled) and CPWG; not on CPW.
+    const withMask = masked && (structure === 'microstrip' || (structure === 'coplanar_grounded' && kind === 'single'));
+    if (masked && !withMask && !field) warnings.push(`${structure} ${kind}: the solder mask is not modelled (tier 1)`);
+    if (withMask) Object.assign(params, open.mask);
     model = modelFor(structure, kind, { coated });
     if (structure.startsWith('coplanar')) {
       if (o.coplanarGap == null) throw new RangeError(`${structure} needs coplanarGap`);
