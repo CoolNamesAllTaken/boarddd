@@ -12,7 +12,7 @@ fab package / .kicad_pcb / ODB++ / IPC-2581 / STEP ──► boarddd (Python) re
   - `src/model/schema.js`: the same object as an ES module
   - `src/model/board.d.ts`: the TypeScript interfaces
 - **Validation**: `boarddd.validate.validate_board(data)` (Python) and `validateBoard(board)` from `boarddd/model` (JS). Both return the same `"/json/pointer: message"` list, checked by the shared cases in `fixtures/model/cases.json`. Neither has dependencies; the Python tests also check the schema with `jsonschema`.
-- **Golden data**: [`fixtures/royalblue54L_feather/board.json`](../fixtures/royalblue54L_feather/board.json) (KiCad's demo board, built by a temporary script until the phase F readers exist) and `fixtures/model/minimal.json`.
+- **Golden data**: [`fixtures/royalblue54L_feather/board.json`](../fixtures/royalblue54L_feather/board.json) (KiCad's demo board, built by `make_board.py` from `boarddd.io.kicad.read_kicad_pcb` and `boarddd.io.package.read_package`; see [readers.md](readers.md)) and `fixtures/model/minimal.json`.
 
 ```python
 from boarddd.model import Board, Source, Component
@@ -33,10 +33,12 @@ const board = assertBoard(await (await fetch('board.json')).json());   // throws
 | Units | millimetres (`units: "mm"`), angles in degrees |
 | Board frame (`frame: "board"`) | x right, **y up**, seen from the top. Origin = the source's file origin: what Gerber, Excellon, ODB++ and IPC-2581 store. KiCad readers negate y: board = (kicad_x, −kicad_y), which is also how kicad-cli's Gerbers, drills and pos file are written. `origin.aux` / `origin.grid` record the source's other origins (board frame) so writers can go back. |
 | Outline | `board`: the outer loop, counter-clockwise. `cutouts`: clockwise loops. Arcs are flattened and loops are implicitly closed. `approximate: true` when the edge is a fallback (bounding box). |
-| Footprints | KiCad footprint semantics: footprint frame, mm, **y down**, library (top-side) orientation, exactly as a `.kicad_mod` holds them. Pad `at[2]` is relative to the footprint. Pads are boarddd's JS `Pad` (`src/geom/pads.js`, golden-tested against pcbnew) plus magpie's `paste`, `mask`, `function`, `holes`. One difference from the JS `Pad`: the copper shape offset lives in `drill.offset` (KiCad's `(drill … (offset))`); `padOffset()` already reads it there. |
+| Footprints | KiCad footprint semantics: footprint frame, mm, **y down**, library (top-side) orientation, exactly as a `.kicad_mod` holds them. Pad `at[2]` is relative to the footprint. Pads are boarddd's JS `Pad` (`src/geom/pads.js`, golden-tested against pcbnew) plus magpie's `paste`, `mask`, `function`, `holes`. One difference from the JS `Pad`: the copper shape offset lives in `drill.offset` (KiCad's `(drill … (offset))`), or in `offset` for a pad without a hole (castellated SMD pads); `padOffset()` reads both. |
 | Placement | A footprint point `(fx, fy)` lands on the board at `p = (x, y) + R(rotation) · q`, where `q = (fx, −fy)` on the top and `q = (fx, fy)` on the bottom. R is counter-clockwise in the board frame. KiCad's flip mirrors the footprint across its own x axis, and `rotation` is the footprint orientation as KiCad stores it and its pos file prints it. `footprintToBoard(component, [fx, fy])` in `boarddd/model` does this. The golden tests place every thru-hole pad on its drill with it, bottom-side parts included. |
 | Drills | Round when `x2`/`y2` are null. Otherwise a routed slot from `(x, y)` to `(x2, y2)` of width `diameter`; oval pad holes are written that way too, so the pad centre is the slot's midpoint. A `diameter` of 0 is allowed for placeholder drills (it goes in `warnings`). |
 | Layers | `id` uses KiCad canonical names where they apply (`F.Cu`, `In1.Cu`, `Edge.Cuts`, `PTH`). `order` is copper 1..N top to bottom (Gerber `L<n>`); other layers come after. `files` are `source.files` paths. |
+| Stackup | `layers` top to bottom. A dielectric the source splits (KiCad `addsublayer`, gbrjob `(1/2)` entries) lists `sublayers`, and its own `thickness` is their sum, `epsilon_r` the series value t / Σ tᵢ/εᵢ, `loss_tangent` the thickness-weighted mean. `dielectric` is `prepreg`/`core` when the source says; `frequency` (Hz) is where Er/Df were given. Copper (`finished_thickness`, `roughness_rq`, `conductivity`, `etch_factor`) and mask (`thickness_over_copper`) details are null unless a source has them (IPC-2581, ODB++). `impedance_controlled` is KiCad's `dielectric_constraints` / gbrjob `ImpedanceControlled`. |
+| Nets, classes | `nets[]`: `name`, `net_class` (the effective class; `Default` when none is assigned), `pair` (the partner of a differential pair). `net_classes[]`: rules in mm (`track_width`, `clearance`, `diff_pair_width`, `diff_pair_gap`, `via_*`), `nets`, `patterns`, KiCad `priority` and `tuning_profile`, and an `impedance` target: `kind` single/differential, `target` Ω, optional `tolerance_pct`, `common_mode`, `structure` (`microstrip`, `stripline`, `coplanar`, `coplanar_grounded`), per-layer `layers` (width, gap, reference planes) and `source` (`tuning_profile`, `ipc2581`, `odbpp`, `name`, `user`). Copper geometry (tracks, zones) is not in `board.json`; it goes in a separate `boarddd/copper@1` document (impedance phase I5). |
 | Unknown | Optional fields are `null` (or empty lists) when the source doesn't say; readers explain guesses in `warnings`. `meta` is free-form application data that boarddd never interprets. |
 
 ## Shape
@@ -51,7 +53,10 @@ const board = assertBoard(await (await fetch('board.json')).json());   // throws
   "stackup": { "thickness": 1.6, "copper_layers": 8, "finish": "ENIG",
                "mask_color": { "top": "Blue", "bottom": "Blue" }, "silk_color": { "top": "White", "bottom": "White" },
                "layers": [{ "name": "F.Cu", "kind": "copper", "side": "top", "thickness": 0.035, "material": null, "color": null,
-                            "epsilon_r": null, "loss_tangent": null, "layer": "F.Cu" }, …] },
+                            "epsilon_r": null, "loss_tangent": null, "layer": "F.Cu", "dielectric": null, "sublayers": [], … },
+                          { "name": "dielectric 1", "kind": "dielectric", "side": "inner", "thickness": 0.1, "material": "FR4",
+                            "epsilon_r": 4.5, "loss_tangent": 0.02, "dielectric": "prepreg", "sublayers": [], "frequency": null, … }, …],
+               "impedance_controlled": false },
   "layers": [{ "id": "F.Cu", "role": "copper", "side": "top", "order": 1, "files": ["fab/…-F_Cu.gbr"], "format": "gerber",
                "polarity": "positive", "function": "Copper,L1,Top", "plated": null }, …],
   "drills": [{ "x": 122.06, "y": -110.53, "diameter": 0.3, "plated": true, "x2": null, "y2": null, "tool": "T1",
@@ -62,7 +67,13 @@ const board = assertBoard(await (await fetch('board.json')).json());   // throws
                    "mpn": [{ "mpn": "…", "manufacturer": "…" }],
                    "models": [{ "path": "${KICAD8_3DMODEL_DIR}/…wrl", "offset": [0, 0, 0], "rotate": [0, 0, 0], "scale": [1, 1, 1], "hide": false }],
                    "height": null, "attributes": { "Datasheet": "…" } }, …],
-  "panel": null, "warnings": [], "meta": {}
+  "panel": null,
+  "nets": [{ "name": "/Debugger/D+", "net_class": "USB_DIFF", "pair": "/Debugger/D-" }, …],
+  "net_classes": [{ "name": "USB_DIFF", "nets": ["/Debugger/D+", "/Debugger/D-"], "patterns": [], "track_width": 0.125,
+                    "clearance": 0.2032, "diff_pair_width": 0.125, "diff_pair_gap": 0.2032, "via_diameter": 0.8, "via_drill": 0.4,
+                    "priority": 0, "tuning_profile": null,
+                    "impedance": null /* e.g. { "kind": "differential", "target": 90, "structure": "microstrip", "source": "name", … } */ }, …],
+  "warnings": [], "meta": {}
 }
 ```
 
@@ -116,7 +127,8 @@ The gaps show what the readers add over today's outputs:
 - an outline polygon (kipr has a box; magpie's `Board` has none);
 - parsed drills (kipr) with tools (gentoo);
 - a stackup (only kipr has thickness and colour names; nobody keeps the physical layers);
-- pads (only magpie).
+- pads (only magpie);
+- Er/Df, prepreg/core and sublayers (kipr drops them), nets, net classes and impedance targets (nobody).
 
 App-only data has no field in the model: diff `status` / `semantic_changes`, gentoo's catalog / BOM links / model nudges / STEP fit, magpie's pin-1 marks and footprint identity. It stays in the apps or goes into `meta`.
 
