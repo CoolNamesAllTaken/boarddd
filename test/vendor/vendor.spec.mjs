@@ -21,6 +21,7 @@ import { createViewer } from './boarddd/src/scene/index.js';
 import { kicadToBoard } from './boarddd/src/geom/index.js';
 import { loadGLB } from './boarddd/src/models/index.js';
 import { createGerberRenderer } from './boarddd/src/gerber/index.js';
+import { validateBoard } from './boarddd/src/model/index.js';
 
 const board = buildBoard({ outline: { board: [[0, 0], [40, 0], [40, 25], [0, 25]] }, holes: [{ x: 20, y: 12.5, diameter: 3, plated: true }] });
 const v = createViewer(document.getElementById('view'), { theme: 'light' });
@@ -44,6 +45,7 @@ const renderer = await createGerberRenderer(gc);
 const layers = renderer.wasmModule ? typeof renderer.wasmModule.GerberProcessor : 'none';
 window.result = {
   wasm: layers,
+  modelErrors: validateBoard({}).length,
   oneThree: board.group instanceof THREE.Group,
   revision: THREE.REVISION,
   boardFraction: board_ / (c.width * c.height),
@@ -88,6 +90,7 @@ test('a vendored dir loads with relative imports only and renders a board', asyn
     // the top view is mostly board
     expect(r.boardFraction).toBeGreaterThan(0.3);
     expect(r.wasm).toBe('function');
+    expect(r.modelErrors).toBeGreaterThan(0);
     expect(requests).toContain('boarddd/third_party/wasm-gerber-renderer/core/wasm/wasm_gerber_processor_bg.wasm');
     expect(requests).toContain('three/addons/loaders/GLTFLoader.js');
     expect(requests).toContain('three/addons/utils/SkeletonUtils.js');

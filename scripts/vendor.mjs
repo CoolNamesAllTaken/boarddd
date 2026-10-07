@@ -266,13 +266,14 @@ export function exportDirs(pkg) {
 }
 
 /**
- * The directory a module belongs to for vendoring: an export's src/<dir>, any other src/<dir>, or a
- * third_party/<name> package (taken whole: its code, assets such as wasm, and its LICENSE).
+ * The directory a module belongs to for vendoring: an export's src/<dir>, any other src/<dir>, a
+ * third_party/<name> package (taken whole: its code, assets such as wasm, and its LICENSE), or another
+ * shipped top-level directory such as schema/.
  */
 function groupOf(f, exportDirList) {
   for (const d of exportDirList) if (f.startsWith(d + '/')) return d;
-  const m = /^(src|third_party)\/[^/]+(?=\/)/.exec(f);
-  return m ? m[0] : null;
+  const m = /^(?:(?:src|third_party)\/)?[^/]+(?=\/)/.exec(f);   // src/<dir>, third_party/<name>, or a top dir (schema/)
+  return m && !m[0].startsWith('..') ? m[0] : null;
 }
 
 /**
@@ -290,7 +291,7 @@ export function closeSubpaths(files, dirs, asked) {
         if (!spec.startsWith('.')) continue;
         const target = path.posix.normalize(path.posix.join(path.posix.dirname(f), spec));
         const g = groupOf(target, exportList);
-        if (!g) fail(`${f} imports ${spec}, outside src/ and third_party/`);
+        if (!g) fail(`${f} imports ${spec}, outside the package`);
         if (![...files.keys()].some((k) => k === target || k.startsWith(target + '/') || k.startsWith(g + '/'))) fail(`${f} imports ${spec}, which the checkout does not ship (package.json "files")`);
         if (!take.has(g)) { take.add(g); queue.push(g); }
       }
@@ -389,6 +390,7 @@ export function boardddFiles(o, source) {
   const groups = [...subpaths.map((sp) => dirs.get(sp)), ...extra];
 
   const out = new Map(), addons = new Set(), bare = new Set();
+  let usesThree = false;
   for (const dir of groups) {
     for (const [f, buf] of source.files) {
       if (!f.startsWith(dir + '/')) continue;
@@ -398,7 +400,7 @@ export function boardddFiles(o, source) {
         for (const spec of specifiers(code)) {
           if (spec.startsWith('.') || /^[a-z]+:/.test(spec)) continue;
           const t = threeTarget(spec);
-          if (t === null) bare.add(`${spec} (${f})`); else if (t) addons.add(t);
+          if (t === null) bare.add(`${spec} (${f})`); else { usesThree = true; if (t) addons.add(t); }
         }
         if (o.imports === 'relative') data = Buffer.from(rewriteThree(code, path.join(o.out, path.dirname(f)), o.threeDir));
       }
@@ -407,7 +409,7 @@ export function boardddFiles(o, source) {
   }
   if (bare.size && o.imports === 'relative') fail(`bare imports other than three can't be made relative:\n  ${[...bare].join('\n  ')}\n(use --imports bare and map them yourself)`);
   if (source.files.has('LICENSE')) out.set('LICENSE', source.files.get('LICENSE'));
-  return { files: out, pkg, subpaths, added, extra, addons: [...addons].sort() };
+  return { files: out, pkg, subpaths, added, extra, usesThree, addons: [...addons].sort() };
 }
 
 function describeCommit(source) {
@@ -562,7 +564,8 @@ export async function run(argv, log = console.log) {
   if (b.added.length) say(`boarddd: also taking ${b.added.join(', ')} (imported by the subpaths asked for)`);
 
   const info = {};
-  const neededThree = ['three.module.js', ...b.addons.map((a) => `addons/${a}`)];
+  // what the vendored modules import from three (nothing for e.g. geom or model alone)
+  const neededThree = b.usesThree ? ['three.module.js', ...b.addons.map((a) => `addons/${a}`)] : [];
   const targets = [];
   // --check reads nothing from the network: an npm dir is checked against its own manifest
   const pkgFor = async (name, spec) => {
