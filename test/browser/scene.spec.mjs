@@ -184,3 +184,54 @@ test('dispose frees GL, removes the canvas and stops drawing', async ({ page }) 
   expect(r.attached).toBe(false);
   expect(r.rafDelta).toBe(0);
 });
+
+test('panes: one camera, each pane shows only its own objects; pick knows the pane', async ({ page }) => {
+  await open(page);
+  const out = await page.evaluate(() => {
+    const { v, THREE } = window;
+    v.clear();
+    const box = (color, ref) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(20, 20, 2), new THREE.MeshBasicMaterial({ color }));
+      m.position.set(0, 0, 1);
+      m.userData.ref = ref;
+      return m;
+    };
+    const left = box(0xff0000, 'L'), right = box(0x00ff00, 'R');
+    const shared = new THREE.Mesh(new THREE.BoxGeometry(60, 60, 0.5), new THREE.MeshBasicMaterial({ color: 0x0000ff }));
+    v.add(shared, left, right);
+    v.setPanes([[left], [right]]);
+    v.setView('top');
+    v.render();
+    const src = v.canvas;
+    const c = document.createElement('canvas');
+    c.width = src.width; c.height = src.height;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(src, 0, 0);
+    const px = (fx, fy) => [...ctx.getImageData(Math.floor(c.width * fx), Math.floor(c.height * fy), 1, 1).data].slice(0, 3);
+    const r = src.getBoundingClientRect();
+    const at = (fx) => v.pick(r.left + r.width * fx, r.top + r.height / 2);
+    const res = {
+      leftMid: px(0.25, 0.5), rightMid: px(0.75, 0.5),
+      pickLeft: at(0.25), pickRight: at(0.75),
+      rects: [v.paneRect(0), v.paneRect(1)],
+      visible: [left.visible, right.visible],
+    };
+    v.setPanes(null);
+    v.render();
+    res.single = v.panes;
+    res.pickSingle = at(0.5);
+    return { ...res, pickLeft: res.pickLeft && { ref: res.pickLeft.ref, pane: res.pickLeft.pane },
+      pickRight: res.pickRight && { ref: res.pickRight.ref, pane: res.pickRight.pane },
+      pickSingle: res.pickSingle && { pane: res.pickSingle.pane } };
+  });
+  // red only on the left, green only on the right (tone mapping keeps the hue dominant)
+  expect(out.leftMid[0]).toBeGreaterThan(out.leftMid[1] + 100);
+  expect(out.rightMid[1]).toBeGreaterThan(out.rightMid[0] + 100);
+  expect(out.pickLeft).toEqual({ ref: 'L', pane: 0 });
+  expect(out.pickRight).toEqual({ ref: 'R', pane: 1 });
+  expect(out.rects[0].x).toBe(0);
+  expect(out.rects[1].x).toBe(out.rects[0].width);
+  expect(out.visible).toEqual([true, true]);   // visibility restored after drawing
+  expect(out.single).toBeNull();
+  expect(out.pickSingle.pane).toBe(0);
+});

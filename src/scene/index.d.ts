@@ -8,7 +8,7 @@ export function fitCamera(box: { min: Vec3; max: Vec3 }, view: View, fovDeg: num
   { position: Vec3; target: Vec3; up: Vec3; distance: number; radius: number };
 export function clipPlanes(cameraPos: Vec3, sphere: { center: Vec3; radius: number }): { near: number; far: number };
 
-export interface PickHit { object: Object3D; ref: string | null; point: Vec3 }
+export interface PickHit { object: Object3D; ref: string | null; point: Vec3; /** pane index (0 without panes) */ pane: number }
 export interface ViewerOptions {
   controls?: 'trackball' | 'orbit';
   theme?: 'light' | 'dark';
@@ -19,6 +19,8 @@ export interface ViewerOptions {
   pixelRatio?: number;
   environment?: boolean;
   antialias?: boolean;
+  /** Keep the drawn frame readable after compositing (toDataURL / drawImage outside a frame). Default false. */
+  preserveDrawingBuffer?: boolean;
   onPick?(hit: PickHit | null): void;
   onRender?(): void;
 }
@@ -42,7 +44,11 @@ export interface Viewer {
   setTheme(theme: 'light' | 'dark'): void;
   setBackground(spec: [string, string] | string | null | 'theme'): void;
   setControls(kind: 'trackball' | 'orbit'): void;
-  pick(clientX: number, clientY: number): PickHit | null;
+  pick(clientX: number, clientY: number, opts?: { filter?: (object: Object3D) => boolean }): PickHit | null;
+  /** Side-by-side panes with one camera: each inner array is what only that pane shows; null = one view. */
+  setPanes(panes: Object3D[][] | null): Viewer;
+  readonly panes: Object3D[][] | null;
+  paneRect(index?: number): { x: number; y: number; width: number; height: number };
   /** The cube face under a client point ('top', ...), '' for its corner off the cube, null elsewhere. */
   cubeAt(clientX: number, clientY: number): string | null;
   cubeFacePoint(face: string): { x: number; y: number } | null;

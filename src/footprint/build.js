@@ -13,7 +13,7 @@ import {
   BOARD_THICKNESS, COPPER_THICKNESS, kicadToBoard, kicadModelMatrix, counterClockwise, clockwise, loopBounds,
   padBounds, rectLoop, clearance, strokeLoops, padCopperLoops, padDrillLoop, padCopperSides, padHasCopper,
 } from '../geom/index.js';
-import { COLORS as BOARD_COLORS, faceMaterial, planarUVs, splitCaps } from '../board/solid.js';
+import { COLORS as BOARD_COLORS, faceMaterial, planarUVs, splitCaps, canvasTexture } from '../board/solid.js';
 
 export const FOOTPRINT_COLORS = {
   mask: 0x1d5b34, fr4: BOARD_COLORS.fr4, copper: 0xe9b934, silk: 0xf4f4ee, fab: 0xa9adb5, courtyard: 0xff4fd8,
@@ -108,6 +108,9 @@ function sheet(loops, z, depth) {
  *   faces       {top, bottom}: textures/canvases painted over `uvBounds` (e.g. kipr's per-layer renders
  *               composited), or colours; default solder-mask green
  *   uvBounds    the faces' bounds, board frame (default: the outline's)
+ *   decals      {silk, fab, courtyard}: each {top, bottom} pictures (textures/canvases/images painted over
+ *               `uvBounds`, transparent where empty, e.g. kipr's per-layer SVG renders) drawn as sheets just
+ *               above the copper, in that group; the way to show text, which the graphics sheets leave out
  *   colors      overrides of FOOTPRINT_COLORS
  * Returns {group, outline, thickness, meshes: {board, copper[], barrels[], silk[], fab[], courtyard[]},
  *          modelMatrix(model), dispose()}.
@@ -193,6 +196,30 @@ export function buildFootprint(fp, options = {}) {
     }
   }
 
+  // --- decals: layer pictures over the board's shape (holes included), transparent, toggled with their group
+  const decalMats = [];
+  for (const [kind, { dz }] of Object.entries(GFX)) {
+    const pics = options.decals?.[kind];
+    if (!pics) continue;
+    for (const side of ['top', 'bottom']) {
+      const pic = pics[side];
+      if (!pic) continue;
+      const g = new THREE.ShapeGeometry(shape, 1);
+      planarUVs(g, uvBounds);
+      const top = side === 'top';
+      g.translate(0, 0, top ? thickness + COPPER_THICKNESS + dz + 0.002 : -COPPER_THICKNESS - dz - 0.003);
+      const owned = !pic.isTexture;
+      const m = new THREE.MeshStandardMaterial({
+        map: canvasTexture(pic), transparent: true, depthWrite: false, roughness: 0.8, metalness: 0,
+        side: top ? THREE.FrontSide : THREE.BackSide, ...COPPER_OFFSET, polygonOffsetUnits: -8,
+      });
+      m.userData.ownsMap = owned;
+      decalMats.push(m);
+      const mesh = add(g, m, kind, `${side === 'top' ? 'F' : 'B'}.${kind}-decal`);
+      mesh.renderOrder = 2;
+    }
+  }
+
   const materials = [faceMats.top, faceMats.bottom, wallMat, padMat, barrelMat, ...Object.values(gfxMats)];
   return {
     group, outline, thickness, meshes, uvBounds,
@@ -201,6 +228,7 @@ export function buildFootprint(fp, options = {}) {
     dispose() {
       for (const g of disposables) g.dispose();
       for (const m of materials) { if (m.map) m.map.dispose(); m.dispose(); }
+      for (const m of decalMats) { if (m.userData.ownsMap) m.map.dispose(); m.dispose(); }
     },
   };
 }
