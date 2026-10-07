@@ -45,6 +45,7 @@
     "src",
     "schema",
     "third_party/wasm-gerber-renderer/core",
+    "third_party/wasm-gerber-renderer/odb",
     "third_party/wasm-gerber-renderer/LICENSE",
     "third_party/wasm-gerber-renderer/README.md",
     "third_party/wasm-gerber-renderer/FORK_COMMIT",
