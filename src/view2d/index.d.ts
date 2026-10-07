@@ -261,6 +261,9 @@ export type StageOptions = {
   dpr?: number;
   /** CSS background of every pane. */
   background?: string | null;
+  /** Render at least this many px/mm (within maxEdge / maxPixels), so zooming in starts sharper and pixel
+   * results (ink diff regions) don't get coarser when zoomed out. Default 0. */
+  minRender?: number;
   /** Distance label on the measure line (default true). */
   measureLabel?: boolean;
   /** Add a <style> with STAGE_CSS (default true). false under a CSP without 'unsafe-inline' styles: ship STAGE_CSS in a stylesheet. */

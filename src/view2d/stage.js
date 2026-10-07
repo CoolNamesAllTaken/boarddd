@@ -282,7 +282,8 @@ export function createStage(container, options = {}) {
   }
 
   /** The resolution a view wants: sqrt(2) steps, or with pixelSnap the screen's own. */
-  const wantScale = () => (opt.pixelSnap ? view.s * dpr() : stepScale(view.s, dpr()));
+  // render resolution for the view on show; minRender: a floor (px/mm), still within the tile budget
+  const wantScale = () => Math.max(opt.minRender || 0, opt.pixelSnap ? view.s * dpr() : stepScale(view.s, dpr()));
 
   async function renderTile(slot, b, r, paneIndex, layerIndex, kind) {
     const gen = slot.gen;
