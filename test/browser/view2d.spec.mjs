@@ -448,6 +448,24 @@ test('render on demand: still is free; zoom re-renders sharper once settled', as
   expect(s3.tiles[0][0].detail).toBeNull();
 });
 
+test('minRender: a resolution floor within the budget', async ({ page }) => {
+  const r = await page.evaluate(async () => {
+    const { view2d, files, file, bounds } = window.v2;
+    const content = view2d.layers([{ ...file(files.picBase, 'NPTH'), kind: 'drill', color: [1, 0, 0] }]);
+    const tiles = async (opts) => {
+      const s = window.v2.mount({ bounds: bounds.pic, ...opts });
+      s.setScene([{ layers: [{ content }] }]);
+      await s.ready();
+      return { r: s.stats().tiles[0][0].base.r, w: bounds.pic.maxX - bounds.pic.minX };
+    };
+    return [await tiles({}), await tiles({ minRender: 12 }), await tiles({ minRender: 1000 })];
+  });
+  expect(r[0].r).toBeLessThan(12); // fitted: about the screen's px/mm
+  expect(r[1].r).toBe(12);
+  expect(r[2].r).toBeLessThan(1000); // capped by the 4096 px edge budget
+  expect(r[2].r * r[2].w).toBeLessThanOrEqual(4096 + 1);
+});
+
 test('a broken source reports an error event, the rest of the scene still draws', async ({ page }) => {
   const res = await page.evaluate(async () => {
     const { view2d, files, file, bounds } = window.v2;
