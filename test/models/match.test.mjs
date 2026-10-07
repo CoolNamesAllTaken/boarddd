@@ -116,6 +116,15 @@ test('matchByPosition: too close to call in the first pass, settled as mutual ne
   assert.deepEqual(matchByPosition(nodes, [{ ref: 'C', aim: { x: 2.4, y: 0 } }]).unmatched, ['C']);
 });
 
+test('matchByPosition: a model-less part listed first does not take its neighbour\'s node', () => {
+  // C18 has no model; Y2's node is 1.2 mm from C18 and on Y2. C18 comes first in the list.
+  const nodes = [{ x: 10, y: 0, cx: 10, cy: 0 }];
+  const r = matchByPosition(nodes, [{ ref: 'C18', aim: { x: 8.8, y: 0 } }, { ref: 'Y2', aim: { x: 10, y: 0 } }]);
+  assert.deepEqual([...r.matched], [['Y2', 0]]);
+  assert.deepEqual(r.unmatched, ['C18']);
+  assert.deepEqual(r.ambiguous, []);
+});
+
 test('mapNodesToRefs: a module claims the anonymous solids inside its box, after the rest', () => {
   const comps = [
     { ref: 'M1', x: 20, y: 20, assembly: true, box: [10, 10, 30, 30] },

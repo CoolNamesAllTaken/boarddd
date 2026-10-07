@@ -121,6 +121,17 @@ export function matchByPosition(nodes, targets, tol = MATCH_MM) {
   const matched = new Map();
   let ambiguous = [];
   const unmatched = [];
+  // Per node, its nearest and second-nearest target: a node another part sits clearly closer to
+  // is not this part's to take, however alone it is (a model-less 0402 next to a crystal).
+  const nearestTargets = nodes.map((n) => {
+    let a = Infinity, b = Infinity, ref = null;
+    for (const t of targets) {
+      const d = distanceTo(n, t.aim);
+      if (d < a) { b = a; a = d; ref = t.ref; } else if (d < b) b = d;
+    }
+    return { ref, a, b };
+  });
+  const rival = (i, t) => (nearestTargets[i].ref === t.ref ? nearestTargets[i].b : nearestTargets[i].a);
 
   for (const t of targets) {
     let best = -1, bestD = Infinity, runnerUp = Infinity;
@@ -130,8 +141,10 @@ export function matchByPosition(nodes, targets, tol = MATCH_MM) {
       if (d < bestD) { runnerUp = bestD; bestD = d; best = i; } else if (d < runnerUp) runnerUp = d;
     });
     if (best < 0 || bestD > tol) { unmatched.push(t.ref); continue; }
-    // Two exact hits (a model split in two nodes on one origin) are not a coin toss: small floor.
-    if (bestD > Math.max(runnerUp / 2, 0.05)) { ambiguous.push(t); continue; }
+    // Clearly closer than the runner-up node AND than any other part to that node. Two exact
+    // hits (a model split in two nodes on one origin) are not a coin toss: small floor.
+    const floor = (d) => Math.max(d / 2, 0.05);
+    if (bestD > floor(runnerUp) || bestD > floor(rival(best, t))) { ambiguous.push(t); continue; }
     taken.add(best);
     matched.set(t.ref, best);
   }
@@ -154,6 +167,12 @@ export function matchByPosition(nodes, targets, tol = MATCH_MM) {
       ambiguous.splice(ambiguous.indexOf(t), 1);
       progress = true;
     }
+  }
+  // Left with nothing free in reach: its candidate went to a closer part, so it has no geometry.
+  for (const t of ambiguous.slice()) {
+    if (nodes.some((n, i) => !taken.has(i) && distanceTo(n, t.aim) <= tol)) continue;
+    ambiguous.splice(ambiguous.indexOf(t), 1);
+    unmatched.push(t.ref);
   }
   ambiguous = ambiguous.map((t) => t.ref);
   return { matched, ambiguous, unmatched, taken };

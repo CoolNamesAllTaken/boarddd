@@ -41,7 +41,7 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:browser": "playwright test",
     "serve": "node scripts/serve.mjs",
-    "typecheck": "tsc --noEmit --lib es2022,dom --moduleResolution bundler --module esnext src/geom/index.d.ts src/board/index.d.ts src/footprint/index.d.ts"
+    "typecheck": "tsc --noEmit --lib es2022,dom --moduleResolution bundler --module esnext src/geom/index.d.ts src/board/index.d.ts src/footprint/index.d.ts src/models/index.d.ts src/scene/index.d.ts"
   },
   "peerDependencies": {
     "three": ">=0.160.0",
