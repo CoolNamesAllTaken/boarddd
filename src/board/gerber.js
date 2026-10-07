@@ -28,6 +28,40 @@ function check(gerber, extra = []) {
   if (missing.length) throw new TypeError(`boarddd/board: the injected wasm-gerber-renderer is missing ${missing.join(', ')} (needs our fork's board/diff/drills/layers/outline/raster modules)`);
 }
 
+const TOOL_DEF = /^T(\d+)(?:[A-BD-Z][-\d.]*)*C([-\d.]+)/i;
+const TOOL_SELECT = /^T(\d+)\s*$/i;
+
+/**
+ * An Excellon file without zero-diameter tools and their hits. KiCad 10 writes `T1C0.000` for vias with no
+ * drill (seen in its royalblue54L_feather demo), and the renderer's wasm rejects the whole file ("Drill
+ * tool diameter must be positive"), which would cost the board its faces. Other text passes unchanged.
+ * TODO: drop this copy once our wasm-gerber-renderer fork's PR #4 (CoolNamesAllTaken/wasm-gerber-viewer,
+ * a canonical dropEmptyTools/withoutEmptyTools in drills.js) is merged and vendor/ is re-synced; use the
+ * injected `gerber.withoutEmptyTools` when present.
+ */
+export function withoutEmptyTools(text) {
+  const lines = String(text).split(/\r?\n/);
+  const empty = new Set();
+  for (const line of lines) {
+    const m = TOOL_DEF.exec(line.trim());
+    if (m && !(Number(m[2]) > 0)) empty.add(Number(m[1]));
+  }
+  if (!empty.size) return text;
+  const out = [];
+  let skipping = false, inBody = false;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line === '%' || /^M95\b/i.test(line)) inBody = true;
+    const def = TOOL_DEF.exec(line);
+    if (def && !inBody) { if (empty.has(Number(def[1]))) continue; out.push(raw); continue; }
+    const sel = TOOL_SELECT.exec(line) || (def && inBody ? def : null);
+    if (sel) skipping = empty.has(Number(sel[1]));
+    else if (/^(M30|M00)\b/i.test(line)) skipping = false;
+    if (!skipping) out.push(raw);
+  }
+  return out.join('\n');
+}
+
 /**
  * Sort a board's fab files and read what the solid needs, without touching the GPU.
  *   files  [{name, text, plated?}]: Gerbers (copper/mask/silk/paste/outline) and Excellon drill files;
@@ -37,7 +71,10 @@ function check(gerber, extra = []) {
  * Returns {grouped, outline: {board, cutouts, approximate} | null, holes, drills: [{name, text, plated, holes}], edge}.
  */
 export function readFabFiles(gerber, files, board = {}) {
-  const list = files.map((f) => ({ name: f.name, source: f.text, content: f.text, plated: f.plated }));
+  const list = files.map((f) => {
+    const text = /\.(drl|xln|exc|drd|txt)$/i.test(f.name) || /^M48\b/m.test(f.text.slice(0, 400)) ? (gerber.withoutEmptyTools || withoutEmptyTools)(f.text) : f.text;
+    return { name: f.name, source: text, content: text, plated: f.plated };
+  });
   const grouped = gerber.groupBoardLayers(list);
   const drills = (grouped.drills || []).map((d) => {
     const file = list.find((f) => f.name === d.name);
