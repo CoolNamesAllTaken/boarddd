@@ -1,6 +1,6 @@
 {
   "name": "boarddd",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "PCB rendering for the browser: 2D Gerber/Excellon rendering (wasm), board solids from Gerber/Excellon, KiCad footprints, GLB/STEP models, a small three.js viewer, copper geometry with nets.",
   "license": "MIT",
   "type": "module",
