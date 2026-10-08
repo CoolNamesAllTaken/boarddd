@@ -24,7 +24,7 @@ assembly = split("board.step", pos="board-pos.csv")   # pos: any pick-and-place 
 assembly.board.thickness, assembly.seat_z               # 1.51, 0.085 for a KiCad 1.6 mm board
 for ref, c in assembly.components.items():
     c.side, c.transform, c.offset                       # component frame -> board, the model's own offset
-    c.measurements.size, c.measurements.own_height, c.measurements.pick   # exact B-rep numbers
+    c.measurements.size, c.measurements.own_height, c.measurements.face_types   # exact B-rep numbers
     c.fingerprint.frame_key                             # which model version this is
     c.step_bytes(), c.glb_bytes()                       # the model alone, component frame (GLB: metres, Y up)
 ```
@@ -41,8 +41,7 @@ python -m boarddd.step.cli split board.step --pos pos.csv --out parts/    # per-
   `boarddd.step.registration` (the same fit the 3D view's alignment uses), with a 0.01 mm outlier floor
   because a STEP and a pos file from one export agree to the micron.
 - **`measure`**: bounding box, height above the board and above the seat, volume, area, centroid, inertia,
-  face types and the pick surface (the largest planar top face, with the largest circle and rectangle a
-  nozzle can use), from the exact B-rep.
+  face types, from the exact B-rep.
 - **`fingerprint`**: `shape_key` (what the solid is), `frame_key` (where it sits in its footprint),
   `brep_key` (every face) and `color_key`; `same(a, b)` compares with tolerances.
 - **`hlr`**: four-view SVG line drawings and overlay diffs of two models (OCCT hidden-line removal); CSS
@@ -55,8 +54,8 @@ python -m boarddd.step.cli split board.step --pos pos.csv --out parts/    # per-
 
 Settings (environment): `BOARDDD_STEP_WORKERS`, `BOARDDD_STEP_CACHE`, `BOARDDD_STEP_MAX_MB` (2048),
 `BOARDDD_STEP_MAX_ENTITIES` (40 million), `BOARDDD_STEP_MAX_OCCT_MB` (400), `BOARDDD_GL_LIBDIR`. magpie's
-`MAGPIE_*` names are still read, and the cache keeps magpie's entry layout and version, so a magpie cache stays
-valid.
+`MAGPIE_*` names are still read. The cache keeps magpie's entry layout under a version of its own
+(`boarddd-step-cache/1`), so a magpie cache is not reused.
 
 ## libGL
 

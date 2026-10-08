@@ -14,7 +14,7 @@ What is on it, and why:
   U2     the same footprint with the EP1.8 model: a model version that differs only underneath
   U3     QFN-16 EP1.7 on the bottom at 180 degrees
   C1     CP_Elec_4x5.4: an electrolytic can
-  D1     LED_D3.0mm (THT): a domed top, no planar pick surface
+  D1     LED_D3.0mm (THT): a domed top, leads through the board
   Q1     SOT-23 with its model offset by (0.5, 0.2, 0) mm: the offset has to be recovered
 
 Source: magpie `tests/step/fixtures_occ/make_board.py` at internal `claud/magpie` `3a0374d3` (synthetic).

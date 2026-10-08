@@ -15,7 +15,7 @@ same entry at once both succeed and readers never see half a file.
 Where it lives: `BOARDDD_STEP_CACHE` (or magpie's `MAGPIE_STEP_CACHE`), or the `cache=` argument
 of `split`; unset, nothing is cached. Bump `VERSION` when anything cached changes meaning.
 
-Source: magpie `step/cache.py` at internal `claud/magpie` `3a0374d3` (boarddd phase F4); the entry layout and keys are unchanged, so a magpie cache stays readable.
+Source: magpie `step/cache.py` at internal `claud/magpie` `3a0374d3` (boarddd phase F4). The entry layout is magpie's; the version is boarddd's own since 0.7.1, when boarddd's measurements stopped matching magpie's.
 """
 
 from __future__ import annotations
@@ -30,9 +30,9 @@ from ._extra import setting as _setting
 
 __all__ = ["Store", "open_store", "VERSION", "CACHE_ENV"]
 
-#: Part of every key: entries from an older layout or older measuring code are never read. (Still
-#: magpie's name: the code that fills an entry is the same, so magpie's caches stay valid.)
-VERSION = "magpie-step-cache/1"
+#: Part of every key: entries from an older layout or older measuring code are never read.
+#: boarddd's own since 0.7.1 (was "magpie-step-cache/1"): its measurements differ from magpie's.
+VERSION = "boarddd-step-cache/1"
 CACHE_ENV = "BOARDDD_STEP_CACHE"
 
 

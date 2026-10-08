@@ -148,30 +148,8 @@ def test_offset_changes_frame_key_only(tiny, tiny_no_pos):
     assert same(framed, unframed, frame=False) and not same(framed, unframed)
 
 
-def test_pick_surface_chip(tiny):
-    pick = tiny.components["R1"].measurements.pick
-    assert pick.z == pytest.approx(0.435, abs=1e-6)
-    # The resistive body between the terminations: 0.6 x 0.5.
-    assert pick.area == pytest.approx(0.30, abs=0.005)
-    assert pick.at_origin.rect == pytest.approx((0.6, 0.5), abs=0.005)
-    assert pick.at_origin.circle_d == pytest.approx(0.5, abs=0.005)
-
-
-def test_pick_surface_qfn(tiny):
-    measured = tiny.components["U1"].measurements
-    pick = measured.pick
-    assert pick.below_top == pytest.approx(0.0, abs=1e-6)
-    width, depth = pick.at_origin.rect
-    assert 2.8 <= width <= 3.0 and 2.8 <= depth <= 3.0
-    assert pick.at_origin.circle_d <= 3.0 + 1e-6
-    assert pick.area <= 9.0 + 1e-6
-    assert "no_planar_top" not in measured.flags
-
-
-def test_domed_led_has_no_pick_surface(tiny):
+def test_domed_led_goes_through_the_board(tiny):
     measured = tiny.components["D1"].measurements
-    assert measured.pick is None
-    assert "no_planar_top" in measured.flags
     assert "below_board_surface" in measured.flags  # its leads go through the board
 
 

@@ -60,7 +60,7 @@ def test_measurements(assembly):
     c1 = assembly.components["C1"].measurements  # 0402 capacitor
     assert c1.size == pytest.approx((1.0, 0.5, 0.5), abs=0.01) and c1.own_height == pytest.approx(0.5, abs=0.01)
     u2 = assembly.components["U2"].measurements  # 5 x 5 QFN
-    assert u2.size[:2] == pytest.approx((5.0, 5.0), abs=0.01) and u2.pick is not None
+    assert u2.size[:2] == pytest.approx((5.0, 5.0), abs=0.01)
     # every instance of one model shares it, and its fingerprint
     by_model = {}
     for component in assembly.components.values():

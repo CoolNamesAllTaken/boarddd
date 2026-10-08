@@ -499,31 +499,6 @@ def _table_rows(old, new) -> list[tuple]:
     add("H↑ mm", "top above the substrate, including the model lift (H is the model itself)", a.height, b.height, "mm")
     add("V mm³", "volume", a.volume, b.volume, "", 0.005)
     add("A mm²", "surface area", a.area, b.area, "", 0.005)
-    pick_a, pick_b = a.pick, b.pick
-    add("pick mm²", "pick surface area", pick_a and pick_a.area, pick_b and pick_b.area, "", 0.02)
-    add(
-        "pick Ø mm",
-        "largest circle on the pick surface, centered on the origin",
-        pick_a and pick_a.at_origin.circle_d,
-        pick_b and pick_b.at_origin.circle_d,
-        "mm",
-        0.02,
-    )
-    rect_a = pick_a and pick_a.at_origin.rect
-    rect_b = pick_b and pick_b.at_origin.rect
-    changed = rect_a != rect_b and not (
-        rect_a and rect_b and max(abs(x - y) for x, y in zip(rect_a, rect_b, strict=False)) <= 0.02
-    )
-    rows.append(
-        (
-            "pick ▭ mm",
-            "largest rectangle on the pick surface, centered on the origin",
-            rect_a and f"{rect_a[0]:.2f}×{rect_a[1]:.2f}",
-            rect_b and f"{rect_b[0]:.2f}×{rect_b[1]:.2f}",
-            None,
-            changed,
-        )
-    )
     rows.append(("faces", "B-rep faces", a.faces, b.faces, None, a.faces != b.faces))
     return rows
 
