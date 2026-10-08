@@ -1,7 +1,7 @@
 # Contributing to boarddd
 
-boarddd is the one library for PCB rendering and board/part ingestion across our projects (kipr,
-gentoo, magpie). One repository, two packages, one version tag (`vX.Y.Z` covers both):
+boarddd is the one library for PCB rendering and board/part ingestion across our projects (kipr
+and internal tools). One repository, two packages, one version tag (`vX.Y.Z` covers both):
 
 - the npm package `boarddd` (`src/`): framework-free ES modules for the browser, `.d.ts` typings;
 - the Python package `boarddd` (`python/`, `pip install "boarddd @ git+…@vX.Y.Z#subdirectory=python"`).

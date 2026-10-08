@@ -82,56 +82,48 @@ Every field, its type and its description are in the schema and in `src/model/bo
 
 ## What today's producers carry, and where it goes
 
-These three tools write the data boarddd has to cover:
+[kipr](https://github.com/CoolNamesAllTaken/kipr)'s `project-review.json` (`kipr/project/review.py`, `docs/CONTRACT-project.md` v1) is the public producer the model was checked against: KiCad frame, y down, mm. It is diffed: most blocks come as `base` / `head` sides.
 
-- **kipr** `project-review.json` (`kipr/project/review.py`, `docs/CONTRACT-project.md` v1): KiCad frame, y down, mm. It is diffed: most blocks come as `base` / `head` sides.
-- **gentoo** fab manifest (`fab/views.py` `_manifest`, `fab_manifest` / `fab_panel_manifest`) and 3D `step_manifest` (`fab/views_step.py`): Gerber frame, y up, mm.
-- **magpie** (`origin/claud/magpie`): `pipeline/board.py` `BoardContext`, the `footprint/model.py` `magpie-footprint/1` model, and the `pcb/` readers. Footprints and placements are y up.
+Each app keeps its own data (statuses, diffs, URLs, BOM links, fit results) next to the board model, or in `meta`.
 
-Each tool keeps its own app data (statuses, diffs, URLs, BOM links, fit results) next to the board model, or in `meta`.
+| model field | kipr `project-review.json` |
+|---|---|
+| `source.commit` / `source.ref` | `head.sha` / `head.ref` (`base` for the other side) |
+| `source.created` | — |
+| `source.kind`, `source.files[]` (`role`, `side`) | `pcb.layers[].base/head.gerber`, `pcb.gbrjob`, `pcb.pos`, `pcba3d.glb/step` paths |
+| `revision` | `info.head.rev` (title block) |
+| `units`, `frame` | mm, KiCad frame y down (negate y) |
+| `origin.aux` | — (`gerber_origin_mm` is always `[0, 0]`) |
+| `outline.board` / `cutouts` | — (only the box `board.origin_mm` + `size_mm`) |
+| `outline.approximate` | box only → `approximate: true` |
+| `stackup.thickness` | `board.thickness_mm` |
+| `stackup.copper_layers` | `board.copper_layers` |
+| `stackup.finish` | `board.finish` |
+| `stackup.mask_color` / `silk_color` | `board.mask_color` / `silk_color` (F side, lower-case names) |
+| `stackup.layers[]` | — (kipr reads the stackup but writes only the summary) |
+| `layers[]` (`id`, `role`, `side`, `order`, `files`) | `pcb.layers[]` (`id`, `kind`, `side`, `base/head.gerber`), stack order implicit |
+| `layers[].function` / `polarity` | — |
+| `drills[]` (`x`, `y`, `diameter`, `plated`, `x2`, `y2`, `filled`) | — (only the `.drl` paths) |
+| `drills[].tool` / `function` | — |
+| `footprints{}.pads[]` | — |
+| `footprints{}.graphics[]` | — |
+| `components[].ref`, `value`, `footprint` | `pcba3d.components[].ref`, `value`, `footprint` |
+| `components[].x`, `y`, `rotation`, `side` | `x`, `y` (negate y), `rot`, `side` |
+| `components[].populate` | `dnp` (negated) |
+| `components[].in_bom` | `bom.rows[].in_bom` |
+| `components[].mount` | — |
+| `components[].mpn[]` | `bom.rows[].mpn` |
+| `components[].models[]` | `models[]` (`path`, `offset`, `rotate`, `scale`, `hide`); `model` |
+| `components[].height` | `bbox_mm` (z extent) |
+| `components[].attributes` | `bom.rows[].fields` |
+| `panel.instances[]` | — |
+| `warnings` | `errors[]` (per project) |
 
-| model field | kipr `project-review.json` | gentoo manifests | magpie |
-|---|---|---|---|
-| `source.commit` / `source.ref` | `head.sha` / `head.ref` (`base` for the other side) | `package.id`, `package.filename` | `BoardContext.key`; `Board.revision` |
-| `source.created` | — | `package.created_at` | — |
-| `source.kind`, `source.files[]` (`role`, `side`) | `pcb.layers[].base/head.gerber`, `pcb.gbrjob`, `pcb.pos`, `pcba3d.glb/step` paths | `files[]` (`relpath`, `kind`, `function`, `side`, `copper_layer`) | `PackageFile` (`relpath`, `kind`, `side`); `Board.source` (`kicad_pcb`/`ipc2581`/`odbpp`); `classify.Classification` |
-| `revision` | `info.head.rev` (title block) | — | `Board.revision` |
-| `units`, `frame` | mm, KiCad frame y down (negate y) | `units: 'mm'`, Gerber frame y up | mm; footprints y up, CCW |
-| `origin.aux` | — (`gerber_origin_mm` is always `[0, 0]`) | — | `Board.aux_origin`; corpus truth `aux origin` |
-| `outline.board` / `cutouts` | — (only the box `board.origin_mm` + `size_mm`) | `outline.board` / `outline.cutouts` | `outline.contours()` / `pick_board()` / `cutouts()` (not on `Board`) |
-| `outline.approximate` | box only → `approximate: true` | `frame{min_x…}` fallback → `approximate: true` | `extents()` fallback |
-| `stackup.thickness` | `board.thickness_mm` | `board.thickness_mm` | — |
-| `stackup.copper_layers` | `board.copper_layers` | `FabOption` (not in the manifest) | `Classification.copper_layer` (max) |
-| `stackup.finish` | `board.finish` | `board.surface_finish` (`enig`, `hasl_lf`) | — |
-| `stackup.mask_color` / `silk_color` | `board.mask_color` / `silk_color` (F side, lower-case names) | `board.mask_color` / `silkscreen_hex` (`#RRGGBB`, `none`) | — |
-| `stackup.layers[]` | — (kipr reads the stackup but writes only the summary) | — | — |
-| `layers[]` (`id`, `role`, `side`, `order`, `files`) | `pcb.layers[]` (`id`, `kind`, `side`, `base/head.gerber`), stack order implicit | `files[]` with `drawable`, `kind`, `side`, `copper_layer` | `Classification` (`kind`, `side`, `copper_layer`) |
-| `layers[].function` / `polarity` | — | `files[].function` (raw `%TF.FileFunction`) | `Classification.function` |
-| `drills[]` (`x`, `y`, `diameter`, `plated`, `x2`, `y2`, `filled`) | — (only the `.drl` paths) | `drills[]` (`x`, `y`, `d`, `plated`, `x2`, `y2`, `filled`) | `excellon.Hole` (`x`, `y`, `diameter`, `plated`, `x2`, `y2`) |
-| `drills[].tool` / `function` | — | — (parsed, dropped) | `Hole.function` (`ViaDrill`/`ComponentDrill`/`MechanicalDrill`) |
-| `footprints{}.pads[]` | — | — | `footprint.model.Pad` (`kind`→`type`, `shape`, `size`, `center`→`at`, `rotation`→`at[2]`, `roundrect_ratio`, `chamfer_ratio`, `chamfered`→`chamfer`, `delta`→`rect_delta`, `polygon`→`primitives`, `drill`, `holes`, `paste`, `mask`, `layers`, `function`); `pads.Pad` is a bbox only |
-| `footprints{}.graphics[]` | — | — | `Footprint.courtyard` / `silk` / `body` (`Graphic`: `layer`, `kind`, `points`, `width`, `filled`) |
-| `components[].ref`, `value`, `footprint` | `pcba3d.components[].ref`, `value`, `footprint` | `placements[].ref`, `val`, `footprint` | `Placement.ref/value/footprint`; `Component.reference`, `package_name` |
-| `components[].x`, `y`, `rotation`, `side` | `x`, `y` (negate y), `rot`, `side` | `x`, `y`, `rot`, `side` (as the pos file) | `Placement.x/y/rotation/side` (pnp frame) |
-| `components[].populate` | `dnp` (negated) | `dnp` (negated) | `Component.populate`; `BomLine.populate` |
-| `components[].in_bom` | `bom.rows[].in_bom` | `bom_item_id` / `optional` (app data) | — |
-| `components[].mount` | — | — | `Placement.mount`, `Component.mount` |
-| `components[].mpn[]` | `bom.rows[].mpn` | through the BOM part (app data) | `Component.mpns`; `BomLine.manufacturer/mpn` |
-| `components[].models[]` | `models[]` (`path`, `offset`, `rotate`, `scale`, `hide`); `model` | `model_file` + nudges `dx…rz` (app data: overrides of the source model) | `Footprint.models` (paths) |
-| `components[].height` | `bbox_mm` (z extent) | `height_mm` / `height_override_mm` | `Component.height`, `Footprint.height` |
-| `components[].attributes` | `bom.rows[].fields` | — | `Component.properties`, `Footprint.fields` |
-| `panel.instances[]` | — | `panel.instances` (`_panel_block`) | — |
-| `warnings` | `errors[]` (per project) | `fit.reason`, panel `reason` | `Board.warnings` |
+What the readers add over kipr's output: an outline polygon (kipr has a box), parsed drills, the physical
+stackup layers, pads, Er/Df, prepreg/core and sublayers, nets, net classes and impedance targets.
 
-The gaps show what the readers add over today's outputs:
-
-- an outline polygon (kipr has a box; magpie's `Board` has none);
-- parsed drills (kipr) with tools (gentoo);
-- a stackup (only kipr has thickness and colour names; nobody keeps the physical layers);
-- pads (only magpie);
-- Er/Df, prepreg/core and sublayers (kipr drops them), nets, net classes and impedance targets (nobody).
-
-App-only data has no field in the model: diff `status` / `semantic_changes`, gentoo's catalog / BOM links / model nudges / STEP fit, magpie's pin-1 marks and footprint identity. It stays in the apps or goes into `meta`.
+App-only data has no field in the model: diff `status` / `semantic_changes`, catalog and BOM links, model
+nudges, fit results. It stays in the apps or goes into `meta`.
 
 ## Changing the model
 

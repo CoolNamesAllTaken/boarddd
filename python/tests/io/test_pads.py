@@ -3,8 +3,8 @@ Reading pads off a layer, and the pattern they make around one placement.
 
 Two things are defended. The reader must turn the two shapes real tools write -- KiCad's
 `RoundRect` macro in millimeters, Altium's primitive macro in inches with the `D03` on its own
-line -- into the same boxes, because a pitch read wrong by 25.4 is a part the camera never
-finds. And the sorter must say `irregular` when it cannot tell, rather than force the pads of
+line -- into the same boxes, because a pitch read wrong by 25.4 is wrong everywhere it is
+used. And the sorter must say `irregular` when it cannot tell, rather than force the pads of
 a part and its neighbour into the nearest row.
 
 Ported from magpie `tests/pcb/test_pads.py` at 3a0374d3.
@@ -162,9 +162,9 @@ def test_a_sot23_is_two_unequal_rows():
 
 def test_a_four_pad_crystal_reads_its_rows_along_the_long_side():
     """
-    A 2 x 2 of pads reads as two rows either way. The catalog's own crystal records put the
-    pitch along the long side (`XL4-3225` has `LeadPitchE` 2.2 on a 3.2 mm body), so the
-    rows run that way and the pitch is the long one.
+    A 2 x 2 of pads reads as two rows either way. By convention a crystal's pitch is the one
+    along the long side (2.2 mm on a 3.2 x 2.5 mm body), so the rows run that way and the
+    pitch is the long one.
     """
     boxes = [(x, y, 1.4, 1.2) for x in (-1.1, 1.1) for y in (-0.85, 0.85)]
     found = _around(synth.placed(boxes, 5, 5, 90), 5, 5, 90, body=(2.5, 3.2))

@@ -27,6 +27,7 @@ def test_cli_split_writes_files_and_measurements(tmp_path, capsys):
         assert (tmp_path / f"{ref}.glb").read_bytes()[:4] == b"glTF"
     r1 = report["components"]["R1"]
     model = report["models"][r1["model"]]
-    assert model["measurements"]["pick"]["at_origin"]["rect"] == pytest.approx([0.6, 0.5], abs=0.005)
+    assert model["measurements"]["size"][:2] == pytest.approx([1.0, 0.5], abs=0.01)
+    assert "pick" not in model["measurements"]
     assert report["stats"]["peak_rss_mb"] > 0
     assert "11 components" in capsys.readouterr().out

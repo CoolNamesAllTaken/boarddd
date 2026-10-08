@@ -1,7 +1,7 @@
 # boarddd
 
 2D and 3D PCB rendering for the browser, shared by [kipr](https://github.com/CoolNamesAllTaken/kipr) (KiCad
-PR review) and gentoo (a PCB fab shop site). Framework-free ES modules, no build step, `.d.ts` typings.
+PR review) and internal tools. Framework-free ES modules, no build step, `.d.ts` typings.
 
 - **`boarddd/gerber`**: the 2D Gerber/Excellon renderer (WebGL2 + wasm): realistic board faces, layer
   and drill diffs, layer roles, board outlines, view math, contour tracing.
@@ -332,22 +332,18 @@ node ../boarddd/scripts/vendor.mjs --ref v0.2.0 --out web/vendor/boarddd \
 `three/addons/<dir>/`), so the symlinks and esbuild bundles stay as they are. The first run needs
 `--force` to adopt the directories `sync_vendor.bash` made.
 
-**gentoo** (`fab/static/fab/vendor/boarddd`, replaces `scripts/sync_vendored_boarddd.bash`'s copy
-step), from `infrastructure/gentoo` with boarddd as the submodule `modules/boarddd` checked out at the
-tag (before the submodule exists: `--source <clone> --ref <sha>`):
+**An app with its own importmap** (it maps three.js itself, so boarddd's imports stay bare), with
+boarddd as a submodule at `modules/boarddd` checked out at the tag (or `--source <clone> --ref <sha>`):
 
 ```sh
 node modules/boarddd/scripts/vendor.mjs \
-  --out python/gentoo_web/fab/static/fab/vendor/boarddd \
+  --out static/vendor/boarddd \
   --subpaths geom,board,models,scene --imports bare --no-three \
-  --note scripts/boarddd_vendor_note.md    # the "How the page reaches it" section
+  --note docs/boarddd_vendor_note.md    # how the app's pages load it
 ```
 
-gentoo keeps bare imports because its three.js is mapped file by file in
-`fab/templates/fab/_three_importmap.html` through `{% static %}` (fingerprinted by whitenoise), and
-manages `fab/vendor/three` itself. `board` now brings `gerber`, so the vendor dir also has
-`src/gerber/` and `third_party/wasm-gerber-renderer/core/` (static URLs such as the contour worker
-point there).
+`board` brings `gerber`, so the vendor dir also has `src/gerber/` and
+`third_party/wasm-gerber-renderer/core/` (static URLs such as the contour worker point there).
 
 ## Frames
 
@@ -360,7 +356,7 @@ coordinates), z up out of the top copper, board bottom face at z = 0 and top fac
 - `npm test`: node tests: `boarddd/gerber` (layer roles, outlines, drills and zero-diameter tools, view
   math, frame backgrounds; ported from the fork), geometry (stadium slots, hole budget, every KiCad pad shape against pcbnew's
   own polygons, kipr's pad-placement golden data), the board solid, the footprint reader/builder;
-  `scripts/vendor.mjs` (`test/vendor/`: a temp checkout vendored kipr- and gentoo-style, imports
+  `scripts/vendor.mjs` (`test/vendor/`: a temp checkout vendored with relative and with bare imports, imports
   resolving in node with no node_modules, idempotence, `--check`, refusals, sha512 against a local registry);
   `boarddd/view2d` pan/zoom maths, view state, ink diff, hit-testing, layer stack (`test/view2d/`).
 - `npm run test:browser`: headless Chromium (SwiftShader WebGL2): slotted holes must show through as

@@ -802,7 +802,7 @@ class _ColorTools:
 class _TextDocuments:
     """
     What `Assembly._doc` is for a board read from its text: callers that took the board's one
-    document for its colour tool (magpie's footprint check) get one that answers for every
+    document for its colour tool get one that answers for every
     product document, which is where the labels they hold come from.
     """
 
