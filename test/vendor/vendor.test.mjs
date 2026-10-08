@@ -246,10 +246,10 @@ test('--three adds extra addons; --check of a version is offline, against the ma
   assert.match(more.out, /addons\/controls\/TrackballControls\.js: needed by boarddd but not vendored/);
 });
 
-test('gentoo layout: chosen subpaths, bare imports for its importmap, a note in the README', async () => {
+test('app importmap layout: chosen subpaths, bare imports for its importmap, a note in the README', async () => {
   const v = fresh();
   const note = path.join(TMP, 'note.md');
-  fs.writeFileSync(note, '## How the page reaches it\n\nThrough `_three_importmap.html`.\n');
+  fs.writeFileSync(note, '## How the page reaches it\n\nThrough its importmap.\n');
   const args = ['--out', v, '--subpaths', 'geom,board,models,scene', '--imports', 'bare', '--no-three', '--note', note];
   assert.equal((await vendor(...args)).code, 0);
   assert.deepEqual(fs.readdirSync(`${v}/src`).sort(), ['board', 'geom', 'gerber', 'models', 'scene']);
@@ -263,7 +263,7 @@ test('gentoo layout: chosen subpaths, bare imports for its importmap, a note in 
   assert.match(readme, new RegExp(`^# boarddd ${V}, vendored at [0-9a-f]{7}$`, 'm'));
   assert.match(readme, /This directory is generated/);
   assert.match(readme, /left bare/);
-  assert.ok(readme.endsWith('## How the page reaches it\n\nThrough `_three_importmap.html`.\n'));
+  assert.ok(readme.endsWith('## How the page reaches it\n\nThrough its importmap.\n'));
   assert.equal((await vendor('--check', ...args)).code, 0);
 });
 

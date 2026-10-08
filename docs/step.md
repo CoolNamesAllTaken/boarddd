@@ -48,7 +48,7 @@ python -m boarddd.step.cli split board.step --pos pos.csv --out parts/    # per-
   variables `--boarddd-step-*` theme them.
 - **`work`**: models are worked out in a process pool (`BOARDDD_STEP_WORKERS`, default 3). Applications add
   per-model work with `work.register_hook(name, function)`: the result is in `model.extras[name]` and in the
-  cache (magpie's footprint check registers its contacts this way).
+  cache.
 - **`cache`**: a content-addressed, write-once model cache (`BOARDDD_STEP_CACHE`, or `cache=`), safe for
   concurrent writers.
 
@@ -73,16 +73,16 @@ boarddd is MIT. **OpenCascade (OCCT) is LGPL-2.1** (with the OCCT exception) and
 and point to its source. numpy and shapely are BSD. The browser path uses occt-import-js (LGPL-2.1, also
 external, see the README).
 
-kipr keeps cascadio for its GLB export for now (plan decision D8); magpie keeps its footprint check, polarity
-and model recommendation and will use this engine (phase G2).
+kipr keeps cascadio for its GLB export for now (plan decision D8); magpie keeps its own
+application logic and will use this engine (phase G2).
 
 ## Where it came from
 
-Copied from magpie (internal `claud/magpie` `3a0374d3`, `infrastructure/libraries/magpie/src/magpie/step/`):
+Copied from magpie (internal `claud/magpie` `3a0374d3`, its `step` package):
 `occ`, `split`, `work`, `cache`, `measure`, `fingerprint`, `cli` (its `split` command), `steptext` → `index`,
 `render` → `hlr`. Changes: magpie's own pos-file reader and fit (`split_pos`) are replaced by `boarddd.io.pos`
-and `boarddd.step.registration` (one fit, with an `outlier_floor_mm` option); the footprint-check contacts
-became a hook; settings renamed. Each module's docstring names its source.
+and `boarddd.step.registration` (one fit, with an `outlier_floor_mm` option); magpie's built-in per-model extras
+became hooks; settings renamed. Each module's docstring names its source.
 
 ## Tests
 

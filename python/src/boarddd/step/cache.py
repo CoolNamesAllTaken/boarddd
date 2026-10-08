@@ -1,11 +1,11 @@
 """
 The model cache: what a model costs to work out, kept by what the model is, across boards.
 
-A service that takes boards from many customers sees the same stock models on board after board. Each distinct model is
-kept under its key (the product's text identity, `steptext.identity`, and where it sits in its
-footprint, `export_local`): its measurements and fingerprint in the seat frame, its exported
-STEP and GLB, its contacts for the footprint check, its footprint checks, and the cut-out STEP
-of the product, from which anything else can be worked out again later. A model seen on any
+Boards share stock models: the same resistor or connector model appears on board after board. Each
+distinct model is kept under its key (the product's text identity, `steptext.identity`, and where
+it sits in its footprint, `export_local`): its measurements and fingerprint in the seat frame,
+its exported STEP and GLB, the results of any registered work hooks (`work.register_hook`), and
+the cut-out STEP of the product, from which anything else can be worked out again later. A model seen on any
 earlier board then costs its instance transform and a few file reads.
 
 Content-addressed and write-once: an entry's files only ever hold the one value for that key,

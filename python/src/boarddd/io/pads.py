@@ -1,12 +1,10 @@
 """
 The pads a layer actually has, and the pattern they make around one placement.
 
-A placement machine's vision system classifies a part by the pattern of its terminals -- two
-ends, two rows, four rows, a grid -- and the board already draws that pattern: every
-solder-paste opening is a pad the part's leads will sit on. So instead of asking a person to say
-what a crystal looks like to a camera, this reads the openings around the placement and says
-what it found: "8 openings, 4 per side on two sides, 1.27 mm apart". An application turns that
-into whatever shape record its machine wants.
+A part's terminals make a pattern -- two ends, two rows, four rows, a grid -- and the board
+already draws it: every solder-paste opening is a pad the part's leads will sit on. This reads
+the openings around a placement and says what it found: "8 openings, 4 per side on two sides,
+1.27 mm apart", with the pattern, pitch and pad size as data.
 
 Two halves. The first is a small gerber reader that turns flashes (`D03`), aperture macros and
 filled regions into boxes -- center, width, height, in millimeters -- with no interest in what
@@ -18,8 +16,7 @@ placement, puts them in the part's own frame, and sorts them into rows.
 Deliberately loose where looseness is safe and strict where it is not. An arc in a region is
 taken by its endpoints (the box is a hair small; nothing downstream cares), but a pattern that
 does not resolve into rows is reported as `irregular` rather than forced into the nearest one
--- the odd-form types exist for exactly those parts, and a wrong row count is a part the camera
-cannot find.
+-- a wrong row count is worse than no answer.
 
 Pure: no framework, no filesystem.
 
@@ -548,7 +545,7 @@ class Row:
 class Topology:
     """
     The pattern around one placement, in a frame turned so rows run along Y and sit at E and
-    W -- the way the machine's two-sided records describe them.
+    W, so every two-row pattern is described the same way.
     """
 
     pattern: str
@@ -650,7 +647,7 @@ def _lopsided(found: Topology) -> bool:
 
 def topology(local: list[Pad]) -> Topology:
     """
-    Sort the pads around a placement into the pattern the machine would describe.
+    Sort the pads around a placement into a pattern: two ends, rows, a grid, or irregular.
 
     Tried in the order that is safest to be wrong in: a grid (uniform pads on three or more
     lines each way) before anything else, because a ball grid's interior would otherwise be
@@ -746,8 +743,8 @@ def _classify(local: list[Pad]) -> Topology:
     along_x = len(ys) == 2  # two lines of constant y: rows run along x
     along_y = len(xs) == 2
     if along_x and along_y:
-        # A 2 x 2 -- a four-pad crystal -- reads either way. The catalog's own records put the
-        # pitch along the long side, so the rows run that way.
+        # A 2 x 2 -- a four-pad crystal -- reads either way. By convention the pitch is the
+        # one along the long side, so the rows run that way.
         along_x = width >= height
         along_y = not along_x
     # Two lines of constant y are two rows running along x, each of which must be centered

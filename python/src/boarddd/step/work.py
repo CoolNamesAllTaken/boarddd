@@ -11,8 +11,7 @@ runs inline when there is one task, or `workers` is 1.
 
 Besides measurements and fingerprint, a task makes what `EAGER` names (the exported STEP and
 GLB, the drawing) and runs the registered hooks (`register_hook`): an application that wants
-more from each model while its solid is loaded (magpie's footprint check takes the contacts)
-registers a function of the `Model` returning JSON-able data, and finds the result in
+more from each model while its solid is loaded registers a function of the `Model` returning JSON-able data, and finds the result in
 `Model.extras[name]` and, with a cache, in the entry's `<name>.json`. Hooks reach the workers
 by fork (the default on Linux): registering one restarts the pool.
 
@@ -20,7 +19,7 @@ Settings: `BOARDDD_STEP_WORKERS` (or magpie's `MAGPIE_STEP_WORKERS`; default 3),
 the `workers=` argument of `split`.
 
 Source: magpie `step/work.py` at internal `claud/magpie` `3a0374d3` (boarddd phase F4); magpie's
-built-in footprint-check contacts became a hook.
+built-in per-model extras became hooks.
 """
 
 from __future__ import annotations

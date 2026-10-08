@@ -21,7 +21,7 @@ def plain(assembly) -> dict:
 
 
 def faces(model) -> dict:
-    """A stand-in for magpie's footprint-check contacts: anything worked out from the loaded solid."""
+    """A stand-in for an application's work hook: anything worked out from the loaded solid."""
     from boarddd.step.measure import face_type_counts
 
     total, kinds = face_type_counts(model.shape)

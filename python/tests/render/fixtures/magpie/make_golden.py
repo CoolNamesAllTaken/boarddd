@@ -2,8 +2,7 @@
 
     python python/tests/render/fixtures/magpie/make_golden.py MAGPIE_SRC
 
-MAGPIE_SRC: magpie's `src` directory (internal `claud/magpie` 3a0374d3,
-`infrastructure/libraries/magpie/src`), run with a Python that has magpie's dependencies (shapely). Each
+MAGPIE_SRC: magpie's `src` directory (internal `claud/magpie` 3a0374d3), run with a Python that has magpie's dependencies (shapely). Each
 footprint is read by magpie's own `.kicad_mod` reader and drawn 400 px wide; boarddd.render.drawing must draw
 the same picture (test_render_drawing.py compares them as pixels).
 """
