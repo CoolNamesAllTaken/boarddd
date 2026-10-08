@@ -50,7 +50,7 @@ const renderer = await createGerberRenderer(canvas);   // loads the committed wa
 | `createGerberRenderer`, `GerberRenderer`, `renderGerberToCanvas`, `renderGerberToPng`, `calculateFitView`, `projectToCanvas`, `unprojectFromCanvas`, `viewExtent` | the upstream core ([wasm-gerber-viewer](https://github.com/dsafdsaf132/wasm-gerber-viewer), vendored) |
 | `board.js`: `renderBoard`, `renderFaceRaster`, `faceRasterSize`, `addBoardLayers`, `selectFace` | a realistic face: laminate, copper, mask, finish, silk, see-through holes |
 | `diff.js`: `renderLayerDiff`, `analyzeLayerDiff`, `analyzeBoardDiff`, `measureLayers`, `geometryText`, ... | removed red, added green, unchanged dim, in one shared frame |
-| `drills.js`: `parseExcellon`, `diffHoles`, `holesToGerber`, `holeMask`, `cutHoles`, `dropEmptyTools`, `withoutEmptyTools`, ... | holes as data; KiCad's zero-diameter tools dropped before the wasm sees them |
+| `drills.js`: `parseExcellon`, `diffHoles`, `holesToGerber`, `holesToExcellon`, `holeMask`, `cutHoles`, `dropEmptyTools`, `withoutEmptyTools`, ... | holes as data; KiCad's zero-diameter tools dropped before the wasm sees them |
 | `layers.js`: `layerRole`, `groupBoardLayers`, `withoutProfile`, `hasGeometry`, `plotsProfile` | which layer a file is; outline strokes plotted on other layers |
 | `outline.js`: `boardOutline`, `outlineContours`, `gerberExtents`, `ringsToGerber` | the board shape as polygons (mm) |
 | `palette.js`, `view.js`, `contour.js`, `raster.js` | board colours; world ⇄ pixel math and shared frames; raster → outlines; pixel readback |
@@ -106,6 +106,7 @@ visible area when zoomed further). One frame per renderer at a time (`inTurn`). 
 | `kicadModelMatrix({offset, rotate, scale})` | a footprint `(model ...)` placement as KiCad's 3D viewer does it (column-major 4×4) |
 | `slotPoints(x1, y1, x2, y2, r)`, `ringPoints(cx, cy, r)`, `loopAt(ends, r)` | hole outlines: stadium slots (never ellipses), circles |
 | `usableHoles(holes, outline, budget = 400)` | which drills can be punched (clear of the edge and cutouts, not filled; largest first past the budget) |
+| `fillHoles(holes, upTo)`, `drillSizes(holes)` | filled and capped (VIPPO) holes: every plated round hole up to a drill diameter, vias and pad holes alike (unplated holes and slots stay open); the sizes there are to choose from, with counts |
 | `padOutline(pad)`, `padCopperLoops(pad)`, `padDrillSlot(pad)`, `padDrillLoop(pad)`, `padToKicad(pad, p)`, `padCopperSides(pad)`, `padHasCopper(pad)` | KiCad pad semantics: shape offset moves the copper not the hole, rotation, roundrect, chamfers, trapezoid, custom primitives, oval drills along their long axis. Checked against pcbnew. |
 | `clearance`, `loopBounds`, `counterClockwise`, `strokeLoops`, `rectOutline`, `outlinesDiffer`, ... | loops |
 
@@ -131,20 +132,33 @@ head.setFaces({ top: diff.top, bottom: diff.bottom });
 The solid spans z = 0 (bottom face) to z = thickness (top face). Meshes carry `userData.group`
 (`board`, `barrels`) for visibility toggles. `dispose()` frees what boarddd created.
 
+```js
+// filled and capped vias: plated round holes up to 0.3 mm drill are not drilled, and the faces are painted
+// without them, so the pad copper (under the mask, or finished in a mask opening) covers both ends
+const vippo = await buildGerberBoard(null, null, files, { thickness: 1.6, fillUpTo: 0.3 });   // or fillFab(fab, 0.3)
+
+// solder paste as solids: each face's paste Gerber traced from a raster in the faces' frame and extruded
+// 0.12 mm (PASTE_THICKNESS) off it; meshes in group 'paste'
+const paste = await buildPaste(null, null, head.fab, head.painted, { thickness: 1.6 });
+head.group.add(paste.group);
+```
+
 ### `boarddd/footprint`
 
 ```js
 import { parseKicadFootprint, buildFootprint } from 'boarddd/footprint';
 const fp = parseKicadFootprint(await (await fetch('USB_C_Receptacle.kicad_mod')).text());
 const built = buildFootprint(fp, { thickness: 1.6, margin: 1 });   // board = courtyard + 1 mm (or Edge.Cuts)
-scene.add(built.group);                     // userData.group: board, copper, barrels, silk, fab, courtyard
+scene.add(built.group);                     // userData.group: board, copper, barrels, paste, silk, fab, courtyard
 const m = new THREE.Matrix4().fromArray(built.modelMatrix(fp.models[0]));   // where its STEP goes
 ```
 
 `faces: {top, bottom}` paints the board faces with pictures over `uvBounds` (e.g. kipr's per-layer
 renders composited), and `decals: {silk, fab, courtyard}` (each `{top, bottom}` pictures over the same
 bounds) adds them as transparent sheets in those groups: the way to show text, which the graphics
-sheets leave out.
+sheets leave out. `paste: true` adds each pad's paste layers as 0.12 mm deposits on the copper (group
+`paste`; paste margins are not applied), and `fillUpTo: mm` fills and caps plated round pad holes up to
+that drill (e.g. thermal vias in an exposed pad: no hole, no barrel).
 
 `parseKicadFootprint` reads pads, graphics (flattened to polylines) and models from a `.kicad_mod`
 (KiCad 6 to 10, and the old `module` form). Pad objects are also kipr's `geom.json` pads.

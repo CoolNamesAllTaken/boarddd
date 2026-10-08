@@ -1,0 +1,14 @@
+{
+ "source": "KiCad pic_programmer demo (base)",
+ "files": [
+  "pic_programmer-B_Mask.gbr",
+  "pic_programmer-B_Silkscreen.gbr",
+  "pic_programmer-Edge_Cuts.gbr",
+  "pic_programmer-F_Mask.gbr",
+  "pic_programmer-F_Silkscreen.gbr",
+  "pic_programmer-NPTH.drl",
+  "pic_programmer-PTH.drl",
+  "pic_programmer-bottom_layer.gbr",
+  "pic_programmer-top_layer.gbr"
+ ]
+}
