@@ -14,6 +14,7 @@
 
 import { calculate } from './closedform.js';
 import { solveCrossSection } from './fieldsolver.js';
+import { lineLoss, sectionLoss } from './loss.js';
 import { lineFromStackup } from './stackup.js';
 
 export const IMPEDANCE_SCHEMA_ID = 'boarddd/impedance@1';
@@ -33,11 +34,19 @@ export const ROUTE_DEFAULTS = Object.freeze({
   fieldOptions: { level: -1, maxLevel: 0, tol: 0.05 },        // cross-sections covering >= shortLength: within 0.5 % of fine solves
   shortFieldOptions: { level: -2, maxLevel: -1, tol: 0.05 },  // the rest (breakouts, via transitions): within ~3 % (tested)
   shortLength: 1,       // mm of route a cross-section must cover to get fieldOptions
+  frequency: null,      // Hz: also the loss of every section and of the route there (loss.js); null: no loss
+  frequencies: null,    // Hz: the loss and Z sweep per section and route; default LOSS_SWEEP plus `frequency`
+  lossOptions: null,    // loss.js options over the stackup's (e.g. { conductor: { roughness: { rq: 0.001 } } })
 });
+
+/** The default loss sweep of analyzeNet: 100 MHz to 40 GHz, four points per decade. */
+export const LOSS_SWEEP = Object.freeze([1e8, 1.8e8, 3.2e8, 5.6e8, 1e9, 1.8e9, 3.2e9, 5.6e9, 1e10, 1.8e10, 3.2e10, 4e10]);
 
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 const GROUND_NAME = /^(?:[ADPS]?GND|VSS|GROUND|EARTH|CHASSIS)(?:[_\-.].*)?$/i;
 const R6 = (v) => { const x = Math.round(v * 1e6) / 1e6; return x === 0 ? 0 : x; };
+/** v to 9 significant digits (loss values span decades). */
+const S9 = (v) => Number(v.toPrecision(9));
 const q = (v, step) => { const x = Math.round(v / step) * step; return Math.round(x * 1e6) / 1e6 || 0; };
 /** v rounded to a geometric grid of ratio 1 + rel (at least `floor`): gaps that differ by less share a solve. */
 const qlog = (v, rel, floor) => {
@@ -456,16 +465,30 @@ function solve(ctx, layer, env, width, fieldOptions) {
   const refTop = env.refs.top?.layer ?? false, refBottom = env.refs.bottom?.layer ?? false;
   const inner2 = env.refs.top && env.refs.bottom;
   const base = { kind: 'single', width, refTop, refBottom, structure: inner2 ? 'stripline' : 'microstrip' };
+  const loss = ctx.o.frequency != null;
   if (ctx.o.solver === 'closedform') {
     const t1 = tier1(ctx, layer, env, width);
     if (t1) return t1;
   }
-  const line = lineFromStackup(ctx.board.stackup, layer, { ...base, solver: 'field', layout: canonical(env.layout) });
-  const r = solveCrossSection(line.section, fieldOptions);
+  const line = lineFromStackup(ctx.board.stackup, layer, { ...base, solver: 'field', layout: canonical(env.layout), loss });
+  const r = solveCrossSection(line.section, { ...fieldOptions, loss });
   const z = pair
     ? { Z0: null, Zdiff: R6(r.Zdiff), Zcommon: R6(r.Zcommon), Zodd: R6(r.Zodd), Zeven: R6(r.Zeven), eps_eff: null }
     : { Z0: R6(r.Z0), Zdiff: null, Zcommon: null, Zodd: null, Zeven: null, eps_eff: R6(r.eps_eff) };
-  return { ...z, error_pct: R6(r.error_pct), solver: 'field', model: null, warnings: line.warnings };
+  return { ...z, error_pct: R6(r.error_pct), solver: 'field', model: null, warnings: line.warnings,
+    ...(loss && { lossSource: { result: r, options: line.loss } }) };
+}
+
+/** A solved cross-section's loss over the frequencies (loss.js): sweep columns, or null without a source. */
+function lossOfSolve(z, fs, extra) {
+  const src = z?.lossSource;
+  if (!src) return null;
+  const opts = { ...src.options, ...extra };
+  const r = src.result ? sectionLoss(src.result, fs, opts) : lineLoss(src.model, src.params, fs, opts);
+  const pair = r.key === 'Zdiff';
+  return { frequency: fs, z: pair ? r.Zdiff : r.Z0, db_per_mm: r.db_per_mm,
+    db_per_mm_c: (pair ? r.odd : r).alpha_c.map((a) => (a * 20) / Math.LN10 / 1000),
+    db_per_mm_d: (pair ? r.odd : r).alpha_d.map((a) => (a * 20) / Math.LN10 / 1000) };
 }
 
 /** Tier 1 where it has a model (infinite planes, symmetric coplanar gap); null to fall back to the field solver. */
@@ -480,6 +503,7 @@ function tier1(ctx, layer, env, width) {
   try {
     line = lineFromStackup(ctx.board.stackup, layer, {
       width, kind: env.kind, structure: st, refTop: env.refs.top?.layer ?? undefined, refBottom: env.refs.bottom?.layer ?? undefined,
+      loss: ctx.o.frequency != null,
       ...(pair && { gap: nt.x0 > 0 ? nt.x0 - width / 2 : -width / 2 - nt.x1 }), ...(gaps.length && { coplanarGap: Math.min(...gaps) }),
     });
   } catch { return null; }
@@ -487,7 +511,9 @@ function tier1(ctx, layer, env, width) {
   const z = pair
     ? { Z0: null, Zdiff: R6(r.Zdiff), Zcommon: R6(r.Zcommon), Zodd: R6(r.Zodd), Zeven: R6(r.Zeven), eps_eff: null }
     : { Z0: R6(r.Z0), Zdiff: null, Zcommon: null, Zodd: null, Zeven: null, eps_eff: R6(r.eps_eff) };
-  return { ...z, error_pct: null, solver: 'closedform', model: line.model, warnings: line.warnings };
+  const loss = ctx.o.frequency != null && line.params.t > 0;
+  return { ...z, error_pct: null, solver: 'closedform', model: line.model, warnings: line.warnings,
+    ...(loss && { lossSource: { model: line.model, params: line.params, options: line.loss } }) };
 }
 
 // ── the analysis ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -518,7 +544,10 @@ function targetOf(board, net, kind, o, warnings) {
  *   (names to treat as ground besides zones, solid planes and GND-like names) and `overrides`
  *   ({net: {...}, tracks: {id: {...}}} with structure, refTop, refBottom (layer or false), coplanar: false), and
  *   `cache` (a Map shared between calls: solved cross-sections by geometry key, e.g. for every net of a board),
- *   and `onProgress({phase: 'route' | 'solve', done, total})` (JS only; the UI's progress bar)
+ *   and `onProgress({phase: 'route' | 'solve', done, total})` (JS only; the UI's progress bar). With `frequency`
+ *   (Hz) every section with a Z also gets `loss` (dB/mm and dB there, conductor and dielectric parts, and the
+ *   Z and dB/mm sweep over `frequencies`) and the summary the route's loss (loss.js; the stackup's Er/Df,
+ *   roughness and conductivity, `lossOptions` over them)
  */
 export function analyzeNet(board, copper, net, options = {}) {
   const t0 = now();
@@ -589,6 +618,7 @@ export function analyzeNet(board, copper, net, options = {}) {
           refs: [env.refs.top, env.refs.bottom].filter(Boolean).map((r) => ({ side: r.side, layer: r.layer, net: r.net, h: r.h, extent: r.extent, skipped: r.skipped })),
           flags: [...new Set(env.flags)].sort(),
           tracks: e.track.id ? [e.track.id] : [],
+          loss: null,
         });
       }
     }
@@ -597,11 +627,16 @@ export function analyzeNet(board, copper, net, options = {}) {
   // how much route each cross-section covers decides its accuracy (fieldOptions or shortFieldOptions)
   const covers = new Map();
   for (const sec of sections) covers.set(sec._key, (covers.get(sec._key) ?? 0) + sec.length);
+  const wantLoss = o.frequency != null;
+  if (wantLoss && !(o.frequency > 0)) throw new RangeError(`frequency must be > 0 Hz (got ${o.frequency})`);
+  const fs = wantLoss ? [...new Set([...(o.frequencies ?? LOSS_SWEEP), o.frequency])].sort((a, b) => a - b) : null;
+  const fi = wantLoss ? fs.indexOf(o.frequency) : -1;
+  const sweeps = new Map();
   sections.forEach((sec, i) => {
     progress?.({ phase: 'solve', done: i, total: sections.length });
     const fine = covers.get(sec._key) >= o.shortLength - 1e-9;
     const had = cache.get(sec._key);
-    if (!had || (fine && !had.fine)) {
+    if (!had || (fine && !had.fine) || (wantLoss && had.z && !had.z.lossSource)) {
       solves += 1;
       let z = null;
       try { z = solve(ctx, sec.layer, sec._env, sec.geometry.width, fine ? o.fieldOptions : o.shortFieldOptions); }
@@ -613,11 +648,27 @@ export function analyzeNet(board, copper, net, options = {}) {
       for (const w of z.warnings ?? []) if (!warnings.includes(w)) warnings.push(w);
       sec.z = { Z0: z.Z0, Zdiff: z.Zdiff, Zcommon: z.Zcommon, Zodd: z.Zodd, Zeven: z.Zeven, eps_eff: z.eps_eff, error_pct: z.error_pct, solver: z.solver, model: z.model };
       if (kind === 'differential' && sec.kind === 'single') sec.z.Zdiff = R6(2 * z.Z0);   // uncoupled: two single lines
+      if (wantLoss) {
+        if (!sweeps.has(sec._key)) {
+          let sw = null;
+          try { sw = lossOfSolve(z, fs, o.lossOptions ?? {}); } catch (err) { warnings.push(`${sec.net} at s=${sec.s0}: loss: ${err.message}`); }
+          sweeps.set(sec._key, sw);
+        }
+        const sw = sweeps.get(sec._key);
+        if (sw) {
+          // An uncoupled stretch of a pair: two independent lines, Zdiff = 2 Z0 and the same loss per line.
+          const zk = kind === 'differential' && sec.kind === 'single' ? sw.z.map((v) => 2 * v) : sw.z;
+          sec.loss = { frequency: o.frequency, z: S9(zk[fi]), db_per_mm: S9(sw.db_per_mm[fi]), db: S9(sw.db_per_mm[fi] * sec.length),
+            db_per_mm_conductor: S9(sw.db_per_mm_c[fi]), db_per_mm_dielectric: S9(sw.db_per_mm_d[fi]),
+            sweep: { frequency: fs, z: zk.map(S9), db_per_mm: sw.db_per_mm.map(S9) } };
+        }
+      }
     }
   });
   progress?.({ phase: 'solve', done: sections.length, total: sections.length });
   const target = targetOf(board, nets[0], kind, o, warnings);
   const summary = summarise(sections.filter((s) => s.net === nets[0]), target, kind);
+  if (wantLoss) summary.loss = lossSummary(sections.filter((s) => s.net === nets[0]), o.frequency, fs);
   const discontinuities = discontinuitiesOf(sections);
   for (const s of sections) { delete s._key; delete s._run; delete s._env; }
   const solveMs = now() - tSolve;
@@ -626,7 +677,7 @@ export function analyzeNet(board, copper, net, options = {}) {
     schema: IMPEDANCE_SCHEMA_ID, board: board.name, nets, kind, solver: o.solver, target, sections, summary, discontinuities,
     options: { step: o.step, solver: o.solver, tolerance_pct: o.tolerancePct, window: o.window, coplanar_window: o.coplanarWindow,
       pair_window: o.pairWindow, parallel_deg: o.parallelDeg, ref_margin: o.refMargin, neighbours: o.neighbours, no_plane: o.noPlane,
-      short_length: o.shortLength },
+      short_length: o.shortLength, frequency: o.frequency ?? null },
     warnings,
     timing: { ms: Math.round(ms * 10) / 10, solve_ms: Math.round(solveMs * 10) / 10, stations, solves, cache_hits: hits },
   };
@@ -649,7 +700,24 @@ function summarise(secs, target, kind) {
     out_of_tolerance_length: target ? R6(out) : null,
     out_of_tolerance_pct: target && length > 0 ? R6((100 * (out + (length - withZ))) / length) : null,
     within: target ? out === 0 && withZ === length : null,
+    loss: null,
   };
+}
+
+/**
+ * The route's loss at the frequency and over the sweep: the sum over the sections that have one (sections with
+ * no Z have no loss and are left out: `length` says how much of the route is counted).
+ */
+function lossSummary(secs, f, fs) {
+  let length = 0, db = 0, dbc = 0, dbd = 0;
+  const sweep = fs.map(() => 0);
+  for (const s of secs) {
+    if (!s.loss) continue;
+    length += s.length; db += s.loss.db; dbc += s.loss.db_per_mm_conductor * s.length; dbd += s.loss.db_per_mm_dielectric * s.length;
+    s.loss.sweep.db_per_mm.forEach((v, k) => { sweep[k] += v * s.length; });
+  }
+  return { frequency: f, length: R6(length), db: S9(db), db_per_mm: length > 0 ? S9(db / length) : null,
+    db_conductor: S9(dbc), db_dielectric: S9(dbd), sweep: { frequency: fs, db: sweep.map(S9) } };
 }
 
 /** Where the route changes: vias, reference changes, plane gaps, width changes, coupling, no reference. */

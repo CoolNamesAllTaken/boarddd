@@ -78,6 +78,8 @@ export interface Section {
   flags?: ("no_ref" | "plane_gap" | "ref_edge" | "neighbour" | "uncoupled" | "overlap" | "override" | "solver_error")[];
   /** Ids (copper@1 Track.id) of the tracks it covers. */
   tracks?: string[];
+  /** Its loss, with the analysis's `frequency`; null otherwise. */
+  loss?: SectionLoss | null;
 }
 
 /** The cross-section as found on the board (mm); gaps are edge to edge, quantised as solved. */
@@ -136,6 +138,34 @@ export interface Reference {
   skipped?: string[];
 }
 
+/** A section's loss at the analysis frequency (loss.js / boarddd.impedance.loss). */
+export interface SectionLoss {
+  /** Hz. */
+  frequency: number;
+  /** Re Zc there (Z0, or Zdiff for a pair), ohms. */
+  z: number;
+  /** Insertion loss of a matched line, dB/mm. */
+  db_per_mm: number;
+  /** Over the section's length, dB. */
+  db: number;
+  /** Conductor part (R/2Z0), dB/mm. */
+  db_per_mm_conductor: number;
+  /** Dielectric part (G Z0/2), dB/mm. */
+  db_per_mm_dielectric: number;
+  /** Over the analysis's frequencies. */
+  sweep: LossSweep;
+}
+
+/** A section's impedance and loss over frequency. */
+export interface LossSweep {
+  /** Hz. */
+  frequency: number[];
+  /** Re Zc (Z0, or Zdiff for a pair), ohms. */
+  z: number[];
+  /** Insertion loss of a matched line, dB/mm (a pair: differential). */
+  db_per_mm: number[];
+}
+
 /** The route's impedance weighted by length (the first net of a pair). */
 export interface Summary {
   /** What is summarised. */
@@ -156,6 +186,34 @@ export interface Summary {
   out_of_tolerance_pct?: number | null;
   /** Every section has an impedance within tolerance; null without a target. */
   within?: boolean | null;
+  /** The route's loss, with the analysis's `frequency`; null otherwise. */
+  loss?: RouteLoss | null;
+}
+
+/** The route's insertion loss (the first net of a pair; sections without a Z are not counted). */
+export interface RouteLoss {
+  /** Hz. */
+  frequency: number;
+  /** Length counted (the sections with a loss), mm. */
+  length: number;
+  /** Insertion loss, dB. */
+  db: number;
+  /** Mean, dB/mm. */
+  db_per_mm?: number | null;
+  /** Conductor part, dB. */
+  db_conductor: number;
+  /** Dielectric part, dB. */
+  db_dielectric: number;
+  /** Over the analysis's frequencies. */
+  sweep: RouteLossSweep;
+}
+
+/** The route's loss over frequency. */
+export interface RouteLossSweep {
+  /** Hz. */
+  frequency: number[];
+  /** dB over the sections with a loss. */
+  db: number[];
 }
 
 /** A change along the route, at its position. */

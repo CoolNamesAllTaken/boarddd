@@ -162,6 +162,39 @@ export default {
       ],
       "additionalProperties": false
     },
+    "LossSweep": {
+      "type": "object",
+      "description": "A section's impedance and loss over frequency.",
+      "properties": {
+        "frequency": {
+          "description": "Hz.",
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "z": {
+          "description": "Re Zc (Z0, or Zdiff for a pair), ohms.",
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "db_per_mm": {
+          "description": "Insertion loss of a matched line, dB/mm (a pair: differential).",
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "required": [
+        "frequency",
+        "z",
+        "db_per_mm"
+      ],
+      "additionalProperties": false
+    },
     "Reference": {
       "type": "object",
       "description": "A reference plane under (bottom) or over (top) a section.",
@@ -223,6 +256,83 @@ export default {
         "net",
         "h",
         "extent"
+      ],
+      "additionalProperties": false
+    },
+    "RouteLoss": {
+      "type": "object",
+      "description": "The route's insertion loss (the first net of a pair; sections without a Z are not counted).",
+      "properties": {
+        "frequency": {
+          "description": "Hz.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "length": {
+          "description": "Length counted (the sections with a loss), mm.",
+          "type": "number",
+          "minimum": 0
+        },
+        "db": {
+          "description": "Insertion loss, dB.",
+          "type": "number",
+          "minimum": 0
+        },
+        "db_per_mm": {
+          "description": "Mean, dB/mm.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "db_conductor": {
+          "description": "Conductor part, dB.",
+          "type": "number",
+          "minimum": 0
+        },
+        "db_dielectric": {
+          "description": "Dielectric part, dB.",
+          "type": "number",
+          "minimum": 0
+        },
+        "sweep": {
+          "description": "Over the analysis's frequencies.",
+          "$ref": "#/$defs/RouteLossSweep"
+        }
+      },
+      "required": [
+        "frequency",
+        "length",
+        "db",
+        "db_conductor",
+        "db_dielectric",
+        "sweep"
+      ],
+      "additionalProperties": false
+    },
+    "RouteLossSweep": {
+      "type": "object",
+      "description": "The route's loss over frequency.",
+      "properties": {
+        "frequency": {
+          "description": "Hz.",
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "db": {
+          "description": "dB over the sections with a loss.",
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "required": [
+        "frequency",
+        "db"
       ],
       "additionalProperties": false
     },
@@ -352,6 +462,18 @@ export default {
             "type": "string"
           },
           "default": []
+        },
+        "loss": {
+          "description": "Its loss, with the analysis's `frequency`; null otherwise.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SectionLoss"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -441,6 +563,55 @@ export default {
         "width",
         "thickness",
         "coplanar_gap"
+      ],
+      "additionalProperties": false
+    },
+    "SectionLoss": {
+      "type": "object",
+      "description": "A section's loss at the analysis frequency (loss.js / boarddd.impedance.loss).",
+      "properties": {
+        "frequency": {
+          "description": "Hz.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "z": {
+          "description": "Re Zc there (Z0, or Zdiff for a pair), ohms.",
+          "type": "number"
+        },
+        "db_per_mm": {
+          "description": "Insertion loss of a matched line, dB/mm.",
+          "type": "number",
+          "minimum": 0
+        },
+        "db": {
+          "description": "Over the section's length, dB.",
+          "type": "number",
+          "minimum": 0
+        },
+        "db_per_mm_conductor": {
+          "description": "Conductor part (R/2Z0), dB/mm.",
+          "type": "number",
+          "minimum": 0
+        },
+        "db_per_mm_dielectric": {
+          "description": "Dielectric part (G Z0/2), dB/mm.",
+          "type": "number",
+          "minimum": 0
+        },
+        "sweep": {
+          "description": "Over the analysis's frequencies.",
+          "$ref": "#/$defs/LossSweep"
+        }
+      },
+      "required": [
+        "frequency",
+        "z",
+        "db_per_mm",
+        "db",
+        "db_per_mm_conductor",
+        "db_per_mm_dielectric",
+        "sweep"
       ],
       "additionalProperties": false
     },
@@ -593,6 +764,18 @@ export default {
           "type": [
             "boolean",
             "null"
+          ],
+          "default": null
+        },
+        "loss": {
+          "description": "The route's loss, with the analysis's `frequency`; null otherwise.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RouteLoss"
+            },
+            {
+              "type": "null"
+            }
           ],
           "default": null
         }

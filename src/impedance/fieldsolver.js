@@ -56,11 +56,12 @@ function normalise(section) {
   };
   const conductors = (section.conductors ?? []).map((c, i) => {
     if (c.net == null) throw new RangeError(`conductors[${i}] has no net`);
-    return { ...rect(c, 'conductors', i), net: String(c.net) };
+    return { ...rect(c, 'conductors', i), net: String(c.net), metal: c.metal == null ? null : String(c.metal) };
   });
   const dielectrics = (section.dielectrics ?? []).map((d, i) => {
     if (!(d.er >= 1)) throw new RangeError(`dielectrics[${i}].er must be >= 1 (got ${d.er})`);
-    return { ...rect(d, 'dielectrics', i), er: d.er };
+    if (d.tand != null && !(d.tand >= 0)) throw new RangeError(`dielectrics[${i}].tand must be >= 0 (got ${d.tand})`);
+    return { ...rect(d, 'dielectrics', i), er: d.er, tand: d.tand ?? 0, material: d.material == null ? null : String(d.material) };
   });
   const signals = [];
   for (const c of conductors) if (!ground.has(c.net) && !signals.includes(c.net)) signals.push(c.net);
@@ -115,9 +116,9 @@ function mirrorMap(g, m) {
     const q = mirror(r);
     return list.some((s) => same(q, s) && key(r, s));
   });
-  if (!matches(g.dielectrics, (a, b) => a.er === b.er)) return null;
+  if (!matches(g.dielectrics, (a, b) => a.er === b.er && a.tand === b.tand && a.material === b.material)) return null;
   const isG = (n) => g.ground.has(n);
-  const netOK = (map) => (a, b) => (isG(a.net) ? isG(b.net) : map(a.net) === b.net);
+  const netOK = (map) => (a, b) => a.metal === b.metal && (isG(a.net) ? isG(b.net) : map(a.net) === b.net);
   if (matches(g.conductors, netOK((n) => n))) return 'same';
   if (g.signals.length === 2) {
     const [p, q] = g.signals;
@@ -231,18 +232,19 @@ const inRect = (r, x, y, e = 0) => x >= r.x0 - e && x <= r.x1 + e && y >= r.y0 -
 function paint(g, X, Y) {
   const nx = X.length, ny = Y.length;
   const er = new Float64Array((nx - 1) * (ny - 1)).fill(g.background);
+  const mat = new Int32Array((nx - 1) * (ny - 1)).fill(-1);   // the dielectric (index) that paints each cell
   for (let j = 0; j < ny - 1; j++) {
     const cy = 0.5 * (Y[j] + Y[j + 1]);
     for (let i = 0; i < nx - 1; i++) {
       const cx = 0.5 * (X[i] + X[i + 1]);
-      for (const d of g.dielectrics) if (inRect(d, cx, cy)) er[j * (nx - 1) + i] = d.er;
+      g.dielectrics.forEach((d, n) => { if (inRect(d, cx, cy)) { er[j * (nx - 1) + i] = d.er; mat[j * (nx - 1) + i] = n; } });
     }
   }
   const owner = new Int32Array(nx * ny).fill(-1);
   for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
     for (let c = 0; c < g.conductors.length; c++) if (inRect(g.conductors[c], X[i], Y[j], 1e-9 * g.size)) owner[j * nx + i] = c;
   }
-  return { er, owner };
+  return { er, owner, mat };
 }
 
 /**
@@ -435,11 +437,136 @@ function solveGrid(S, gx, gy, excitations) {
 
 // ── capacitance matrices on one grid ───────────────────────────────────────────────────────────────────────
 
-/** Maxwell capacitance matrices K (dielectrics) and K0 (vacuum), in F/m, on the grid of `level`. */
-function capacitances(g, level, sym, m) {
+// ── loss partials ──────────────────────────────────────────────────────────────────────────────────────────
+// With `loss`, every grid also gives what loss.js needs to turn one quasi-static solve into R, L, G, C at any
+// frequency:
+// - Dielectric shares. The stored energy is a sum over cells, so the Maxwell matrix splits exactly into one part
+//   per dielectric material (and the background), K = Σ_m K_m. Since K is stationary in φ (the solution
+//   minimises the energy), a small change of one material's permittivity changes K by (Δε_m/ε_m) K_m to first
+//   order, and a complex ε_m = ε'_m (1 - j tan δ_m) gives G/ω = Σ_m tan δ_m K_m: the usual perturbation result.
+// - Wheeler's incremental inductance rule (H. A. Wheeler, "Formulas for the skin effect", Proc. IRE 30(9), 1942,
+//   pp. 412-424): R = (Rs/μ0) ∂L/∂n, the change of the external inductance when every conductor surface recedes
+//   by dn. On the grid, the lines that carry conductor faces move (the mesh is morphed, so the grid topology and
+//   its discretisation error stay the same), and since φ is stationary, d(φᵀAψ)/dθ = φᵀ(∂A/∂θ)ψ is exact for
+//   the discrete system: one pass over the edges of the vacuum solution, no extra solve. The parts of each
+//   moved line are attributed to the nearest conductor face along it, so every `metal` (copper layer) gets its
+//   own ∂L/∂n and its own surface resistance and roughness.
+
+/** Distinct dielectric materials (er, tand, material) and the material of each dielectric. */
+function materialsOf(g) {
+  const list = [], index = [], keys = [];
+  for (const d of g.dielectrics) {
+    const key = `${d.er}|${d.tand}|${d.material}`;
+    let m = keys.indexOf(key);
+    if (m < 0) { m = keys.length; keys.push(key); list.push({ er: d.er, tand: d.tand, material: d.material }); }
+    index.push(m);
+  }
+  return { list, index };
+}
+
+/** The metal group of a conductor: its `metal`, else 'ground' or 'signal'. */
+const metalOf = (g, c) => c.metal ?? (g.ground.has(c.net) ? 'ground' : 'signal');
+
+/**
+ * Receding conductor faces on the grid: the velocity of every grid line (-1 or +1: a face whose outward normal
+ * is +x (+y) moves in -x (-y); 0 for lines without a face, or with faces both ways) and, per line node, the metal
+ * group of the nearest exposed face along that line.
+ */
+function recession(g, nx, ny, owner, groups) {
+  const vx = new Float64Array(nx), vy = new Float64Array(ny);
+  const gx = new Int32Array(nx * ny).fill(-1), gy = new Int32Array(nx * ny).fill(-1);   // [line * len + along]
+  const group = (k) => groups.indexOf(metalOf(g, g.conductors[owner[k]]));
+  const nearest = (out, base, len) => {
+    // Fill every node of a line with the group of the nearest exposed node (ties: the lower index).
+    let last = -1;
+    const fwd = new Int32Array(len).fill(-1), dist = new Float64Array(len).fill(Infinity);
+    for (let a = 0; a < len; a++) { if (out[base + a] >= 0) last = a; if (last >= 0) { fwd[a] = out[base + last]; dist[a] = a - last; } }
+    last = -1;
+    for (let a = len - 1; a >= 0; a--) {
+      if (out[base + a] >= 0) last = a;
+      if (last >= 0 && last - a < dist[a]) { fwd[a] = out[base + last]; dist[a] = last - a; }
+    }
+    for (let a = 0; a < len; a++) out[base + a] = fwd[a];
+  };
+  for (let i = 0; i < nx; i++) {
+    let plus = 0, minus = 0;
+    for (let j = 0; j < ny; j++) {
+      const k = j * nx + i;
+      if (owner[k] < 0) continue;
+      const pf = i + 1 < nx && owner[k + 1] < 0, mf = i > 0 && owner[k - 1] < 0;
+      if (pf) plus++;
+      if (mf) minus++;
+      if (pf || mf) gx[i * ny + j] = group(k);
+    }
+    vx[i] = plus && !minus ? -1 : minus && !plus ? 1 : 0;
+    if (vx[i]) nearest(gx, i * ny, ny);
+  }
+  for (let j = 0; j < ny; j++) {
+    let plus = 0, minus = 0;
+    for (let i = 0; i < nx; i++) {
+      const k = j * nx + i;
+      if (owner[k] < 0) continue;
+      const pf = j + 1 < ny && owner[k + nx] < 0, mf = j > 0 && owner[k - nx] < 0;
+      if (pf) plus++;
+      if (mf) minus++;
+      if (pf || mf) gy[j * nx + i] = group(k);
+    }
+    vy[j] = plus && !minus ? -1 : minus && !plus ? 1 : 0;
+    if (vy[j]) nearest(gy, j * nx, nx);
+  }
+  return { vx, vy, gx, gy };
+}
+
+/**
+ * d(φᵀAψ)/dn per metal group when the conductor faces recede (`rec` from recession), for the stencil with cell
+ * permittivities eps; φ and ψ are fixed (the discrete energy is stationary in the free nodes).
+ */
+function recessionQuad(X, Y, eps, rec, nG, p, q = p) {
+  const nx = X.length, ny = Y.length, out = new Float64Array(nG);
+  const e = (i, j) => (i < 0 || j < 0 || i >= nx - 1 || j >= ny - 1 ? 0 : eps[j * (nx - 1) + i]);
+  const { vx, vy, gx: GX, gy: GY } = rec;
+  // Add c · velocity of x-line i (y-line j) to its group at the node `a` along it.
+  const addX = (i, a, c) => { if (vx[i] && c) { const gr = GX[i * ny + a]; if (gr >= 0) out[gr] += c * vx[i]; } };
+  const addY = (j, a, c) => { if (vy[j] && c) { const gr = GY[j * nx + a]; if (gr >= 0) out[gr] += c * vy[j]; } };
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const k = j * nx + i;
+    if (i < nx - 1) {
+      const d = (p[k] - p[k + 1]) * (q[k] - q[k + 1]);
+      if (d !== 0) {
+        const dx = X[i + 1] - X[i], eb = e(i, j - 1), ea = e(i, j);
+        const below = j > 0 ? Y[j] - Y[j - 1] : 0, above = j < ny - 1 ? Y[j + 1] - Y[j] : 0;
+        const gxk = (0.5 * (eb * below + ea * above)) / dx;
+        addX(i + 1, j, (-gxk / dx) * d); addX(i, j, (gxk / dx) * d);
+        if (j > 0) { addY(j, i, ((0.5 * eb) / dx) * d); addY(j - 1, i, ((-0.5 * eb) / dx) * d); }
+        if (j < ny - 1) { addY(j + 1, i, ((0.5 * ea) / dx) * d); addY(j, i, ((-0.5 * ea) / dx) * d); }
+      }
+    }
+    if (j < ny - 1) {
+      const d = (p[k] - p[k + nx]) * (q[k] - q[k + nx]);
+      if (d !== 0) {
+        const dy = Y[j + 1] - Y[j], el = e(i - 1, j), er = e(i, j);
+        const left = i > 0 ? X[i] - X[i - 1] : 0, right = i < nx - 1 ? X[i + 1] - X[i] : 0;
+        const gyk = (0.5 * (el * left + er * right)) / dy;
+        addY(j + 1, i, (-gyk / dy) * d); addY(j, i, (gyk / dy) * d);
+        if (i > 0) { addX(i, j, ((0.5 * el) / dy) * d); addX(i - 1, j, ((-0.5 * el) / dy) * d); }
+        if (i < nx - 1) { addX(i + 1, j, ((0.5 * er) / dy) * d); addX(i, j, ((-0.5 * er) / dy) * d); }
+      }
+    }
+  }
+  return out;
+}
+
+// ── capacitance matrices on one grid ───────────────────────────────────────────────────────────────────────
+
+/**
+ * Maxwell capacitance matrices K (dielectrics) and K0 (vacuum), in F/m, on the grid of `level`. With `loss`
+ * also `parts` (K split per dielectric material, `materials`; the background last) and `dK0` (dK0/dn per metal
+ * group as the conductor faces recede, F/m per unit length of the section's unit; `metals`).
+ */
+function capacitances(g, level, sym, m, loss = false) {
   const { X, Y, hc, growth } = makeGrid(g, level, sym ? m : null);
   const nx = X.length, ny = Y.length, N = nx * ny;
-  const { er, owner } = paint(g, X, Y);
+  const { er, owner, mat } = paint(g, X, Y);
   const nS = g.signals.length;
   const unit = (net) => {
     const v = new Float64Array(N);
@@ -457,7 +584,40 @@ function capacitances(g, level, sym, m) {
     stats.unknowns += r.unknowns;
     return { gx, gy, phi: r.phi };
   };
-  const mats = media.map(() => Array.from({ length: nS }, () => new Array(nS).fill(0)));
+  const zero = () => Array.from({ length: nS }, () => new Array(nS).fill(0));
+  const mats = media.map(zero);
+  // Loss partials: per material (background last) the conductances of its cells alone; the recession of faces.
+  let mats_ = null, parts = null, partG = null, metals = null, rec = null, dK0 = null;
+  if (loss) {
+    mats_ = materialsOf(g);
+    const nM = mats_.list.length;
+    partG = [];
+    for (let k = 0; k <= nM; k++) {
+      const eps = Float64Array.from(er, (v, c) => ((mat[c] < 0 ? nM : mats_.index[mat[c]]) === k ? v : 0));
+      partG.push(eps.some((v) => v > 0) ? conductances(X, Y, eps) : null);
+    }
+    parts = partG.map(zero);
+    metals = [...new Set(g.conductors.map((c) => metalOf(g, c)))];
+    rec = recession(g, nx, ny, owner, metals);
+    dK0 = metals.map(zero);
+  }
+  const ones = media[media.length - 1];
+  // Add one solution's contributions (weight w, or ±w/2 per entry for the swap modes) to K, its parts and dK0.
+  const collect = (e, phi, put) => {
+    const vac = e === media.length - 1;
+    if (loss && e === 0) {
+      partG.forEach((pg, k) => { if (pg) put(parts[k], (a, b) => EPS0 * quad(nx, ny, pg.gx, pg.gy, phi[a], phi[b])); });
+    }
+    if (loss && vac) {
+      const cache = new Map();
+      const d = (a, b) => {
+        const key = `${a},${b}`;
+        if (!cache.has(key)) cache.set(key, recessionQuad(X, Y, ones, rec, metals.length, phi[a], phi[b]));
+        return cache.get(key);
+      };
+      metals.forEach((_, k) => put(dK0[k], (a, b) => EPS0 * d(a, b)[k]));
+    }
+  };
   if (sym === 'swap') {
     // Even (magnetic wall) and odd (electric wall, φ = 0 on the mirror line i = 0) modes of the pair; the half
     // domain holds one trace of each net pair, so the excitation is 1 on both nets.
@@ -467,23 +627,32 @@ function capacitances(g, level, sym, m) {
     for (let j = 0; j < ny; j++) oddFixed[j * nx] = 1;
     const vOdd = Float64Array.from(v, (x, k) => (k % nx === 0 ? 0 : x));
     for (const [S, ex, sign] of [[analyse(nx, ny, fixed), v, 1], [analyse(nx, ny, oddFixed), vOdd, -1]]) {
+      // ε0 φᵀAφ over the half = the mode's C per line.
+      const put = (M, f) => { const c = f(0, 0); M[0][0] += c / 2; M[1][1] += c / 2; M[0][1] += sign * c / 2; M[1][0] += sign * c / 2; };
       media.forEach((eps, e) => {
         const { gx, gy, phi } = solve(S, eps, [ex]);
-        const c = EPS0 * quad(nx, ny, gx, gy, phi[0]);   // ε0 φᵀAφ over the half = the mode's C per line
-        mats[e][0][0] += c / 2; mats[e][1][1] += c / 2; mats[e][0][1] += sign * c / 2; mats[e][1][0] += sign * c / 2;
+        put(mats[e], () => EPS0 * quad(nx, ny, gx, gy, phi[0]));
+        collect(e, phi, put);
       });
     }
   } else {
     const S = analyse(nx, ny, fixed), ex = g.signals.map(unit), w = sym === 'same' ? 2 : 1;
+    const put = (M, f) => { for (let a = 0; a < nS; a++) for (let b = a; b < nS; b++) M[a][b] = M[b][a] = w * f(a, b); };
     media.forEach((eps, e) => {
       const { gx, gy, phi } = solve(S, eps, ex);
-      for (let a = 0; a < nS; a++) for (let b = a; b < nS; b++) {
-        mats[e][a][b] = mats[e][b][a] = w * EPS0 * quad(nx, ny, gx, gy, phi[a], phi[b]);
-      }
+      put(mats[e], (a, b) => EPS0 * quad(nx, ny, gx, gy, phi[a], phi[b]));
+      collect(e, phi, put);
     });
   }
   const K0 = mats[mats.length - 1], K = uniform ? K0.map((r) => r.map((v) => uniform * v)) : mats[0];
-  return { K, K0, stats };
+  const out = { K, K0, stats };
+  if (loss) {
+    out.parts = parts;
+    out.materials = mats_.list;
+    out.metals = metals;
+    out.dK0 = dK0;
+  }
+  return out;
 }
 
 // ── line parameters from the matrices ──────────────────────────────────────────────────────────────────────
@@ -523,6 +692,26 @@ function lineParams(K, K0) {
   return { ...out, matrices: { C: K, C0: K0, L: Linv } };
 }
 
+/**
+ * What loss.js needs from the finest grid: K0, K split per material (`materials`, the background last; null when
+ * a material has no cell: zeros), dK0/dn per metal (per mm of recession), the signal copper's cross-section area (mm²,
+ * all signals), the smallest side of a signal's bounding box (mm) and the signals' metal.
+ */
+function lossPartials(g, c) {
+  let area = 0, t = Infinity;
+  for (const net of g.signals) {
+    const box = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
+    for (const k of g.conductors) {
+      if (k.net !== net) continue;
+      area += (k.x1 - k.x0) * (k.y1 - k.y0);
+      box.x0 = Math.min(box.x0, k.x0); box.x1 = Math.max(box.x1, k.x1); box.y0 = Math.min(box.y0, k.y0); box.y1 = Math.max(box.y1, k.y1);
+    }
+    t = Math.min(t, box.x1 - box.x0, box.y1 - box.y0);
+  }
+  const signalMetal = metalOf(g, g.conductors.find((k) => !g.ground.has(k.net)));
+  return { K0: c.K0, materials: c.materials, parts: c.parts, metals: c.metals, dK0: c.dK0, area, t, signalMetal };
+}
+
 const KEYS = ['Z0', 'eps_eff', 'C', 'L', 'C0', 'Zdiff', 'Zcommon', 'Zodd', 'Zeven', 'eps_eff_odd', 'eps_eff_even'];
 
 /**
@@ -530,9 +719,11 @@ const KEYS = ['Z0', 'eps_eff', 'C', 'L', 'C0', 'Zdiff', 'Zcommon', 'Zodd', 'Zeve
  * @param {object} section  { conductors: [{x0?, x1?, y0, y1, net}], dielectrics: [{x0?, x1?, y0, y1, er}],
  *   ground?: string[] (default ['gnd']), background?: number (εr outside every dielectric, default 1) }.
  *   Rectangles in any one length unit; a missing x0/x1 extends to the domain edge; later dielectrics win.
- * @param {{tol?: number, level?: number, maxLevel?: number, symmetry?: boolean}} [opts]  tol: target relative
+ * @param {{tol?: number, level?: number, maxLevel?: number, symmetry?: boolean, loss?: boolean}} [opts]  tol: target relative
  *   error, as estimated by the last refinement (default 0.01); level: the first grid level (default 0); maxLevel (default 4); symmetry: use mirror
- *   symmetry when the section has it (default true)
+ *   symmetry when the section has it (default true); loss: also return `loss`, the partials loss.js's
+ *   sectionLoss needs (lengths must then be mm). Dielectrics may carry `tand` and `material`, conductors `metal`
+ *   (their copper, for roughness and conductivity; default 'signal' / 'ground')
  */
 export function solveCrossSection(section, opts = {}) {
   const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -541,9 +732,10 @@ export function solveCrossSection(section, opts = {}) {
   const m = 0.5 * (g.extent.x0 + g.extent.x1);
   const sym = opts.symmetry === false ? null : mirrorMap(g, m);
   const levels = [];
-  let est = null, error = null, worst = 0;
+  let est = null, error = null, worst = 0, last = null;
   for (let level = first; level <= maxLevel; level++) {
-    const c = capacitances(g, level, sym, m);
+    const c = capacitances(g, level, sym, m, !!opts.loss);
+    last = c;
     levels.push({ level, ...lineParams(c.K, c.K0), grid: c.stats });
     if (levels.length < 2) continue;
     const [a, b] = levels.slice(-2);
@@ -570,6 +762,7 @@ export function solveCrossSection(section, opts = {}) {
   r.error = error;
   r.error_pct = 100 * Math.max(worst, ...Object.values(error));
   r.symmetry = sym ?? 'none';
+  if (opts.loss) r.loss = lossPartials(g, last);
   r.levels = levels.map((l) => ({ level: l.level, ...Object.fromEntries(KEYS.filter((k) => k in l).map((k) => [k, l[k]])), grid: l.grid }));
   r.ms = t1 - t0;
   return r;
@@ -674,4 +867,4 @@ export function fieldCalculate(model, params, opts = {}) {
   return { model, ...solveCrossSection(sectionFor(model, params), opts), flags: [] };
 }
 
-export const _internal = { normalise, mirrorMap, axis, makeGrid, analyse, factor, cholSolve, dissect, capacitances };
+export const _internal = { normalise, mirrorMap, axis, makeGrid, analyse, factor, cholSolve, dissect, capacitances, recession };

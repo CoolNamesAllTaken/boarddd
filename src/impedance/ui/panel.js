@@ -2,6 +2,8 @@
 // shows symbols and numbers:
 //   ⇄ D+ D-   101.2 Ω   ✓ 100 ±10 %   [auto ▾]   F.Cu B.Cu
 //   ▁▁▁▁▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁   (Z along the route; hover: marker on the stage, cross-section below)
+//   IL −0.42 dB  [5.6 GHz ▾]
+//   ‾‾‾╲__  ___/‾  (route loss, then the section's Z, over frequency; hover: values; click: that frequency)
 //   [cross-section]
 //   ◎ 4.5  ⊘ 4.5  ⇹ 0.0 …  (discontinuities; click: zoom there)
 // Colours and sizes are CSS variables (IMPEDANCE_UI_CSS); a host restyles them on .bdi-panel or an ancestor.
@@ -26,6 +28,9 @@ const svg = (tag, attrs = {}, parent = null) => {
   return e;
 };
 const f1 = (v) => (v == null ? '–' : v.toFixed(1));
+const f2 = (v) => (v == null ? '–' : v.toFixed(2));
+/** 5.6e9 → '5.6 GHz', 3.2e8 → '320 MHz'. */
+export const fmtHz = (f) => (f >= 1e9 ? `${+(f / 1e9).toPrecision(3)} GHz` : `${+(f / 1e6).toPrecision(3)} MHz`);
 
 /** Short names and words for structures. */
 export const STRUCTURES = {
@@ -78,9 +83,11 @@ function injectCss(doc) {
  * attaches the picker (click a trace: its net or pair; alt-click: one segment) and the highlight overlay, and
  * syncs hovers both ways. Options: `analyzer` (createAnalyzer options, or an analyzer), `options` (analyzeNet
  * options), `pick: false` (select() only), `layers` (what clicks may pick: a list or a function returning the
- * layers on show), `injectCss: false`. Events: 'select', 'result', 'hover', 'error'.
+ * layers on show), `injectCss: false`, `frequency` (Hz, default 5.6 GHz: the loss shown, and analyzeNet's;
+ * null: no loss). Events: 'select', 'result', 'hover', 'error', 'frequency'.
  */
-export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}, options = {}, pick = true, layers = null, injectCss: inject = true } = {}) {
+export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}, options = {}, pick = true, layers = null, injectCss: inject = true,
+  frequency = 5.6e9 } = {}) {
   if (inject) injectCss(el0.ownerDocument);
   const an = typeof analyzer?.analyze === 'function' ? analyzer : createAnalyzer({ board, copper, ...analyzer });
   const listeners = new Map();
@@ -97,6 +104,11 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
   const prog = el('div', 'bdi-progress', root);
   const bar = el('div', 'bdi-bar', prog);
   const chart = el('div', 'bdi-profile', root);
+  const lossEl = el('div', 'bdi-loss', root);
+  const ilEl = el('span', 'bdi-il', lossEl);
+  const fSel = el('select', 'bdi-freq', lossEl);
+  fSel.title = 'frequency of the loss shown';
+  const fchart = el('div', 'bdi-fchart', root);
   const xsEl = el('div', 'bdi-xsbox', root);
   const discEl = el('ol', 'bdi-disc', root);
   const empty = el('div', 'bdi-empty', root, '⊕');
@@ -107,6 +119,7 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
   let override = '';
   let runs = 0;
   let current = null; // the section shown in the cross-section
+  let freq = frequency; // the frequency of the loss shown (one of the sweep's)
   const hl = stage ? createHighlight(stage, copper) : null;
   const picker = stage && pick ? attachPicker(stage, copper, { board, layers, onSelect: (s) => api.select(s) }) : null;
   root.dataset.state = 'empty';
@@ -175,7 +188,9 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
       const sec = sectionAt(s);
       cursor.setAttribute('x1', X(s)); cursor.setAttribute('x2', X(s)); cursor.setAttribute('visibility', 'visible');
       const z = sec ? zOf(sec, k) : null;
-      title.textContent = sec ? `${s.toFixed(2)} mm · ${z == null ? 'no Z' : `${z.toFixed(1)} Ω`} · ${STRUCTURES[sec.structure]?.[0] ?? sec.structure}${sec.kind === 'differential' ? ' ⇄' : ''} · ${sec.layer}${sec.flags.length ? ` · ${sec.flags.join(', ')}` : ''}` : '';
+      const fi = sec?.loss ? sec.loss.sweep.frequency.indexOf(freq) : -1;
+      const il = fi >= 0 ? ` · ${sec.loss.sweep.db_per_mm[fi].toFixed(4)} dB/mm @ ${fmtHz(freq)}` : '';
+      title.textContent = sec ? `${s.toFixed(2)} mm · ${z == null ? 'no Z' : `${z.toFixed(1)} Ω`} · ${STRUCTURES[sec.structure]?.[0] ?? sec.structure}${sec.kind === 'differential' ? ' ⇄' : ''} · ${sec.layer}${il}${sec.flags.length ? ` · ${sec.flags.join(', ')}` : ''}` : '';
       api.hover(s, sec);
     };
     hit.addEventListener('pointermove', move);
@@ -215,6 +230,83 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
     current = sec;
     if (!result) return;
     crossSection(xsEl, sec, { board });
+    showFreqChart(result);
+  }
+
+  /** The route's loss at the chosen frequency: IL in the header row, words in the tooltip. */
+  function showLoss(doc) {
+    const L = doc.summary.loss;
+    root.dataset.loss = L ? 'on' : 'off';
+    if (!L) return;
+    const fs = L.sweep.frequency;
+    if (!fs.includes(freq)) freq = fs.reduce((a, b) => (Math.abs(Math.log(b / freq)) < Math.abs(Math.log(a / freq)) ? b : a));
+    fSel.replaceChildren();
+    for (const f of fs) { const o = el('option', null, fSel, fmtHz(f)); o.value = String(f); }
+    fSel.value = String(freq);
+    const i = fs.indexOf(freq);
+    const db = L.sweep.db[i];
+    ilEl.textContent = `IL −${f2(db)} dB`;
+    const share = (k) => (L.frequency === freq ? L[k] : null);
+    const pair = doc.kind === 'differential';
+    ilEl.title = `insertion loss${pair ? ' (differential)' : ''} at ${fmtHz(freq)}: ${f2(db)} dB over ${f1(L.length)} mm`
+      + ` · ${(db / Math.max(L.length, 1e-9)).toFixed(4)} dB/mm · ${((25.4 * db) / Math.max(L.length, 1e-9)).toFixed(3)} dB/in`
+      + (share('db_conductor') != null ? ` · conductor ${f2(share('db_conductor'))} dB, dielectric ${f2(share('db_dielectric'))} dB` : '')
+      + (L.length < doc.summary.length - 1e-6 ? ` · ${f1(doc.summary.length - L.length)} mm without Z not counted` : '')
+      + ' · matched line, Er/Df and roughness from the stackup';
+    showFreqChart(doc);
+  }
+
+  /**
+   * Over frequency (log axis), two sparklines with a scale each: the route's loss on top (falling, like S21), the
+   * current section's Z below; the chosen frequency marked, its values at the right, the rest in tooltips.
+   */
+  function showFreqChart(doc) {
+    fchart.replaceChildren();
+    const L = doc?.summary.loss;
+    if (!L) return;
+    const fs = L.sweep.frequency, n = fs.length;
+    const W = fchart.clientWidth || 320, H = fchart.clientHeight || 72, P = 3, R = 62, B = 11;
+    const h = (H - B - 3 * P) / 2;   // each band's height
+    const lx = (f) => Math.log(f / fs[0]) / Math.log(fs[n - 1] / fs[0] || 10);
+    const X = (f) => P + (W - P - R) * lx(f);
+    const dbMax = Math.max(...L.sweep.db, 1e-6);
+    const Yd = (v) => P + h * (v / dbMax);
+    const zs = current?.loss?.sweep.z ?? null;
+    const g = svg('svg', { class: 'bdi-chart bdi-fsvg', width: W, height: H, viewBox: `0 0 ${W} ${H}` }, fchart);
+    svg('line', { x1: P, x2: W - R, y1: P, y2: P, class: 'bdi-f0' }, g);
+    svg('polyline', { points: fs.map((f, i) => `${X(f).toFixed(1)},${Yd(L.sweep.db[i]).toFixed(1)}`).join(' '), class: 'bdi-fdb' }, g);
+    const i0 = fs.indexOf(freq);
+    const lab = (y, cls, txt) => { const t = svg('text', { x: W - R + 6, y: Math.min(H - 2, Math.max(9, y)), class: cls }, g); t.textContent = txt; };
+    lab(Yd(L.sweep.db[i0]) + 4, 'bdi-fdbt', `−${f2(L.sweep.db[i0])} dB`);
+    if (zs) {
+      const lo = Math.min(...zs), hi = Math.max(...zs), pad = (hi - lo) * 0.15 || 1, top = 2 * P + h;
+      const Yz = (v) => top + h * (1 - (v - lo + pad) / (hi - lo + 2 * pad));
+      svg('polyline', { points: fs.map((f, i) => `${X(f).toFixed(1)},${Yz(zs[i]).toFixed(1)}`).join(' '), class: 'bdi-fz' }, g);
+      lab(Yz(zs[i0]) + 4, 'bdi-fzt', `${f1(zs[i0])} Ω`);
+    }
+    svg('line', { x1: X(freq), x2: X(freq), y1: 0, y2: H - B, class: 'bdi-fmark' }, g);
+    const ax0 = svg('text', { x: P, y: H - 1, class: 'bdi-fax' }, g);
+    ax0.textContent = fmtHz(fs[0]);
+    const ax1 = svg('text', { x: W - R, y: H - 1, class: 'bdi-fax', 'text-anchor': 'end' }, g);
+    ax1.textContent = fmtHz(fs[n - 1]);
+    const cursor = svg('line', { y1: 0, y2: H - B, class: 'bdi-cursor', visibility: 'hidden' }, g);
+    const hit = svg('rect', { x: 0, y: 0, width: W - R, height: H, class: 'bdi-hit bdi-fhit' }, g);
+    const title = svg('title', {}, hit);
+    const nearest = (ev) => {
+      const r = g.getBoundingClientRect();
+      const x = ((ev.clientX - r.left) / r.width) * W;
+      let best = 0;
+      fs.forEach((f, i) => { if (Math.abs(X(f) - x) < Math.abs(X(fs[best]) - x)) best = i; });
+      return best;
+    };
+    hit.addEventListener('pointermove', (ev) => {
+      const i = nearest(ev);
+      cursor.setAttribute('x1', X(fs[i])); cursor.setAttribute('x2', X(fs[i])); cursor.setAttribute('visibility', 'visible');
+      title.textContent = `${fmtHz(fs[i])} · route −${f2(L.sweep.db[i])} dB`
+        + (current?.loss ? ` · section ${current.loss.sweep.db_per_mm[i].toFixed(4)} dB/mm, ${f1(current.loss.sweep.z[i])} Ω` : '');
+    });
+    hit.addEventListener('pointerleave', () => cursor.setAttribute('visibility', 'hidden'));
+    hit.addEventListener('click', (ev) => api.setFrequency(fs[nearest(ev)]));
   }
 
   async function run() {
@@ -223,6 +315,7 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
     result = null;
     busy(true);
     const opts = { ...options };
+    if (frequency != null && opts.frequency === undefined) opts.frequency = frequency;
     if (override) {
       opts.overrides = { net: { structure: override } };
       if (override === 'cpw') opts.noPlane = 'solve';
@@ -237,6 +330,7 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
       showHeader(doc);
       showProfile(doc);
       showDiscontinuities(doc);
+      showLoss(doc);
       const main = [...doc.sections].filter((s) => s.z).sort((a, b) => b.length - a.length)[0] ?? doc.sections[0] ?? null;
       showSection(main);
       emit('result', doc);
@@ -252,6 +346,7 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
   }
 
   sel.addEventListener('change', () => { override = sel.value; root.dataset.override = override; run(); });
+  fSel.addEventListener('change', () => api.setFrequency(Number(fSel.value)));
 
   const api = {
     root,
@@ -268,14 +363,22 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
       emit('select', { ...selection, hit: v.hit ?? null });
       // while it runs: the nets, the previous numbers cleared
       netEl.textContent = `${selection.nets.length === 2 ? '⇄ ' : ''}${selection.nets.join(' ')}`;
-      for (const e of [zEl, vEl, layersEl, chart, xsEl, discEl]) e.replaceChildren();
+      for (const e of [zEl, vEl, layersEl, chart, xsEl, discEl, ilEl, fSel, fchart]) e.replaceChildren();
       if (!selection.nets.length) {
         result = null; runs++; busy(false);
-        for (const e of [netEl, zEl, vEl, layersEl, chart, xsEl, discEl]) e.replaceChildren();
+        for (const e of [netEl, zEl, vEl, layersEl, chart, xsEl, discEl, ilEl, fSel, fchart]) e.replaceChildren();
         root.dataset.state = 'empty';
         return Promise.resolve(null);
       }
       return run();
+    },
+    /** The frequency of the loss shown (Hz; snapped to the analysis's sweep, no re-run). */
+    get frequency() { return freq; },
+    setFrequency(f) {
+      freq = f;
+      if (result) showLoss(result);
+      emit('frequency', freq);
+      return freq;
     },
     /** Re-run with a structure override ('' = auto). */
     setOverride(structure) { sel.value = structure ?? ''; override = sel.value; root.dataset.override = override; return run(); },

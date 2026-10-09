@@ -24,7 +24,10 @@ PR review) and internal tools. Framework-free ES modules, no build step, `.d.ts`
   any cross-section (`solveCrossSection`, also in a Worker); the same code is `boarddd.impedance` in
   Python (the solver needs the `field` extra). `analyzeNet` follows a net or pair over the real copper
   (`boarddd/copper`) and returns its impedance section by section (`boarddd/impedance@1`: structure, references,
-  flags, discontinuities, a summary against the class target). See [docs/impedance.md](docs/impedance.md).
+  flags, discontinuities, a summary against the class target). Loss and frequency dependence for both tiers
+  (`lineLoss`, `sectionLoss`): Djordjevic-Sarkar dielectrics, skin effect with Hammerstad/Huray roughness,
+  Kirschning-Jansen dispersion, RLGC(f), dB/mm, Touchstone `.s2p`/`.s4p`, and per-net loss in `analyzeNet`
+  (`frequency`). See [docs/impedance.md](docs/impedance.md).
 - **`boarddd/copper`**: the copper model `boarddd/copper@1` (`copper.json`: tracks and arcs, vias, zone fills
   with holes, keepouts, pads as copper, net ties, plane coverage, all with nets): `validateCopper`, and
   `copperFromGerbers` for Gerber X2 uploads in the browser. Server side, `boarddd.io.kicad.read_kicad_copper`
@@ -249,6 +252,9 @@ panel.on('result', (doc) => doc.summary.z_weighted);                    // the b
     verdict against the net class target (✓ in, ⚠ near the limit, ✗ out), a structure override that re-runs, and the
     layers.
   - Then Z along the route: hover it, and the stage shows the spot and its section while the cross-section follows.
+  - `IL −1.39 dB  [18 GHz ▾]`: the route's insertion loss at a frequency (5.6 GHz by default, `frequency`), then two
+    sparklines over 100 MHz–40 GHz: the route's loss and the hovered section's Z (values in the tooltips; click picks
+    that frequency, no re-run).
   - The solved cross-section: εr per dielectric, the copper, the planes, the mask; dimensions on hover.
   - The discontinuities (◎ via, ⇅ reference change, ⊘ plane gap, ⇔ width, ⇹ breakout, ✗ no reference,
     ⚠ plane edge): click one to zoom there.
@@ -373,7 +379,8 @@ coordinates), z up out of the top copper, board bottom face at z = 0 and top fac
   file), and the royalblue54L_feather golden `board.json` against boarddd's own `.kicad_mod` parser and
   the drill files.
 - `boarddd/impedance`: golden references (Polar, HFSS, Cohn exact, scikit-rf, boarddd's field-solver sweep) and
-  JS↔Python parity on `fixtures/impedance/cases.json` and `field-cases.json` (`node fixtures/impedance/make_cases.mjs --check`).
+  JS↔Python parity on `fixtures/impedance/cases.json` and `field-cases.json` (`node fixtures/impedance/make_cases.mjs --check`);
+  loss against Polar Si9000e, Pozar, Rogers and scikit-rf with parity on `loss-cases.json` (`make_loss_cases.mjs --check`).
 - `boarddd/copper`: `validateCopper` on the shared cases in `fixtures/copper/`, `copperFromGerbers` on the
   royalblue54L_feather and NFC-antenna Gerber exports against the KiCad reader's golden (pytest also checks
   Python = JS on both).

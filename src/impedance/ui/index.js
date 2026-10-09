@@ -4,7 +4,7 @@
 //   copperHitIndex / attachPicker / createHighlight / copperContent   the stage pieces on their own
 //   createAnalyzer                                 analyzeNet in a Worker (main thread on file://)
 //   boardPointFromPick                             a boarddd/scene pick on the board solid → board mm
-export { impedancePanel, verdict, STRUCTURES, DISCONTINUITIES } from './panel.js';
+export { impedancePanel, verdict, fmtHz, STRUCTURES, DISCONTINUITIES } from './panel.js';
 export { crossSection, sectionLayout, sectionGeometry } from './crosssection.js';
 export { copperHitIndex, pairOf, pairOrder, trackPath, arcPoints } from './pick.js';
 export { attachPicker, createHighlight, copperContent, routeSlice, routePoint, boardPointFromPick, LAYER_COLORS } from './stage.js';

@@ -1,7 +1,7 @@
 """boarddd.impedance: PCB transmission-line impedance (docs/impedance.md).
 
 Tier 1 is closed-form (`closedform`); tier 2 (`fieldsolver`, needs the ``field`` extra: numpy and scipy) is a 2D
-field solver for any cross-section; `stackup` connects both to the board model's stackup and ImpedanceTarget. The
+field solver for any cross-section; `loss` adds loss and frequency dependence to both; `stackup` connects both to the board model's stackup and ImpedanceTarget. The
 JS twin is `boarddd/impedance` (src/impedance/), checked against the same cases (fixtures/impedance/cases.json
 and field-cases.json).
 """
@@ -32,10 +32,47 @@ from .closedform import (
     synthesize,
 )
 from .fieldsolver import FieldResult, field_calculate, section_for, solve_cross_section
-from .stackup import STACKUP_DEFAULTS, Line, TargetEvaluation, evaluate_target, line_from_stackup, model_for
+from .loss import (
+    LOSS_DEFAULTS,
+    LossResult,
+    cannonball,
+    coupled_microstrip_dispersion,
+    dielectric_at,
+    line_loss,
+    microstrip_dispersion,
+    roughness_factor,
+    s_parameters,
+    section_loss,
+    skin_depth,
+    surface_resistance,
+    touchstone,
+)
+from .stackup import (
+    STACKUP_DEFAULTS,
+    Line,
+    TargetEvaluation,
+    evaluate_target,
+    line_from_stackup,
+    model_for,
+    roughness_of,
+)
 
 __all__ = [
     "ETA0",
+    "LOSS_DEFAULTS",
+    "LossResult",
+    "cannonball",
+    "coupled_microstrip_dispersion",
+    "dielectric_at",
+    "line_loss",
+    "microstrip_dispersion",
+    "roughness_factor",
+    "roughness_of",
+    "s_parameters",
+    "section_loss",
+    "skin_depth",
+    "surface_resistance",
+    "touchstone",
     "FieldResult",
     "field_calculate",
     "section_for",

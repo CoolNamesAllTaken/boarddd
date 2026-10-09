@@ -26,7 +26,7 @@ jobs:
       - run: npm test
       - run: npm run typecheck
       - name: Impedance cases are up to date
-        run: node fixtures/impedance/make_cases.mjs --check
+        run: node fixtures/impedance/make_cases.mjs --check && node fixtures/impedance/make_loss_cases.mjs --check
   python:
     runs-on: ubuntu-24.04
     timeout-minutes: 10

@@ -5,9 +5,11 @@
 
 import { calculate, synthesize } from './closedform.js';
 import { etched, mask, solveCrossSection } from './fieldsolver.js';
+import { LOSS_DEFAULTS } from './loss.js';
 
 /** Defaults for what a stackup leaves out (KiCad's own defaults); each use adds a warning. */
-export const STACKUP_DEFAULTS = { copper_thickness: 0.035, epsilon_r: 4.5, mask_thickness: 0.01, mask_epsilon_r: 3.3 };
+export const STACKUP_DEFAULTS = { copper_thickness: 0.035, epsilon_r: 4.5, mask_thickness: 0.01, mask_epsilon_r: 3.3,
+  loss_tangent: 0.02, mask_loss_tangent: 0.02 };
 
 /** The closed-form model for an ImpedanceTarget structure and kind (null when tier 1 has none). */
 export function modelFor(structure, kind = 'single', { coated = false } = {}) {
@@ -81,6 +83,11 @@ function stackupSection(layers, i, up, down, o, t, structure) {
   const thick = (l) => (l.kind === 'copper' ? l.thickness ?? STACKUP_DEFAULTS.copper_thickness
     : l.kind === 'dielectric' ? l.thickness : 0);
   const erOf = (l) => l?.epsilon_r ?? STACKUP_DEFAULTS.epsilon_r;
+  // Loss data for loss.js (ignored by the impedance solve): each dielectric's material (its layer) and tan δ,
+  // each conductor's metal (its copper layer).
+  const mat = (l) => ({ tand: l?.loss_tangent ?? (l?.kind === 'mask' ? STACKUP_DEFAULTS.mask_loss_tangent : STACKUP_DEFAULTS.loss_tangent),
+    material: l?.name ?? null });
+  const metal = (l) => l.layer ?? l.name;
   const inner = up.index != null && down.index != null;
   let y = 0, slab = null, maskAt = null;
   for (const j of seq) {
@@ -93,41 +100,99 @@ function stackupSection(layers, i, up, down, o, t, structure) {
     if (refs.has(j)) {
       // An ungrounded coplanar line has no plane under it: the dielectric ends in air.
       const ext = o.layout?.planes?.[j === up.index ? 'top' : 'bottom'];
-      if (!(structure === 'coplanar' && !inner)) conductors.push({ ...span(ext), y0: y, y1: y + d, net: 'gnd' });
+      if (!(structure === 'coplanar' && !inner)) conductors.push({ ...span(ext), y0: y, y1: y + d, net: 'gnd', metal: metal(l) });
     } else if (j === i) {
       slab = { y0: y, y1: y + d };
       if (inner) {
         const nb = [layers[i - 1], layers[i + 1]].filter((x) => x?.kind === 'dielectric');
-        dielectrics.push({ y0: y, y1: y + d, er: erOf(nb.find((x) => x.dielectric === 'prepreg') ?? nb[0]) });
+        const fill = nb.find((x) => x.dielectric === 'prepreg') ?? nb[0];
+        dielectrics.push({ y0: y, y1: y + d, er: erOf(fill), ...mat(fill) });
       }
     } else if (l.kind === 'copper') {
-      dielectrics.push({ y0: y, y1: y + d, er: erOf(layers[j - Math.sign(j - i)]) });
+      const resin = layers[j - Math.sign(j - i)];
+      dielectrics.push({ y0: y, y1: y + d, er: erOf(resin), ...mat(resin) });
     } else if (l.kind === 'dielectric') {
-      dielectrics.push({ y0: y, y1: y + d, er: erOf(l) });
+      dielectrics.push({ y0: y, y1: y + d, er: erOf(l), ...mat(l) });
     }
     y += d;
   }
-  const traces = o.layout ? o.layout.traces.map((b) => ({ x0: b.x0, x1: b.x1, ...slab, net: b.net }))
+  const sm = metal(layers[i]);
+  const traces = o.layout ? o.layout.traces.map((b) => ({ x0: b.x0, x1: b.x1, ...slab, net: b.net, metal: sm }))
     : pair
-      ? [{ x0: -s / 2 - w, x1: -s / 2, ...slab, net: 'p' }, { x0: s / 2, x1: s / 2 + w, ...slab, net: 'n' }]
-      : [{ x0: -w / 2, x1: w / 2, ...slab, net: 'sig' }];
+      ? [{ x0: -s / 2 - w, x1: -s / 2, ...slab, net: 'p', metal: sm }, { x0: s / 2, x1: s / 2 + w, ...slab, net: 'n', metal: sm }]
+      : [{ x0: -w / 2, x1: w / 2, ...slab, net: 'sig', metal: sm }];
   conductors.push(...traces.flatMap((b) => etched(b, o.etch)));
   const grounds = [];
   if (o.layout) {
-    grounds.push(...(o.layout.grounds ?? []).map((g) => ({ ...span(g), ...slab, net: 'gnd' })));
+    grounds.push(...(o.layout.grounds ?? []).map((g) => ({ ...span(g), ...slab, net: 'gnd', metal: sm })));
     conductors.push(...grounds);
   } else if (structure.startsWith('coplanar')) {
     const e = (pair ? s / 2 + w : w / 2) + o.coplanarGap;
-    grounds.push({ x1: -e, ...slab, net: 'gnd' }, { x0: e, ...slab, net: 'gnd' });
+    grounds.push({ x1: -e, ...slab, net: 'gnd', metal: sm }, { x0: e, ...slab, net: 'gnd', metal: sm });
     conductors.push(...grounds);
   }
   if (maskAt && o.mask !== false) {
     const l = maskAt.l;
     const ct = l.thickness_over_copper ?? l.thickness ?? STACKUP_DEFAULTS.mask_thickness;
     dielectrics.push(...mask([...traces, ...grounds], slab.y0, { c: l.thickness ?? ct, ct,
-      er: l.epsilon_r ?? STACKUP_DEFAULTS.mask_epsilon_r }));
+      er: l.epsilon_r ?? STACKUP_DEFAULTS.mask_epsilon_r }).map((r) => ({ ...r, ...mat(l) })));
   }
   return { conductors, dielectrics };
+}
+
+/** The roughness of a copper StackupLayer for loss.js (lengths in mm), or null when it gives none. */
+export function roughnessOf(l) {
+  const r = { model: l.roughness_model ?? undefined, rq: l.roughness_rq ?? undefined, rz: l.roughness_rz ?? undefined,
+    radius: l.nodule_radius ?? undefined, ratio: l.nodule_ratio ?? undefined };
+  if (r.model === 'none') return { model: 'none' };
+  if (r.model == null && r.rq == null && r.rz == null && r.radius == null) return null;
+  return Object.fromEntries(Object.entries(r).filter(([, v]) => v !== undefined));
+}
+
+/**
+ * The loss data of a line (lineFromStackup with `loss`): options for loss.js's lineLoss (tier 1: `dielectric`,
+ * `mask`, `signal`, `ground`) and sectionLoss (tier 2: `materials` by layer name, `metals` by copper layer).
+ * Tier 1's single dielectric takes the thickness-weighted tan δ of each side (and, between two planes, the sides
+ * weighted by their plane capacitance εr/h, as for εr).
+ */
+function lossOf(layers, i, up, down, warnings) {
+  const between = (a, b) => layers.slice(Math.min(a, b) + 1, Math.max(a, b)).filter(isDielectric);
+  const dielectricOf = (l) => {
+    if (l.loss_tangent == null) warnings.push(`${l.name}: no loss_tangent, using ${l.kind === 'mask' ? STACKUP_DEFAULTS.mask_loss_tangent : STACKUP_DEFAULTS.loss_tangent}`);
+    return { frequency: l.frequency ?? LOSS_DEFAULTS.frequency, model: l.dielectric_model ?? 'djordjevic_sarkar' };
+  };
+  const materials = {}, metals = {};
+  const used = layers.filter((l, j) => (isDielectric(l) || l.kind === 'mask')
+    && j >= (up.index ?? up.maskIndex ?? 0) && j <= (down.index ?? down.maskIndex ?? layers.length - 1));
+  for (const l of used) materials[l.name] = dielectricOf(l);
+  if (used.some((l) => l.frequency == null)) warnings.push(`Er/Df frequency not given: ${LOSS_DEFAULTS.frequency / 1e9} GHz assumed`);
+  const metalOf = (l) => {
+    const roughness = roughnessOf(l);
+    if (roughness == null) warnings.push(`${l.layer ?? l.name}: no roughness, smooth copper`);
+    return { conductivity: l.conductivity ?? LOSS_DEFAULTS.conductivity, roughness };
+  };
+  for (const j of [i, up.index, down.index]) if (j != null) metals[layers[j].layer ?? layers[j].name] = metalOf(layers[j]);
+  // Tier 1: one effective dielectric.
+  const sideOf = (ref) => {
+    const ls = between(i, ref);
+    const h = ls.reduce((a, l) => a + l.thickness, 0);
+    const tand = ls.reduce((a, l) => a + l.thickness * (l.loss_tangent ?? STACKUP_DEFAULTS.loss_tangent), 0) / (h || 1);
+    return { tand, h, er: ls.length ? h / ls.reduce((a, l) => a + l.thickness / (l.epsilon_r ?? STACKUP_DEFAULTS.epsilon_r), 0) : 1, near: ls[0] };
+  };
+  const sides = [up.index, down.index].filter((j) => j != null).map(sideOf);
+  const w = sides.map((sd) => sd.er / sd.h);
+  const tand = sides.reduce((a, sd, k) => a + w[k] * sd.tand, 0) / w.reduce((a, b) => a + b, 0);
+  const near = sides[0]?.near;
+  const out = { dielectric: { tand, ...(near ? materials[near.name] : {}) }, materials, metals,
+    signal: metals[layers[i].layer ?? layers[i].name] };
+  const ref = up.index ?? down.index;
+  if (ref != null) out.ground = metals[layers[ref].layer ?? layers[ref].name];
+  const mi = up.maskIndex ?? down.maskIndex;
+  if (mi != null) {
+    const l = layers[mi];
+    out.mask = { tand: l.loss_tangent ?? STACKUP_DEFAULTS.mask_loss_tangent, ...materials[l.name] };
+  }
+  return out;
 }
 
 /**
@@ -148,6 +213,8 @@ function stackupSection(layers, i, up, down, o, t, structure) {
  * @param {boolean} [o.mask]  include the solder mask on an outer layer (default true)
  * @param {'closedform'|'field'} [o.solver]  'field' adds the cross-section for the tier-2 field solver
  * @param {number} [o.etch]  field solver: the trace top is this much narrower than `width` (trapezoid), mm
+ * @param {boolean} [o.loss]  also `loss`: options for loss.js (lineLoss with model and params, sectionLoss with
+ *   the section solved with { loss: true }): Er/Df at their frequency, mask, copper conductivity and roughness
  * @param {object} [o.layout]  field solver: the copper in the signal layer as found on a board (route.js):
  *   `traces` [{x0, x1, net}], coplanar `grounds` [{x0?, x1?}] and the reference planes' extents
  *   `planes: {top, bottom}` ({x0?, x1?}; a missing end runs to the domain edge). refTop/refBottom `false`
@@ -203,6 +270,7 @@ export function lineFromStackup(stackup, layer, o = {}) {
   }
   const line = { model, structure, params, warnings };
   if (field) line.section = stackupSection(layers, i, up, down, { ...o, kind }, t, structure);
+  if (o.loss) line.loss = lossOf(layers, i, up, down, warnings);
   return line;
 }
 

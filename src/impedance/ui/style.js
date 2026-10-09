@@ -27,7 +27,19 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-progress { height: 2px; background: var(--bdi-line); visibility: hidden; }
 .bdi-panel[data-state=busy] .bdi-progress { visibility: visible; }
 .bdi-bar { height: 100%; width: 0; background: var(--bdi-accent); transition: width 0.15s; }
-.bdi-panel[data-state=empty] :is(.bdi-head, .bdi-profile, .bdi-xsbox, .bdi-disc) { display: none; }
+.bdi-panel[data-state=empty] :is(.bdi-head, .bdi-profile, .bdi-xsbox, .bdi-disc, .bdi-loss, .bdi-fchart) { display: none; }
+.bdi-panel:not([data-loss=on]) :is(.bdi-loss, .bdi-fchart) { display: none; }
+.bdi-loss { display: flex; align-items: baseline; gap: 8px; }
+.bdi-il { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: help; }
+.bdi-freq { font: inherit; background: var(--bdi-chip); color: inherit; border: 1px solid var(--bdi-line); border-radius: 4px; padding: 1px 4px; }
+.bdi-fchart { height: 72px; }
+.bdi-f0 { stroke: var(--bdi-line); stroke-width: 1; }
+.bdi-fdb { fill: none; stroke: var(--bdi-accent); stroke-width: 2; stroke-linejoin: round; }
+.bdi-fz { fill: none; stroke: var(--bdi-muted); stroke-width: 2; stroke-linejoin: round; }
+.bdi-fmark { stroke: var(--bdi-fg); stroke-width: 1; opacity: 0.35; }
+.bdi-fdbt { fill: var(--bdi-accent); font: var(--bdi-font); font-size: 11px; font-variant-numeric: tabular-nums; }
+.bdi-fzt { fill: var(--bdi-muted); font: var(--bdi-font); font-size: 11px; font-variant-numeric: tabular-nums; }
+.bdi-fax { fill: var(--bdi-muted); font: var(--bdi-font); font-size: 9px; opacity: 0.8; }
 .bdi-panel:not([data-state=empty]) .bdi-empty { display: none; }
 .bdi-empty { color: var(--bdi-muted); font-size: 22px; text-align: center; padding: 12px; cursor: help; }
 .bdi-profile { height: 64px; }

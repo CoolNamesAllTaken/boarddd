@@ -158,6 +158,14 @@ export interface StackupLayer {
   finished_thickness?: number | null;
   /** Copper: RMS surface roughness, mm (0.0005 = 0.5 um). */
   roughness_rq?: number | null;
+  /** Copper: 10-point mean roughness Rz of the foil's bonded side, mm (datasheet value; the cannonball model). */
+  roughness_rz?: number | null;
+  /** Copper: Huray nodule (snowball) radius, mm, when the source gives Huray parameters. */
+  nodule_radius?: number | null;
+  /** Copper: Huray surface ratio, nodules' area per flat area (N 4 pi a^2 / A_flat). */
+  nodule_ratio?: number | null;
+  /** Copper: roughness model for loss; default from the fields given (nodule_* huray, roughness_rz cannonball, roughness_rq hammerstad). */
+  roughness_model?: "none" | "hammerstad" | "huray" | "cannonball" | null;
   /** Copper: conductivity, S/m. */
   conductivity?: number | null;
   /** Copper: etch factor (thickness / one side's undercut), for trapezoidal traces. */
