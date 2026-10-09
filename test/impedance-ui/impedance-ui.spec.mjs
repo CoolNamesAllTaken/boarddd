@@ -89,7 +89,7 @@ test('alt-click selects one segment; the profile moves the stage marker; discont
   // the whole pair, then hover the profile at two places: the marker follows the route
   await page.evaluate((nets) => window.demo.panel.select(nets), USB);
   await page.evaluate(() => window.demo.stage.fit());
-  const box = await page.locator('.bdi-hit').boundingBox();
+  const box = await page.locator('.bdi-profile .bdi-hit').boundingBox();
   const markerAt = async (f) => {
     await page.mouse.move(box.x + box.width * f, box.y + box.height / 2);
     return page.evaluate(() => { const c = document.querySelector('.bdi-marker'); return c ? [+c.getAttribute('cx'), +c.getAttribute('cy')] : null; });
@@ -211,5 +211,45 @@ test('file:// bundle: the panel runs on the main thread', async ({ page }, testI
   expect(res.mode).toBe('main');
   expect(res.z).toBeGreaterThan(100);
   expect(res.xs).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('loss: IL at the chosen frequency, the frequency chart, switching frequency without a re-run; timing budget', async ({ page }) => {
+  const errors = await openDemo(page);
+  await page.evaluate((nets) => window.demo.panel.select(nets), USB);
+  await page.waitForFunction(() => window.demo.panel.result?.summary.loss, null, { timeout: 60_000 });
+  const doc = await page.evaluate(() => window.demo.panel.result);
+  const L = doc.summary.loss;
+  expect(L.frequency).toBe(5.6e9);
+  const il = await page.locator('.bdi-il').textContent();
+  expect(Math.abs(parseFloat(il.replace('IL −', '')) - L.db)).toBeLessThan(0.006);
+  expect(await page.locator('.bdi-il').getAttribute('title')).toMatch(/insertion loss \(differential\) at 5\.6 GHz: .* dB over .* mm/);
+  await expect(page.locator('.bdi-fdb')).toHaveCount(1);
+  await expect(page.locator('.bdi-fz')).toHaveCount(1);
+  // another frequency: the shown loss follows the sweep, no new analysis
+  const runs = await page.evaluate(() => window.demo.panel.runs);
+  await page.selectOption('.bdi-freq', String(1.8e10));
+  const i = L.sweep.frequency.indexOf(1.8e10);
+  await expect(page.locator('.bdi-il')).toHaveText(`IL −${L.sweep.db[i].toFixed(2)} dB`);
+  expect(await page.evaluate(() => [window.demo.panel.runs, window.demo.panel.frequency])).toEqual([runs, 1.8e10]);
+  // hover the chart: the values at that frequency in its tooltip
+  const box = await page.locator('.bdi-fhit').boundingBox();
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height / 2);
+  expect(await page.locator('.bdi-fhit title').textContent()).toMatch(/GHz · route −\d+\.\d\d dB · section 0\.\d+ dB\/mm, \d+\.\d Ω/);
+  await shot(page, 'loss');
+  // the budget: analyzeNet with and without loss, warm cache (the worker's), and cold on the main thread
+  const t = await page.evaluate(async (nets) => {
+    const { analyzeNet } = await import('/src/impedance/index.js');
+    const { board, copper } = window.demo.data;
+    const now = () => performance.now();
+    let a = now(); analyzeNet(board, copper, nets); const plain = now() - a;
+    const cache = new Map();
+    a = now(); analyzeNet(board, copper, nets, { cache, frequency: 5.6e9 }); const cold = now() - a;
+    a = now(); analyzeNet(board, copper, nets, { cache, frequency: 1e10 }); const warm = now() - a;
+    return { plain, cold, warm };
+  }, USB);
+  console.log(`loss timing, royalblue USB pair (Chromium main thread): no loss ${t.plain.toFixed(0)} ms, with loss ${t.cold.toFixed(0)} ms, warm at another frequency ${t.warm.toFixed(0)} ms`);
+  expect(t.cold).toBeLessThan(1.35 * t.plain + 300);   // loss adds < 35 % to a cold analysis
+  expect(t.warm).toBeLessThan(400);                    // a warm re-analysis at another frequency is interactive
   expect(errors).toEqual([]);
 });

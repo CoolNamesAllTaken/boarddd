@@ -13,8 +13,16 @@ from dataclasses import dataclass, field
 
 from .closedform import CoupledResult, LineResult, calculate, synthesize
 from .fieldsolver import FieldResult, etched, mask
+from .loss import LOSS_DEFAULTS
 
-STACKUP_DEFAULTS = {"copper_thickness": 0.035, "epsilon_r": 4.5, "mask_thickness": 0.01, "mask_epsilon_r": 3.3}
+STACKUP_DEFAULTS = {
+    "copper_thickness": 0.035,
+    "epsilon_r": 4.5,
+    "mask_thickness": 0.01,
+    "mask_epsilon_r": 3.3,
+    "loss_tangent": 0.02,
+    "mask_loss_tangent": 0.02,
+}
 """Defaults for what a stackup leaves out (KiCad's own defaults); each use adds a warning."""
 
 
@@ -102,12 +110,15 @@ class Line:
     warnings: list[str] = field(default_factory=list)
     section: dict | None = None
     """With solver="field": the real cross-section for solve_cross_section."""
+    loss: dict | None = None
+    """With loss=True: options for boarddd.impedance.loss (line_loss and section_loss take them as **kwargs)."""
 
     def to_dict(self) -> dict:
-        """The JS object (`section` only with solver="field")."""
+        """The JS object (`section` only with solver="field", `loss` only with loss=True)."""
         d = dataclasses.asdict(self)
-        if d["section"] is None:
-            del d["section"]
+        for k in ("section", "loss"):
+            if d[k] is None:
+                del d[k]
         return d
 
 
@@ -142,6 +153,20 @@ def _stackup_section(layers, i, up, down, o: dict, structure: str) -> dict:
         v = (lay or {}).get("epsilon_r")
         return STACKUP_DEFAULTS["epsilon_r"] if v is None else v
 
+    # Loss data for boarddd.impedance.loss (ignored by the impedance solve): material and tan δ per dielectric,
+    # metal (the copper layer) per conductor.
+    def mat(lay):
+        lay = lay or {}
+        tand = lay.get("loss_tangent")
+        if tand is None:
+            tand = STACKUP_DEFAULTS["mask_loss_tangent" if lay.get("kind") == "mask" else "loss_tangent"]
+        return {"tand": tand, "material": lay.get("name")}
+
+    def metal(lay):
+        return lay.get("layer") or lay["name"]
+
+    sm = metal(layers[i])
+
     inner = up["index"] is not None and down["index"] is not None
     mask_index = up["mask_index"] if up["mask_index"] is not None else down["mask_index"]
     y = 0
@@ -157,37 +182,38 @@ def _stackup_section(layers, i, up, down, o: dict, structure: str) -> dict:
         if j in refs:
             if not (structure == "coplanar" and not inner):
                 ext = ((layout or {}).get("planes") or {}).get("top" if j == up["index"] else "bottom")
-                conductors.append({**_span(ext), "y0": y, "y1": y + d, "net": "gnd"})
+                conductors.append({**_span(ext), "y0": y, "y1": y + d, "net": "gnd", "metal": metal(lay)})
         elif j == i:
             slab = {"y0": y, "y1": y + d}
             if inner:
                 nb = [x for x in (layers[i - 1] if i > 0 else None, layers[i + 1] if i + 1 < len(layers) else None)]
                 nb = [x for x in nb if x is not None and x.get("kind") == "dielectric"]
                 pre = next((x for x in nb if x.get("dielectric") == "prepreg"), nb[0] if nb else None)
-                dielectrics.append({"y0": y, "y1": y + d, "er": er_of(pre)})
+                dielectrics.append({"y0": y, "y1": y + d, "er": er_of(pre), **mat(pre)})
         elif lay.get("kind") == "copper":
             k = j - (1 if j > i else -1)
-            dielectrics.append({"y0": y, "y1": y + d, "er": er_of(layers[k] if 0 <= k < len(layers) else None)})
+            resin = layers[k] if 0 <= k < len(layers) else None
+            dielectrics.append({"y0": y, "y1": y + d, "er": er_of(resin), **mat(resin)})
         elif lay.get("kind") == "dielectric":
-            dielectrics.append({"y0": y, "y1": y + d, "er": er_of(lay)})
+            dielectrics.append({"y0": y, "y1": y + d, "er": er_of(lay), **mat(lay)})
         y += d
     if layout:
-        traces = [{"x0": b["x0"], "x1": b["x1"], **slab, "net": b["net"]} for b in layout["traces"]]
+        traces = [{"x0": b["x0"], "x1": b["x1"], **slab, "net": b["net"], "metal": sm} for b in layout["traces"]]
     elif pair:
         traces = [
-            {"x0": -s / 2 - w, "x1": -s / 2, **slab, "net": "p"},
-            {"x0": s / 2, "x1": s / 2 + w, **slab, "net": "n"},
+            {"x0": -s / 2 - w, "x1": -s / 2, **slab, "net": "p", "metal": sm},
+            {"x0": s / 2, "x1": s / 2 + w, **slab, "net": "n", "metal": sm},
         ]
     else:
-        traces = [{"x0": -w / 2, "x1": w / 2, **slab, "net": "sig"}]
+        traces = [{"x0": -w / 2, "x1": w / 2, **slab, "net": "sig", "metal": sm}]
     conductors += [r for b in traces for r in etched(b, o.get("etch") or 0)]
     grounds: list[dict] = []
     if layout:
-        grounds = [{**_span(g), **slab, "net": "gnd"} for g in layout.get("grounds") or []]
+        grounds = [{**_span(g), **slab, "net": "gnd", "metal": sm} for g in layout.get("grounds") or []]
         conductors += grounds
     elif structure.startswith("coplanar"):
         e = (s / 2 + w if pair else w / 2) + o["coplanar_gap"]
-        grounds = [{"x1": -e, **slab, "net": "gnd"}, {"x0": e, **slab, "net": "gnd"}]
+        grounds = [{"x1": -e, **slab, "net": "gnd", "metal": sm}, {"x0": e, **slab, "net": "gnd", "metal": sm}]
         conductors += grounds
     if mask_at is not None and o.get("mask", True) is not False:
         ct = mask_at.get("thickness_over_copper")
@@ -198,8 +224,99 @@ def _stackup_section(layers, i, up, down, o: dict, structure: str) -> dict:
         c = mask_at.get("thickness")
         er = mask_at.get("epsilon_r")
         er = STACKUP_DEFAULTS["mask_epsilon_r"] if er is None else er
-        dielectrics += mask(traces + grounds, slab["y0"], c=ct if c is None else c, ct=ct, er=er)
+        dielectrics += [
+            {**r, **mat(mask_at)} for r in mask(traces + grounds, slab["y0"], c=ct if c is None else c, ct=ct, er=er)
+        ]
     return {"conductors": conductors, "dielectrics": dielectrics}
+
+
+def roughness_of(layer) -> dict | None:
+    """The roughness of a copper StackupLayer for boarddd.impedance.loss (mm), or None when it gives none."""
+    layer = _plain(layer)
+    r = {
+        "model": layer.get("roughness_model"),
+        "rq": layer.get("roughness_rq"),
+        "rz": layer.get("roughness_rz"),
+        "radius": layer.get("nodule_radius"),
+        "ratio": layer.get("nodule_ratio"),
+    }
+    if r["model"] == "none":
+        return {"model": "none"}
+    if r["model"] is None and r["rq"] is None and r["rz"] is None and r["radius"] is None:
+        return None
+    return {k: v for k, v in r.items() if v is not None}
+
+
+def _loss_of(layers, i, up, down, warnings) -> dict:
+    """The loss options of a line (the JS lossOf): tier 1 dielectric/mask/signal/ground, tier 2 materials/metals."""
+
+    def is_diel(lay):
+        return lay.get("kind") == "dielectric"
+
+    def between(a, b):
+        return [x for x in layers[min(a, b) + 1 : max(a, b)] if is_diel(x)]
+
+    def dielectric_of(lay):
+        if lay.get("loss_tangent") is None:
+            d = STACKUP_DEFAULTS["mask_loss_tangent" if lay.get("kind") == "mask" else "loss_tangent"]
+            warnings.append(f"{lay['name']}: no loss_tangent, using {_num(d)}")
+        return {
+            "frequency": lay.get("frequency") or LOSS_DEFAULTS["frequency"],
+            "model": lay.get("dielectric_model") or "djordjevic_sarkar",
+        }
+
+    def first(*xs):
+        return next((x for x in xs if x is not None), None)
+
+    lo = first(up["index"], up["mask_index"], 0)
+    hi = first(down["index"], down["mask_index"], len(layers) - 1)
+    used = [x for j, x in enumerate(layers) if (is_diel(x) or x.get("kind") == "mask") and lo <= j <= hi]
+    materials = {x["name"]: dielectric_of(x) for x in used}
+    if any(x.get("frequency") is None for x in used):
+        warnings.append(f"Er/Df frequency not given: {_num(LOSS_DEFAULTS['frequency'] / 1e9)} GHz assumed")
+
+    def metal_of(lay):
+        rough = roughness_of(lay)
+        if rough is None:
+            warnings.append(f"{lay.get('layer') or lay['name']}: no roughness, smooth copper")
+        return {"conductivity": lay.get("conductivity") or LOSS_DEFAULTS["conductivity"], "roughness": rough}
+
+    metals: dict = {}
+    for j in (i, up["index"], down["index"]):
+        if j is not None:
+            name = layers[j].get("layer") or layers[j]["name"]
+            if name not in metals:
+                metals[name] = metal_of(layers[j])
+
+    def side_of(ref):
+        ls = between(i, ref)
+        h = sum(x["thickness"] for x in ls)
+        tand = sum(
+            x["thickness"] * (STACKUP_DEFAULTS["loss_tangent"] if x.get("loss_tangent") is None else x["loss_tangent"])
+            for x in ls
+        ) / (h or 1)
+        er = h / sum(x["thickness"] / (x.get("epsilon_r") or STACKUP_DEFAULTS["epsilon_r"]) for x in ls) if ls else 1
+        return {"tand": tand, "h": h, "er": er, "near": ls[0] if ls else None}
+
+    sides = [side_of(j) for j in (up["index"], down["index"]) if j is not None]
+    w = [sd["er"] / sd["h"] for sd in sides]
+    tand = sum(w[k] * sd["tand"] for k, sd in enumerate(sides)) / sum(w)
+    near = sides[0]["near"] if sides else None
+    out: dict = {
+        "dielectric": {"tand": tand, **(materials[near["name"]] if near else {})},
+        "materials": materials,
+        "metals": metals,
+        "signal": metals[layers[i].get("layer") or layers[i]["name"]],
+    }
+    ref = first(up["index"], down["index"])
+    if ref is not None:
+        out["ground"] = metals[layers[ref].get("layer") or layers[ref]["name"]]
+    mi = first(up["mask_index"], down["mask_index"])
+    if mi is not None:
+        lay = layers[mi]
+        tm = STACKUP_DEFAULTS["mask_loss_tangent"] if lay.get("loss_tangent") is None else lay["loss_tangent"]
+        out["mask"] = {"tand": tm, **materials[lay["name"]]}
+    return out
 
 
 def line_from_stackup(
@@ -217,6 +334,7 @@ def line_from_stackup(
     solver: str = "closedform",
     etch: float = 0,
     layout: dict | None = None,
+    loss: bool = False,
 ) -> Line:
     """A signal layer ('F.Cu', 'In1.Cu') of a board model stackup as a closed-form line.
 
@@ -227,7 +345,9 @@ def line_from_stackup(
     layers are allowed too (`model` None when tier 1 has none); `etch` makes the traces trapezoids whose top is
     `etch` narrower than `width`. `layout` (field solver; boarddd.impedance.route) gives the copper in the signal
     layer as found on a board: `traces` [{x0, x1, net}], coplanar `grounds` [{x0?, x1?}] and the reference planes'
-    extents `planes: {top, bottom}`; `ref_top`/`ref_bottom` False means no plane on that side.
+    extents `planes: {top, bottom}`; `ref_top`/`ref_bottom` False means no plane on that side. `loss` adds
+    ``loss``: options for :func:`boarddd.impedance.loss.line_loss` / ``section_loss`` (Er/Df at their frequency,
+    mask, copper conductivity and roughness).
     """
     if solver not in ("closedform", "field"):
         raise ValueError(f"unknown solver {solver}")
@@ -290,7 +410,8 @@ def line_from_stackup(
         o = {"kind": kind, "width": width, "gap": gap, "coplanar_gap": coplanar_gap, "mask": mask, "etch": etch}
         o["layout"] = layout
         section = _stackup_section(layers, i, up, down, o, structure)
-    return Line(model, structure, params, warnings, section)
+    loss_opts = _loss_of(layers, i, up, down, warnings) if loss else None
+    return Line(model, structure, params, warnings, section, loss_opts)
 
 
 def _field_synthesis(stackup, layer: str, opts: dict, key: str, target: float, start: float):

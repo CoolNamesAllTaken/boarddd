@@ -1,14 +1,16 @@
 // boarddd/impedance: PCB transmission-line impedance (docs/impedance.md). Tier 1 is closed-form; tier 2
 // (fieldsolver.js) is a 2D field solver for any cross-section; stackup.js connects both to the board model's
 // stackup and impedance targets; route.js analyses a net's route on a real board (boarddd/copper@1) section by
-// section into a boarddd/impedance@1 document.
+// section into a boarddd/impedance@1 document; loss.js adds loss and frequency dependence to both tiers.
 import { check } from '../model/check.js';
 import IMPEDANCE_SCHEMA from './schema.js';
 
 export * from './closedform.js';
 export * from './stackup.js';
 export { solveCrossSection, sectionFor, fieldCalculate } from './fieldsolver.js';
-export { analyzeNet, netRoute, ROUTE_DEFAULTS, IMPEDANCE_SCHEMA_ID } from './route.js';
+export { analyzeNet, netRoute, ROUTE_DEFAULTS, LOSS_SWEEP, IMPEDANCE_SCHEMA_ID } from './route.js';
+export { LOSS_DEFAULTS, dielectricAt, skinDepth, surfaceResistance, cannonball, roughnessFactor, microstripDispersion,
+  coupledMicrostripDispersion, lineLoss, sectionLoss, sParameters, touchstone } from './loss.js';
 export { IMPEDANCE_SCHEMA };
 
 /**

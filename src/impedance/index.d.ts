@@ -104,12 +104,16 @@ export function synthesize(
 ): { value: number; params: Record<string, number>; result: LineResult | CoupledResult | ComparisonResult; iterations: number };
 
 // ── from the board model (stackup.js) ──────────────────────────────────────────────────────────────────────
-import type { ImpedanceTarget, Stackup } from '../model/board.js';
+import type { ImpedanceTarget, Stackup, StackupLayer } from '../model/board.js';
 
 export type Structure = NonNullable<ImpedanceTarget['structure']>;
 
 /** What a stackup leaves out is taken from here (KiCad's defaults), with a warning. */
-export const STACKUP_DEFAULTS: { copper_thickness: number; epsilon_r: number; mask_thickness: number; mask_epsilon_r: number };
+export const STACKUP_DEFAULTS: { copper_thickness: number; epsilon_r: number; mask_thickness: number; mask_epsilon_r: number;
+  loss_tangent: number; mask_loss_tangent: number };
+
+/** The roughness of a copper StackupLayer for loss.js (mm), or null when it gives none. */
+export function roughnessOf(layer: StackupLayer): Roughness | null;
 
 /** The closed-form model for an ImpedanceTarget structure and kind; null when tier 1 has none (differential coplanar). */
 export function modelFor(structure: Structure, kind?: 'single' | 'differential', opts?: { coated?: boolean }): ModelId | null;
@@ -133,7 +137,12 @@ export interface LineFromStackupOptions {
   solver?: 'closedform' | 'field';
   /** Field solver: a trapezoid trace whose top is this much narrower than `width`, mm (default 0). */
   etch?: number;
+  /** Also `loss`: options for lineLoss / sectionLoss from the stackup's Er/Df, mask, conductivity, roughness. */
+  loss?: boolean;
 }
+
+/** lineFromStackup's `loss`: one options object for both lineLoss (tier 1) and sectionLoss (tier 2). */
+export type StackupLossOptions = LineLossOptions & SectionLossOptions;
 
 /**
  * A signal layer as a line for the field solver: the closed-form model and parameters where tier 1 has one (model
@@ -143,13 +152,13 @@ export function lineFromStackup(
   stackup: Pick<Stackup, 'layers'>,
   layer: string,
   opts: LineFromStackupOptions & { solver: 'field' },
-): { model: ModelId | null; structure: Structure; params: Record<string, number>; warnings: string[]; section: CrossSection };
+): { model: ModelId | null; structure: Structure; params: Record<string, number>; warnings: string[]; section: CrossSection; loss?: StackupLossOptions };
 /** A signal layer of a boarddd/board@1 stackup as a closed-form line. */
 export function lineFromStackup(
   stackup: Pick<Stackup, 'layers'>,
   layer: string,
   opts: LineFromStackupOptions,
-): { model: ModelId; structure: Structure; params: Record<string, number>; warnings: string[] };
+): { model: ModelId; structure: Structure; params: Record<string, number>; warnings: string[]; loss?: StackupLossOptions };
 
 export interface TargetEvaluation {
   layer: string;
@@ -193,8 +202,15 @@ export interface SectionRect { x0?: number; x1?: number; y0: number; y1: number 
 export interface SectionConductor extends SectionRect {
   /** Ground nets (`CrossSection.ground`, default 'gnd') are the reference; every other net is a signal. */
   net: string;
+  /** Loss: its copper (layer), for conductivity and roughness (default 'signal' / 'ground'). */
+  metal?: string;
 }
-export interface SectionDielectric extends SectionRect { er: number }
+export interface SectionDielectric extends SectionRect {
+  er: number;
+  /** Loss: tan δ at er's frequency (default 0) and a material name to give it a frequency model in sectionLoss. */
+  tand?: number;
+  material?: string;
+}
 
 /** A transmission-line cross-section: copper rectangles by net and dielectric rectangles (later ones win). */
 export interface CrossSection {
@@ -215,6 +231,24 @@ export interface FieldOptions {
   maxLevel?: number;
   /** Solve half the domain when the section is its own mirror image (default true). */
   symmetry?: boolean;
+  /** Also `loss`, the partials sectionLoss needs (lengths in mm). */
+  loss?: boolean;
+}
+
+/** solveCrossSection's `loss` (finest grid): what sectionLoss turns into RLGC at any frequency. */
+export interface FieldLossPartials {
+  /** Vacuum Maxwell matrix, F/m. */
+  K0: number[][];
+  /** The dielectric materials; `parts[i]` is K's share in materials[i], the last part the background's. */
+  materials: { er: number; tand: number; material: string | null }[];
+  parts: number[][][];
+  /** Metal groups; `dK0[i]` is dK0/dn (per mm of recession of every face of metals[i]). */
+  metals: string[];
+  dK0: number[][][];
+  /** Signal copper cross-section area (mm², all signals) and the smallest side of a signal's bounding box (mm). */
+  area: number;
+  t: number;
+  signalMetal: string;
 }
 
 export interface FieldGrid { nx: number; ny: number; nodes: number; unknowns: number; hc: number; growth: number }
@@ -248,6 +282,8 @@ export interface FieldResult {
   levels: ({ level: number; grid: FieldGrid } & Partial<Record<'Z0' | 'eps_eff' | 'C' | 'L' | 'C0' | 'Zdiff' | 'Zcommon' | 'Zodd' | 'Zeven' | 'eps_eff_odd' | 'eps_eff_even', number>>)[];
   /** Wall time, ms. */
   ms: number;
+  /** With `loss: true`. */
+  loss?: FieldLossPartials;
 }
 
 /** Solve a cross-section with the 2D quasi-static field solver. Throws RangeError on invalid sections. */
@@ -323,9 +359,17 @@ export interface RouteOptions {
   cache?: Map<string, unknown>;
   /** Called while it runs: stations cut along the route (done/total mm), then sections solved. */
   onProgress?: (p: { phase: 'route' | 'solve'; done: number; total: number }) => void;
+  /** Hz: also each section's loss and the route's (null: none, the default). */
+  frequency?: number | null;
+  /** Hz: the loss and Z sweep (default LOSS_SWEEP plus `frequency`). */
+  frequencies?: number[] | null;
+  /** loss.js options over the stackup's (e.g. { conductor: { roughness: { rq: 0.001 } } }). */
+  lossOptions?: StackupLossOptions | null;
 }
 
-export const ROUTE_DEFAULTS: Readonly<Required<Omit<RouteOptions, 'target' | 'groundNets' | 'overrides' | 'cache'>>>;
+export const ROUTE_DEFAULTS: Readonly<Required<Omit<RouteOptions, 'target' | 'groundNets' | 'overrides' | 'cache' | 'onProgress'>> & Pick<RouteOptions, 'onProgress'>>;
+/** analyzeNet's default loss sweep, Hz (100 MHz to 40 GHz). */
+export const LOSS_SWEEP: readonly number[];
 
 /** One track of a route, oriented the way it is walked. */
 export interface RouteStep {
@@ -343,3 +387,95 @@ export function netRoute(copper: Copper, net: string): RouteStep[];
 
 /** Impedance along a net's (or a pair's) route on a real board: a boarddd/impedance@1 document. */
 export function analyzeNet(board: Board, copper: Copper, net: string | [string, string], options?: RouteOptions): ImpedanceAnalysis;
+
+// ── loss and frequency (loss.js) ───────────────────────────────────────────────────────────────────────────
+
+/** Annealed copper conductivity (S/m), the Er/Df reference frequency when a source gives none, Djordjevic-Sarkar band (Hz). */
+export const LOSS_DEFAULTS: Readonly<{ conductivity: number; frequency: number; f_low: number; f_high: number }>;
+
+/** A dielectric's Dk/Df at `frequency` (Hz) and how they vary (default 'djordjevic_sarkar'). */
+export interface Dielectric {
+  er: number;
+  tand?: number;
+  frequency?: number;
+  model?: 'constant' | 'djordjevic_sarkar';
+  f_low?: number;
+  f_high?: number;
+}
+/** Copper roughness (lengths in mm): Hammerstad (rq), Huray (radius, ratio = N 4πa²/A_flat, matte), cannonball (rz). */
+export interface Roughness {
+  model?: 'none' | 'hammerstad' | 'huray' | 'cannonball';
+  rq?: number;
+  rz?: number;
+  radius?: number;
+  ratio?: number;
+  count?: number;
+  area?: number;
+  matte?: number;
+}
+export interface Metal { conductivity?: number; roughness?: Roughness | null }
+
+/** Dk and Df at f (Djordjevic-Sarkar from the values at the reference frequency, or constant). */
+export function dielectricAt(f: number, m: Dielectric): { er: number; tand: number };
+/** Skin depth, m. */
+export function skinDepth(f: number, sigma?: number): number;
+/** Surface resistance, Ω/sq. */
+export function surfaceResistance(f: number, sigma?: number): number;
+/** The cannonball stack's Huray parameters for a datasheet Rz (mm). */
+export function cannonball(rz: number): { radius: number; count: number; area: number; ratio: number; matte: number };
+/** Roughness factor K(f) >= 1 on the surface resistance. */
+export function roughnessFactor(f: number, r: Roughness | null, sigma?: number): number;
+/** Kirschning-Jansen microstrip dispersion from the static eps_eff, Z0. */
+export function microstripDispersion(p: { w: number; h: number; er: number; eps_eff: number; Z0: number }, f: number): { eps_eff: number; Z0: number };
+/** Kirschning-Jansen coupled microstrip dispersion (even and odd modes). */
+export function coupledMicrostripDispersion(
+  p: { w: number; s: number; h: number; er: number; Zeven: number; Zodd: number; eps_eff_even: number; eps_eff_odd: number; single: { Z0: number; eps_eff: number } },
+  f: number,
+): { eps_eff_even: number; eps_eff_odd: number; Zeven: number; Zodd: number };
+
+/** One mode over frequency (arrays per frequency): R Ω/m, L H/m, G S/m, C F/m, α Np/m, β rad/m, Zc = Zc + j Zc_im. */
+export interface LossMode {
+  R: number[]; L: number[]; G: number[]; C: number[];
+  alpha: number[]; alpha_c: number[]; alpha_d: number[]; beta: number[]; eps_eff: number[];
+  Zc: number[]; Zc_im: number[];
+  db_per_mm: number[]; db_per_inch: number[];
+}
+export interface SingleLoss extends LossMode {
+  model: string | null; method: string; solver: 'closedform' | 'field'; key: 'Z0'; frequency: number[];
+  /** Re Zc. */
+  Z0: number[];
+}
+export interface PairLoss {
+  model: string | null; method: string; solver: 'closedform' | 'field'; key: 'Zdiff'; frequency: number[];
+  Zdiff: number[]; Zcommon: number[];
+  /** Differential (odd mode), and common (even mode). */
+  db_per_mm: number[]; db_per_inch: number[]; db_per_mm_common: number[];
+  /** Per line. */
+  odd: LossMode; even: LossMode;
+}
+export type LossResult = SingleLoss | PairLoss;
+
+export interface LineLossOptions {
+  dielectric?: Omit<Dielectric, 'er'>;
+  mask?: Omit<Dielectric, 'er'>;
+  conductor?: Metal;
+  signal?: Metal;
+  ground?: Metal;
+  /** Kirschning-Jansen for (coupled) microstrip (default true). */
+  dispersion?: boolean;
+}
+export interface SectionLossOptions {
+  dielectric?: Omit<Dielectric, 'er' | 'tand'>;
+  materials?: Record<string, Omit<Dielectric, 'er' | 'tand'>>;
+  conductor?: Metal;
+  metals?: Record<string, Metal>;
+}
+
+/** Loss and frequency dependence of a tier-1 line (params in mm; er, erc at the dielectric's frequency; t > 0). */
+export function lineLoss(model: ModelId, params: Record<string, number>, frequencies: number | number[], opts?: LineLossOptions): LossResult;
+/** Loss and frequency dependence from solveCrossSection(section, { loss: true }). */
+export function sectionLoss(result: FieldResult, frequencies: number | number[], opts?: SectionLossOptions): LossResult;
+/** S-parameters of `length` mm of line: per frequency a 2x2 or (pair: ports 1→2 line A, 3→4 line B) 4x4 matrix of [re, im]. */
+export function sParameters(loss: LossResult, length: number, opts?: { z0?: number }): [number, number][][][];
+/** A Touchstone 1.1 .s2p (single) or .s4p (pair) file of `length` mm of line. */
+export function touchstone(loss: LossResult, length: number, opts?: { z0?: number; comment?: string }): string;

@@ -26,10 +26,11 @@ from typing import Any
 
 from .. import model as _model
 from .closedform import calculate
+from .loss import line_loss, section_loss
 from .result import ImpedanceAnalysis
 from .stackup import line_from_stackup
 
-__all__ = ["analyze_net", "net_route", "ROUTE_DEFAULTS", "SCHEMA_ID"]
+__all__ = ["analyze_net", "net_route", "ROUTE_DEFAULTS", "LOSS_SWEEP", "SCHEMA_ID"]
 
 SCHEMA_ID = "boarddd/impedance@1"
 
@@ -49,7 +50,13 @@ ROUTE_DEFAULTS: dict[str, Any] = {
     "field_options": {"level": -1, "max_level": 0, "tol": 0.05},
     "short_field_options": {"level": -2, "max_level": -1, "tol": 0.05},
     "short_length": 1,
+    "frequency": None,  # Hz: also the loss of every section and of the route there (boarddd.impedance.loss)
+    "frequencies": None,  # Hz: the loss and Z sweep; default LOSS_SWEEP plus `frequency`
+    "loss_options": None,  # boarddd.impedance.loss options over the stackup's
 }
+
+#: The default loss sweep of analyze_net: 100 MHz to 40 GHz, four points per decade.
+LOSS_SWEEP = (1e8, 1.8e8, 3.2e8, 5.6e8, 1e9, 1.8e9, 3.2e9, 5.6e9, 1e10, 1.8e10, 3.2e10, 4e10)
 
 GROUND_NAME = re.compile(r"^(?:[ADPS]?GND|VSS|GROUND|EARTH|CHASSIS)(?:[_\-.].*)?$", re.I)
 INF = math.inf
@@ -63,6 +70,11 @@ def R6(v: float) -> float:
     """JS Math.round(v * 1e6) / 1e6 (round half up), -0 as 0."""
     x = math.floor(v * 1e6 + 0.5) / 1e6
     return 0.0 if x == 0 else x
+
+
+def S9(v: float) -> float:
+    """v to 9 significant digits (JS Number(v.toPrecision(9)))."""
+    return float(f"{v:.9g}")
 
 
 def _q(v: float, step: float) -> float:
@@ -678,6 +690,7 @@ def _solve(ctx: dict, layer: str, env: dict, width: float, fo: dict):
     ref_top = refs["top"]["layer"] if refs["top"] else False
     ref_bottom = refs["bottom"]["layer"] if refs["bottom"] else False
     inner2 = bool(refs["top"] and refs["bottom"])
+    loss = ctx["o"]["frequency"] is not None
     if ctx["o"]["solver"] == "closedform":
         t1 = _tier1(ctx, layer, env, width)
         if t1:
@@ -692,9 +705,35 @@ def _solve(ctx: dict, layer: str, env: dict, width: float, fo: dict):
         structure="stripline" if inner2 else "microstrip",
         solver="field",
         layout=_canonical(env["layout"]),
+        loss=loss,
     )
-    r = solve_cross_section(line.section, tol=fo["tol"], level=fo["level"], max_level=fo["max_level"])
-    return {**_z_of(r, pair), "error_pct": R6(r.error_pct), "solver": "field", "model": None, "warnings": line.warnings}
+    r = solve_cross_section(line.section, tol=fo["tol"], level=fo["level"], max_level=fo["max_level"], loss=loss)
+    out = {**_z_of(r, pair), "error_pct": R6(r.error_pct), "solver": "field", "model": None, "warnings": line.warnings}
+    if loss:
+        out["loss_source"] = {"result": r, "options": line.loss}
+    return out
+
+
+def _loss_of_solve(z, fs, extra: dict):
+    """A solved cross-section's loss over the frequencies: sweep columns, or None without a source."""
+    src = (z or {}).get("loss_source")
+    if not src:
+        return None
+    opts = {**src["options"], **extra}
+    if src.get("result") is not None:
+        r = section_loss(src["result"], fs, **opts)
+    else:
+        r = line_loss(src["model"], src["params"], fs, **opts)
+    pair = r.key == "Zdiff"
+    m = r.odd if pair else {"alpha_c": r.alpha_c, "alpha_d": r.alpha_d}
+    k = 20 / math.log(10) / 1000
+    return {
+        "frequency": fs,
+        "z": r.Zdiff if pair else r.Z0,
+        "db_per_mm": r.db_per_mm,
+        "db_per_mm_c": [a * k for a in m["alpha_c"]],
+        "db_per_mm_d": [a * k for a in m["alpha_d"]],
+    }
 
 
 def _tier1(ctx: dict, layer: str, env: dict, width: float):
@@ -727,12 +766,16 @@ def _tier1(ctx: dict, layer: str, env: dict, width: float):
             structure=st,
             ref_top=refs["top"]["layer"] if refs["top"] else None,
             ref_bottom=refs["bottom"]["layer"] if refs["bottom"] else None,
+            loss=ctx["o"]["frequency"] is not None,
             **kw,
         )
     except ValueError:
         return None
     r = calculate(line.model, line.params)
-    return {**_z_of(r, pair), "error_pct": None, "solver": "closedform", "model": line.model, "warnings": line.warnings}
+    out = {**_z_of(r, pair), "error_pct": None, "solver": "closedform", "model": line.model, "warnings": line.warnings}
+    if ctx["o"]["frequency"] is not None and line.params["t"] > 0:
+        out["loss_source"] = {"model": line.model, "params": line.params, "options": line.loss}
+    return out
 
 
 # ── the analysis ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -776,7 +819,9 @@ def analyze_net(board, copper, net: str | list[str] | tuple[str, str], *, cache:
     ``board`` and ``copper``: boarddd/board@1 and boarddd/copper@1 (dataclasses or their dicts); ``net``: a net, or
     ``[p, n]`` for a differential pair. Options (snake case of the JS ones): see ROUTE_DEFAULTS, plus ``target`` (Ω
     or {value, tolerance_pct}), ``ground_nets``, ``overrides`` ({net: {...}, tracks: {id: {...}}} with structure,
-    ref_top, ref_bottom (a layer or False), coplanar: False) and ``cache`` (a dict shared between calls).
+    ref_top, ref_bottom (a layer or False), coplanar: False) and ``cache`` (a dict shared between calls). With
+    ``frequency`` (Hz) every section with a Z also gets ``loss`` and the summary the route's loss (sweep over
+    ``frequencies``; ``loss_options`` over the stackup's loss data; see boarddd.impedance.loss).
     """
     t0 = _now()
     board, copper = _plain(board), _plain(copper)
@@ -907,6 +952,7 @@ def analyze_net(board, copper, net: str | list[str] | tuple[str, str], *, cache:
                         ],
                         "flags": sorted(set(env["flags"])),
                         "tracks": [t["id"]] if t.get("id") else [],
+                        "loss": None,
                     }
                 )
     t_solve = _now()
@@ -914,10 +960,16 @@ def analyze_net(board, copper, net: str | list[str] | tuple[str, str], *, cache:
     covers: dict[str, float] = {}
     for sec in sections:
         covers[sec["_key"]] = covers.get(sec["_key"], 0.0) + sec["length"]
+    want_loss = o["frequency"] is not None
+    if want_loss and not o["frequency"] > 0:
+        raise ValueError(f"frequency must be > 0 Hz (got {o['frequency']})")
+    fs = sorted({*(o["frequencies"] or LOSS_SWEEP), o["frequency"]}) if want_loss else None
+    fi = fs.index(o["frequency"]) if want_loss else -1
+    sweeps: dict = {}
     for sec in sections:
         fine = covers[sec["_key"]] >= o["short_length"] - 1e-9
         had = cache.get(sec["_key"])
-        if not had or (fine and not had["fine"]):
+        if not had or (fine and not had["fine"]) or (want_loss and had["z"] and not had["z"].get("loss_source")):
             solves += 1
             fo = o["field_options"] if fine else o["short_field_options"]
             try:
@@ -940,8 +992,35 @@ def analyze_net(board, copper, net: str | list[str] | tuple[str, str], *, cache:
             }
             if kind == "differential" and sec["kind"] == "single":
                 sec["z"]["Zdiff"] = R6(2 * z["Z0"])  # uncoupled: two single lines
+            if want_loss:
+                if sec["_key"] not in sweeps:
+                    sw = None
+                    try:
+                        sw = _loss_of_solve(z, fs, o["loss_options"] or {})
+                    except (ValueError, ArithmeticError) as err:
+                        warnings.append(f"{sec['net']} at s={_jsnum(sec['s0'])}: loss: {err}")
+                    sweeps[sec["_key"]] = sw
+                sw = sweeps[sec["_key"]]
+                if sw:
+                    # An uncoupled stretch of a pair: two independent lines, Zdiff = 2 Z0 and the same loss per line.
+                    zk = [2 * v for v in sw["z"]] if kind == "differential" and sec["kind"] == "single" else sw["z"]
+                    sec["loss"] = {
+                        "frequency": o["frequency"],
+                        "z": S9(zk[fi]),
+                        "db_per_mm": S9(sw["db_per_mm"][fi]),
+                        "db": S9(sw["db_per_mm"][fi] * sec["length"]),
+                        "db_per_mm_conductor": S9(sw["db_per_mm_c"][fi]),
+                        "db_per_mm_dielectric": S9(sw["db_per_mm_d"][fi]),
+                        "sweep": {
+                            "frequency": fs,
+                            "z": [S9(v) for v in zk],
+                            "db_per_mm": [S9(v) for v in sw["db_per_mm"]],
+                        },
+                    }
     target = _target_of(board, nets[0], kind, o, warnings)
     summary = _summarise([s for s in sections if s["net"] == nets[0]], target, kind)
+    if want_loss:
+        summary["loss"] = _loss_summary([s for s in sections if s["net"] == nets[0]], o["frequency"], fs)
     discontinuities = _discontinuities(sections)
     for s in sections:
         for k2 in ("_key", "_run", "_env"):
@@ -970,6 +1049,7 @@ def analyze_net(board, copper, net: str | list[str] | tuple[str, str], *, cache:
             "neighbours": o["neighbours"],
             "no_plane": o["no_plane"],
             "short_length": o["short_length"],
+            "frequency": o["frequency"],
         },
         "warnings": warnings,
         "timing": {
@@ -1008,6 +1088,32 @@ def _summarise(secs: list[dict], target, kind: str) -> dict:
         "out_of_tolerance_length": R6(out) if target else None,
         "out_of_tolerance_pct": R6((100 * (out + (length - with_z))) / length) if target and length > 0 else None,
         "within": (out == 0 and with_z == length) if target else None,
+        "loss": None,
+    }
+
+
+def _loss_summary(secs: list[dict], f: float, fs: list[float]) -> dict:
+    """The route's loss at the frequency and over the sweep (the sections that have one)."""
+    length = db = dbc = dbd = 0.0
+    sweep = [0.0] * len(fs)
+    for s in secs:
+        lo = s.get("loss")
+        if not lo:
+            continue
+        length += s["length"]
+        db += lo["db"]
+        dbc += lo["db_per_mm_conductor"] * s["length"]
+        dbd += lo["db_per_mm_dielectric"] * s["length"]
+        for k, v in enumerate(lo["sweep"]["db_per_mm"]):
+            sweep[k] += v * s["length"]
+    return {
+        "frequency": f,
+        "length": R6(length),
+        "db": S9(db),
+        "db_per_mm": S9(db / length) if length > 0 else None,
+        "db_conductor": S9(dbc),
+        "db_dielectric": S9(dbd),
+        "sweep": {"frequency": fs, "db": [S9(v) for v in sweep]},
     }
 
 

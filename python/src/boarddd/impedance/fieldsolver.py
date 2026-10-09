@@ -74,6 +74,7 @@ class FieldResult:
     Zeven: float | None = None
     eps_eff_odd: float | None = None
     eps_eff_even: float | None = None
+    loss: dict | None = None
 
     def to_dict(self) -> dict:
         d = {k: v for k, v in asdict(self).items() if v is not None}
@@ -110,12 +111,26 @@ def _normalise(section: dict) -> dict:
     for i, c in enumerate(section.get("conductors") or []):
         if c.get("net") is None:
             raise ValueError(f"conductors[{i}] has no net")
-        conductors.append({**rect(c, "conductors", i), "net": str(c["net"])})
+        metal = c.get("metal")
+        conductors.append(
+            {**rect(c, "conductors", i), "net": str(c["net"]), "metal": None if metal is None else str(metal)}
+        )
     dielectrics = []
     for i, d in enumerate(section.get("dielectrics") or []):
         if not (d.get("er") is not None and d["er"] >= 1):
             raise ValueError(f"dielectrics[{i}].er must be >= 1 (got {d.get('er')})")
-        dielectrics.append({**rect(d, "dielectrics", i), "er": d["er"]})
+        tand = d.get("tand")
+        if tand is not None and not tand >= 0:
+            raise ValueError(f"dielectrics[{i}].tand must be >= 0 (got {tand})")
+        material = d.get("material")
+        dielectrics.append(
+            {
+                **rect(d, "dielectrics", i),
+                "er": d["er"],
+                "tand": 0 if tand is None else tand,
+                "material": None if material is None else str(material),
+            }
+        )
     signals: list[str] = []
     for c in conductors:
         if c["net"] not in ground and c["net"] not in signals:
@@ -200,11 +215,16 @@ def _mirror_map(g: dict, m: float) -> str | None:
     def matches(lst, key):
         return all(any(same(mirror(r), s) and key(r, s) for s in lst) for r in lst)
 
-    if not matches(g["dielectrics"], lambda a, b: a["er"] == b["er"]):
+    if not matches(
+        g["dielectrics"],
+        lambda a, b: a["er"] == b["er"] and a["tand"] == b["tand"] and a["material"] == b["material"],
+    ):
         return None
 
     def net_ok(fn):
-        return lambda a, b: (b["net"] in g["ground"]) if a["net"] in g["ground"] else fn(a["net"]) == b["net"]
+        return lambda a, b: a["metal"] == b["metal"] and (
+            (b["net"] in g["ground"]) if a["net"] in g["ground"] else fn(a["net"]) == b["net"]
+        )
 
     if matches(g["conductors"], net_ok(lambda n: n)):
         return "same"
@@ -327,17 +347,19 @@ def _paint(g, X, Y):
     cx = 0.5 * (X[:-1] + X[1:])
     cy = 0.5 * (Y[:-1] + Y[1:])
     er = np.full((len(Y) - 1, len(X) - 1), float(g["background"]))
-    for d in g["dielectrics"]:
+    mat = np.full((len(Y) - 1, len(X) - 1), -1, dtype=np.int64)  # the dielectric (index) that paints each cell
+    for n, d in enumerate(g["dielectrics"]):
         mx = (cx >= d["x0"]) & (cx <= d["x1"])
         my = (cy >= d["y0"]) & (cy <= d["y1"])
         er[np.ix_(my, mx)] = d["er"]
+        mat[np.ix_(my, mx)] = n
     owner = np.full((len(Y), len(X)), -1, dtype=np.int64)
     e = 1e-9 * g["size"]
     for i, c in enumerate(g["conductors"]):
         mx = (X >= c["x0"] - e) & (X <= c["x1"] + e)
         my = (Y >= c["y0"] - e) & (Y <= c["y1"] + e)
         owner[np.ix_(my, mx)] = i
-    return er, owner
+    return er, owner, mat
 
 
 def _conductances(X, Y, eps):
@@ -392,11 +414,147 @@ def _solve(gx, gy, fixed, excitations):
     return out, int(free.sum())
 
 
-def _capacitances(g, level: int, sym: str | None, m: float):
+# ── loss partials (as the JS module: dielectric shares per material, Wheeler's rule by the exact shape derivative) ──
+
+
+def _materials_of(g):
+    lst: list[dict] = []
+    keys: list[tuple] = []
+    index: list[int] = []
+    for d in g["dielectrics"]:
+        key = (d["er"], d["tand"], d["material"])
+        if key not in keys:
+            keys.append(key)
+            lst.append({"er": d["er"], "tand": d["tand"], "material": d["material"]})
+        index.append(keys.index(key))
+    return lst, index
+
+
+def _metal_of(g, c) -> str:
+    if c["metal"] is not None:
+        return c["metal"]
+    return "ground" if c["net"] in g["ground"] else "signal"
+
+
+def _nearest(row):
+    """Every entry of a line: the group of the nearest exposed node along it (ties: the lower index)."""
+    n = len(row)
+    out = [-1] * n
+    dist = [math.inf] * n
+    last = -1
+    for a in range(n):
+        if row[a] >= 0:
+            last = a
+        if last >= 0:
+            out[a] = row[last]
+            dist[a] = a - last
+    last = -1
+    for a in range(n - 1, -1, -1):
+        if row[a] >= 0:
+            last = a
+        if last >= 0 and last - a < dist[a]:
+            out[a] = row[last]
+            dist[a] = last - a
+    return out
+
+
+def _recession(g, owner, metals):
+    """Line velocities (vx[i], vy[j]) and per line node the metal group of the nearest exposed face."""
+    np, _, _ = _np()
+    ny, nx = owner.shape
+    cond = owner >= 0
+    groups = np.array([metals.index(_metal_of(g, c)) for c in g["conductors"]] + [-1], dtype=np.int64)
+    grp = groups[owner]
+    # x faces: +x exposed at (j, i) when conductor and (j, i+1) free; -x when (j, i-1) free.
+    pf = np.zeros_like(cond)
+    pf[:, :-1] = cond[:, :-1] & ~cond[:, 1:]
+    mf = np.zeros_like(cond)
+    mf[:, 1:] = cond[:, 1:] & ~cond[:, :-1]
+    vx = np.where(pf.any(0) & ~mf.any(0), -1.0, np.where(mf.any(0) & ~pf.any(0), 1.0, 0.0))
+    GX = np.where(pf | mf, grp, -1).T.copy()  # (nx, ny): line i, node j
+    for i in range(nx):
+        if vx[i]:
+            GX[i] = _nearest(list(GX[i]))
+    pf = np.zeros_like(cond)
+    pf[:-1, :] = cond[:-1, :] & ~cond[1:, :]
+    mf = np.zeros_like(cond)
+    mf[1:, :] = cond[1:, :] & ~cond[:-1, :]
+    vy = np.where(pf.any(1) & ~mf.any(1), -1.0, np.where(mf.any(1) & ~pf.any(1), 1.0, 0.0))
+    GY = np.where(pf | mf, grp, -1)  # (ny, nx): line j, node i
+    for j in range(ny):
+        if vy[j]:
+            GY[j] = _nearest(list(GY[j]))
+    return vx, vy, GX, GY
+
+
+def _recession_quad(X, Y, eps, rec, n_groups, p, q=None):
+    """d(φᵀAψ)/dn per metal group as the conductor faces recede (φ, ψ fixed)."""
+    np, _, _ = _np()
+    q = p if q is None else q
+    vx, vy, GX, GY = rec
+    X = np.asarray(X)
+    Y = np.asarray(Y)
+    ny, nx = len(Y), len(X)
+    out = np.zeros(n_groups)
+    e = np.zeros((ny + 1, nx + 1))  # cell (i, j) at e[j + 1, i + 1]; zero outside
+    e[1:ny, 1:nx] = eps
+
+    def add_x(line, along, c):
+        v = vx[line]
+        gr = GX[line, along]
+        ok = (v != 0) & (gr >= 0) & (c != 0)
+        np.add.at(out, gr[ok], (c * v)[ok])
+
+    def add_y(line, along, c):
+        v = vy[line]
+        gr = GY[line, along]
+        ok = (v != 0) & (gr >= 0) & (c != 0)
+        np.add.at(out, gr[ok], (c * v)[ok])
+
+    # x edges (j, i) -> (j, i+1)
+    JJ, II = np.meshgrid(np.arange(ny), np.arange(nx - 1), indexing="ij")
+    d = (p[:, :-1] - p[:, 1:]) * (q[:, :-1] - q[:, 1:])
+    dx = np.diff(X)[None, :]
+    eb = e[0:ny, 1:nx]
+    ea = e[1 : ny + 1, 1:nx]
+    dy = np.diff(Y)
+    below = np.concatenate(([0.0], dy))[:, None]
+    above = np.concatenate((dy, [0.0]))[:, None]
+    g = (0.5 * (eb * below + ea * above)) / dx
+    add_x(II + 1, JJ, (-g / dx) * d)
+    add_x(II, JJ, (g / dx) * d)
+    m = JJ > 0
+    add_y(JJ[m], II[m], ((0.5 * eb / dx) * d)[m])
+    add_y(JJ[m] - 1, II[m], ((-0.5 * eb / dx) * d)[m])
+    m = JJ < ny - 1
+    add_y(JJ[m] + 1, II[m], ((0.5 * ea / dx) * d)[m])
+    add_y(JJ[m], II[m], ((-0.5 * ea / dx) * d)[m])
+    # y edges (j, i) -> (j+1, i)
+    JJ, II = np.meshgrid(np.arange(ny - 1), np.arange(nx), indexing="ij")
+    d = (p[:-1, :] - p[1:, :]) * (q[:-1, :] - q[1:, :])
+    dyy = dy[:, None]
+    el = e[1:ny, 0:nx]
+    er_ = e[1:ny, 1 : nx + 1]
+    ddx = np.diff(X)
+    left = np.concatenate(([0.0], ddx))[None, :]
+    right = np.concatenate((ddx, [0.0]))[None, :]
+    g = (0.5 * (el * left + er_ * right)) / dyy
+    add_y(JJ + 1, II, (-g / dyy) * d)
+    add_y(JJ, II, (g / dyy) * d)
+    m = II > 0
+    add_x(II[m], JJ[m], ((0.5 * el / dyy) * d)[m])
+    add_x(II[m] - 1, JJ[m], ((-0.5 * el / dyy) * d)[m])
+    m = II < nx - 1
+    add_x(II[m] + 1, JJ[m], ((0.5 * er_ / dyy) * d)[m])
+    add_x(II[m], JJ[m], ((-0.5 * er_ / dyy) * d)[m])
+    return out
+
+
+def _capacitances(g, level: int, sym: str | None, m: float, loss: bool = False):
     np, _, _ = _np()
     X, Y, hc, growth = _make_grid(g, level, m if sym else None)
     nx, ny = len(X), len(Y)
-    er, owner = _paint(g, X, Y)
+    er, owner, mat = _paint(g, X, Y)
     nets = np.array([c["net"] for c in g["conductors"]] + [""], dtype=object)
     node_net = nets[owner]  # owner -1 picks the trailing ""
     fixed = owner >= 0
@@ -408,7 +566,43 @@ def _capacitances(g, level: int, sym: str | None, m: float):
     stats = {"nx": nx, "ny": ny, "nodes": nx * ny, "unknowns": 0, "hc": hc, "growth": growth}
     uniform = float(er.flat[0]) if np.all(er == er.flat[0]) else None
     media = [np.ones_like(er)] if uniform else [er, np.ones_like(er)]
-    mats = [[[0.0] * nS for _ in range(nS)] for _ in media]
+
+    def zero():
+        return [[0.0] * nS for _ in range(nS)]
+
+    mats = [zero() for _ in media]
+    extra: dict = {}
+    if loss:
+        mlist, mindex = _materials_of(g)
+        nM = len(mlist)
+        cell_m = np.where(mat < 0, nM, np.array([*mindex, nM], dtype=np.int64)[mat])
+        part_g = []
+        for k in range(nM + 1):
+            eps = np.where(cell_m == k, er, 0.0)
+            part_g.append(_conductances(X, Y, eps) if np.any(eps > 0) else None)
+        parts = [zero() for _ in part_g]
+        metals = list(dict.fromkeys(_metal_of(g, c) for c in g["conductors"]))
+        rec = _recession(g, owner, metals)
+        dK0 = [zero() for _ in metals]
+        extra = {"materials": mlist, "parts": parts, "metals": metals, "dK0": dK0}
+
+    def collect(e, phi, put):
+        if not loss:
+            return
+        if e == 0:
+            for k, pg in enumerate(part_g):
+                if pg is not None:
+                    put(parts[k], lambda a, b, pg=pg: EPS0 * _quad(pg[0], pg[1], phi[a], phi[b]))
+        if e == len(media) - 1:
+            cache: dict = {}
+
+            def d(a, b):
+                if (a, b) not in cache:
+                    cache[(a, b)] = _recession_quad(X, Y, media[-1], rec, len(metals), phi[a], phi[b])
+                return cache[(a, b)]
+
+            for k in range(len(metals)):
+                put(dK0[k], lambda a, b, k=k: EPS0 * float(d(a, b)[k]))
 
     def solve(fx, eps, ex):
         gx, gy = _conductances(X, Y, eps)
@@ -423,24 +617,50 @@ def _capacitances(g, level: int, sym: str | None, m: float):
         v_odd = v.copy()
         v_odd[:, 0] = 0.0
         for fx, ex, sign in ((fixed, v, 1), (odd_fixed, v_odd, -1)):
+
+            def put(M, f, sign=sign):
+                c = f(0, 0)
+                M[0][0] += c / 2
+                M[1][1] += c / 2
+                M[0][1] += sign * c / 2
+                M[1][0] += sign * c / 2
+
             for e, eps in enumerate(media):
                 gx, gy, phi = solve(fx, eps, [ex])
-                c = EPS0 * _quad(gx, gy, phi[0])
-                mats[e][0][0] += c / 2
-                mats[e][1][1] += c / 2
-                mats[e][0][1] += sign * c / 2
-                mats[e][1][0] += sign * c / 2
+                put(mats[e], lambda a, b, gx=gx, gy=gy, phi=phi: EPS0 * _quad(gx, gy, phi[0]))
+                collect(e, phi, put)
     else:
         ex = [unit(s) for s in g["signals"]]
         w = 2 if sym == "same" else 1
-        for e, eps in enumerate(media):
-            gx, gy, phi = solve(fixed, eps, ex)
+
+        def put(M, f):
             for a in range(nS):
                 for b in range(a, nS):
-                    mats[e][a][b] = mats[e][b][a] = w * EPS0 * _quad(gx, gy, phi[a], phi[b])
+                    M[a][b] = M[b][a] = w * f(a, b)
+
+        for e, eps in enumerate(media):
+            gx, gy, phi = solve(fixed, eps, ex)
+            put(mats[e], lambda a, b, gx=gx, gy=gy, phi=phi: EPS0 * _quad(gx, gy, phi[a], phi[b]))
+            collect(e, phi, put)
     K0 = mats[-1]
     K = [[uniform * v for v in row] for row in K0] if uniform else mats[0]
-    return K, K0, stats
+    return K, K0, stats, extra
+
+
+def _loss_partials(g, K0, extra) -> dict:
+    """As the JS lossPartials: K0, the material parts, dK0/dn per metal, signal copper area and smallest side."""
+    area = 0.0
+    t = INF
+    for net in g["signals"]:
+        bx0, bx1, by0, by1 = INF, -INF, INF, -INF
+        for k in g["conductors"]:
+            if k["net"] != net:
+                continue
+            area += (k["x1"] - k["x0"]) * (k["y1"] - k["y0"])
+            bx0, bx1, by0, by1 = min(bx0, k["x0"]), max(bx1, k["x1"]), min(by0, k["y0"]), max(by1, k["y1"])
+        t = min(t, bx1 - bx0, by1 - by0)
+    signal_metal = _metal_of(g, next(k for k in g["conductors"] if k["net"] not in g["ground"]))
+    return {"K0": K0, **extra, "area": area, "t": t, "signalMetal": signal_metal}
 
 
 # ── line parameters ────────────────────────────────────────────────────────────────────────────────────────
@@ -495,13 +715,21 @@ def _line_params(K, K0) -> dict:
 
 
 def solve_cross_section(
-    section: dict, *, tol: float = 0.01, level: int = 0, max_level: int = 4, symmetry: bool = True
+    section: dict,
+    *,
+    tol: float = 0.01,
+    level: int = 0,
+    max_level: int = 4,
+    symmetry: bool = True,
+    loss: bool = False,
 ) -> FieldResult:
     """Solve a cross-section (the JS `solveCrossSection`; same section dict and options).
 
     section: ``{"conductors": [{x0?, x1?, y0, y1, net}], "dielectrics": [{x0?, x1?, y0, y1, er}],
     "ground": ["gnd"], "background": 1}``; a missing x0/x1 extends to the domain edge; later dielectrics win.
-    tol: target relative error as estimated by the last refinement; level: the first grid level.
+    tol: target relative error as estimated by the last refinement; level: the first grid level. loss: also return
+    ``loss``, the partials that :func:`boarddd.impedance.loss.section_loss` needs (lengths in mm); dielectrics may carry
+    ``tand`` and ``material``, conductors ``metal``.
     """
     t0 = time.perf_counter()
     g = _normalise(section)
@@ -512,8 +740,10 @@ def solve_cross_section(
     est: dict = {}
     error: dict = {}
     worst = 0.0
+    last: tuple = ()
     for lv in range(level, max_level + 1):
-        K, K0, stats = _capacitances(g, lv, sym, m)
+        K, K0, stats, extra = _capacitances(g, lv, sym, m, loss)
+        last = (K0, extra)
         levels.append({"level": lv, **_line_params(K, K0), "grid": stats})
         if len(levels) < 2:
             continue
@@ -543,6 +773,7 @@ def solve_cross_section(
         symmetry=sym or "none",
         levels=[{"level": lv["level"], **{k: lv[k] for k in KEYS if k in lv}, "grid": lv["grid"]} for lv in levels],
         ms=1000 * (time.perf_counter() - t0),
+        loss=_loss_partials(g, *last) if loss else None,
         **est,
     )
 

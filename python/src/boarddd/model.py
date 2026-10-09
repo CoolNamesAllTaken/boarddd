@@ -187,6 +187,24 @@ class StackupLayer:
         "Copper: plated (finished) thickness, mm, when it differs from the base foil.", default=None, minimum=0
     )
     roughness_rq: float | None = _f("Copper: RMS surface roughness, mm (0.0005 = 0.5 um).", default=None, minimum=0)
+    roughness_rz: float | None = _f(
+        "Copper: 10-point mean roughness Rz of the foil's bonded side, mm (datasheet value; the cannonball model).",
+        default=None,
+        minimum=0,
+    )
+    nodule_radius: float | None = _f(
+        "Copper: Huray nodule (snowball) radius, mm, when the source gives Huray parameters.",
+        default=None,
+        exclusiveMinimum=0,
+    )
+    nodule_ratio: float | None = _f(
+        "Copper: Huray surface ratio, nodules' area per flat area (N 4 pi a^2 / A_flat).", default=None, minimum=0
+    )
+    roughness_model: Literal["none", "hammerstad", "huray", "cannonball"] | None = _f(
+        "Copper: roughness model for loss; default from the fields given (nodule_* huray, roughness_rz cannonball, "
+        "roughness_rq hammerstad).",
+        default=None,
+    )
     conductivity: float | None = _f("Copper: conductivity, S/m.", default=None, exclusiveMinimum=0)
     etch_factor: float | None = _f(
         "Copper: etch factor (thickness / one side's undercut), for trapezoidal traces.", default=None, minimum=0

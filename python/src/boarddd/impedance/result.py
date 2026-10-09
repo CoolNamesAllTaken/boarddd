@@ -25,6 +25,10 @@ __all__ = [
     "SectionZ",
     "Reference",
     "Summary",
+    "LossSweep",
+    "SectionLoss",
+    "RouteLossSweep",
+    "RouteLoss",
     "Discontinuity",
     "Timing",
     "STRUCTURES",
@@ -84,6 +88,28 @@ class SectionZ:
 
 
 @dataclass(kw_only=True)
+class LossSweep:
+    """A section's impedance and loss over frequency."""
+
+    frequency: list[float] = _f("Hz.")
+    z: list[float] = _f("Re Zc (Z0, or Zdiff for a pair), ohms.")
+    db_per_mm: list[float] = _f("Insertion loss of a matched line, dB/mm (a pair: differential).")
+
+
+@dataclass(kw_only=True)
+class SectionLoss:
+    """A section's loss at the analysis frequency (loss.js / boarddd.impedance.loss)."""
+
+    frequency: float = _f("Hz.", exclusiveMinimum=0)
+    z: float = _f("Re Zc there (Z0, or Zdiff for a pair), ohms.")
+    db_per_mm: float = _f("Insertion loss of a matched line, dB/mm.", minimum=0)
+    db: float = _f("Over the section's length, dB.", minimum=0)
+    db_per_mm_conductor: float = _f("Conductor part (R/2Z0), dB/mm.", minimum=0)
+    db_per_mm_dielectric: float = _f("Dielectric part (G Z0/2), dB/mm.", minimum=0)
+    sweep: LossSweep = _f("Over the analysis's frequencies.")
+
+
+@dataclass(kw_only=True)
 class Reference:
     """A reference plane under (bottom) or over (top) a section."""
 
@@ -123,6 +149,28 @@ class Section:
         factory=list,
     )
     tracks: list[str] = _f("Ids (copper@1 Track.id) of the tracks it covers.", factory=list)
+    loss: SectionLoss | None = _f("Its loss, with the analysis's `frequency`; null otherwise.", default=None)
+
+
+@dataclass(kw_only=True)
+class RouteLossSweep:
+    """The route's loss over frequency."""
+
+    frequency: list[float] = _f("Hz.")
+    db: list[float] = _f("dB over the sections with a loss.")
+
+
+@dataclass(kw_only=True)
+class RouteLoss:
+    """The route's insertion loss (the first net of a pair; sections without a Z are not counted)."""
+
+    frequency: float = _f("Hz.", exclusiveMinimum=0)
+    length: float = _f("Length counted (the sections with a loss), mm.", minimum=0)
+    db: float = _f("Insertion loss, dB.", minimum=0)
+    db_per_mm: float | None = _f("Mean, dB/mm.", default=None)
+    db_conductor: float = _f("Conductor part, dB.", minimum=0)
+    db_dielectric: float = _f("Dielectric part, dB.", minimum=0)
+    sweep: RouteLossSweep = _f("Over the analysis's frequencies.")
 
 
 @dataclass(kw_only=True)
@@ -143,6 +191,7 @@ class Summary:
         default=None,
     )
     within: bool | None = _f("Every section has an impedance within tolerance; null without a target.", default=None)
+    loss: RouteLoss | None = _f("The route's loss, with the analysis's `frequency`; null otherwise.", default=None)
 
 
 @dataclass(kw_only=True)

@@ -103,7 +103,11 @@ export interface ImpedancePanel {
   hover(s: number | null, section?: Section | null): void;
   /** Select what is under a board point, as a click there (e.g. from boardPointFromPick). */
   selectAt(x: number, y: number, options?: { alt?: boolean }): Promise<void | null>;
-  on(name: 'select' | 'result' | 'hover' | 'error' | 'focus', fn: (v: any) => void): () => void;
+  /** The frequency of the loss shown, Hz. */
+  readonly frequency: number | null;
+  /** Show the loss at another frequency (snapped to the analysis's sweep; no re-run). */
+  setFrequency(f: number): number;
+  on(name: 'select' | 'result' | 'hover' | 'error' | 'focus' | 'frequency', fn: (v: any) => void): () => void;
   destroy(): void;
 }
 /** The click-a-trace impedance panel (see docs/impedance.md "UI"). */
@@ -116,7 +120,11 @@ export function impedancePanel(el: HTMLElement, options: {
   pick?: boolean;
   layers?: string[] | null | (() => string[] | null);
   injectCss?: boolean;
+  /** Hz: the loss shown and analyzeNet's frequency (default 5.6e9); null: no loss. */
+  frequency?: number | null;
 }): ImpedancePanel;
+/** 5.6e9 → '5.6 GHz'. */
+export function fmtHz(f: number): string;
 
 /** The components' CSS (variables --bdi-*), injected by impedancePanel unless injectCss: false. */
 export const IMPEDANCE_UI_CSS: string;

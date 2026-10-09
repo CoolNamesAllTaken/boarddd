@@ -11,6 +11,9 @@ Characteristic impedance of PCB transmission lines, the same code in JS (`src/im
   cross-section built from rectangles: solder mask, etch, finite and coplanar grounds, plane voids, layered
   dielectrics, neighbouring traces. About 50–150 ms per typical line in the browser. It is boarddd's own (MIT); its
   sweep (`fixtures/impedance/field-sweep.json`) is now the reference that tier 1's fitted constants come from.
+- **Loss and frequency** (`lineLoss`, `sectionLoss`, [below](#loss-and-frequency)) for both tiers: Djordjevic-Sarkar
+  dielectrics, conductor loss with roughness, microstrip dispersion, RLGC(f), dB/mm, Touchstone, and `analyzeNet`'s
+  per-net loss at a frequency.
 
 ```js
 import { microstrip, coupledStripline, synthesize } from 'boarddd/impedance';
@@ -62,7 +65,7 @@ for (const nc of board.net_classes) if (nc.impedance) evaluateTarget(board.stack
 | Result | `{ model, method, Z0, eps_eff, flags }`; coupled models: `{ Zdiff, Zcommon, Zodd, Zeven, eps_eff_odd, eps_eff_even, … }` with Zdiff = 2 Zodd and Zcommon = Zeven / 2. Python returns frozen dataclasses with the same field names (`to_dict()` gives the JS object) |
 | `flags` | `[{ code, value, min, max, message }]`: inputs outside the range where the formula was published or checked (below). Empty means "inside the validity range". The numbers are still returned |
 | Errors | non-positive dimensions, `t < 0` or `er < 1` throw `RangeError` (JS) / `ValueError` (Python) |
-| Quasi-static | no dispersion, no loss (both in a later phase); fine for impedance control up to a few GHz |
+| Quasi-static | Z0 and εeff are quasi-static, lossless and at the stackup's εr; [Loss and frequency](#loss-and-frequency) adds loss, Er(f) and microstrip dispersion |
 
 ## Models
 
@@ -410,8 +413,204 @@ geometry loop is pure Python).
 | `neighbours` | 'ignore' |
 | `noPlane` | 'skip' |
 
+With `frequency` (Hz) each section with a Z also gets `loss` (dB/mm and dB at that frequency, its conductor and
+dielectric parts, and the Z and dB/mm sweep over `frequencies`, by default `LOSS_SWEEP`, 100 MHz–40 GHz), and the
+summary the route's loss (`summary.loss`: dB over the sections that have a Z, and its sweep); see
+[Loss and frequency](#loss-and-frequency).
+
 Not modelled: broadside-coupled pairs (each line is analysed alone), floating neighbours, vias and pads
-themselves (3D), and frequency dependence (I9).
+themselves (3D).
+
+## Loss and frequency
+
+Loss and frequency dependence for both tiers (impedance phase I9), in `loss.js` / `boarddd.impedance.loss`. Geometry
+in mm, frequency in Hz; R in Ω/m, L H/m, G S/m, C F/m, α Np/m.
+
+```js
+import { lineLoss, sectionLoss, solveCrossSection, sectionFor, lineFromStackup, touchstone } from 'boarddd/impedance';
+
+// tier 1: a closed-form line; er (and a mask's erc) are Dk at the dielectric's reference frequency
+const r = lineLoss('microstrip', { w: 0.36, h: 0.2104, t: 0.035, er: 4.4 }, [1e9, 5e9, 1e10],
+  { dielectric: { tand: 0.02, frequency: 1e9 }, conductor: { roughness: { rz: 0.005 } } });
+// { key: 'Z0', frequency, Z0, R, L, G, C, alpha, alpha_c, alpha_d, beta, eps_eff, Zc, Zc_im, db_per_mm, db_per_inch }
+
+// tier 2: any cross-section; dielectrics carry tand (and a material name), conductors a metal
+const f = sectionLoss(solveCrossSection(section, { loss: true }), fs, { dielectric: { frequency: 1e10 } });
+
+// from the board model: one options object serves both tiers
+const line = lineFromStackup(board.stackup, 'F.Cu', { width: 0.15, kind: 'differential', gap: 0.15, solver: 'field', loss: true });
+const pair = sectionLoss(solveCrossSection(line.section, { loss: true }), fs, line.loss);
+// { key: 'Zdiff', Zdiff, Zcommon, db_per_mm (differential), db_per_mm_common, odd: {...}, even: {...} }
+touchstone(pair, 50.8);   // a .s4p of 2 inches: ports 1 → 2 on line A, 3 → 4 on line B, RI, 50 Ω
+
+analyzeNet(board, copper, ['/USB.D_P', '/USB.D_N'], { frequency: 5.6e9 }).summary.loss;   // { db, db_per_mm, sweep, ... }
+```
+
+```python
+from boarddd.impedance import line_loss, section_loss, solve_cross_section, line_from_stackup, touchstone
+
+line = line_from_stackup(stackup, "In1.Cu", width=0.1, solver="field", loss=True)
+line_loss(line.model, line.params, [1e9, 1e10], **line.loss).db_per_mm
+section_loss(solve_cross_section(line.section, loss=True), [1e9, 1e10], **line.loss).to_dict()
+```
+
+| function | what |
+|---|---|
+| `dielectricAt(f, {er, tand, frequency, model, f_low, f_high})` | Dk and Df at f: Djordjevic-Sarkar (default) or `constant` |
+| `skinDepth(f, σ)`, `surfaceResistance(f, σ)` | δ (m), Rs (Ω/sq); σ defaults to 5.8e7 S/m |
+| `roughnessFactor(f, r, σ)`, `cannonball(rz)` | K(f) on Rs: `{rq}` Hammerstad, `{radius, ratio \| count+area, matte}` Huray, `{rz}` cannonball |
+| `microstripDispersion(p, f)`, `coupledMicrostripDispersion(p, f)` | Kirschning-Jansen εeff(f), Z(f) from the static values |
+| `lineLoss(model, params, fs, opts)` | tier 1: every single and coupled model but IPC-2141 (`dielectric`, `mask`, `conductor`, `signal`, `ground`, `dispersion`) |
+| `sectionLoss(result, fs, opts)` | tier 2: one or two signals (`dielectric`, `materials` by name, `conductor`, `metals` by name) |
+| `sParameters(loss, mm, {z0})`, `touchstone(loss, mm, {z0, comment})` | S of a length of line; Touchstone 1.1 `.s2p` / `.s4p` (Hz, RI) |
+| `lineFromStackup(…, {loss: true})` | `line.loss`: the options above from the stackup (below) |
+| `analyzeNet(…, {frequency, frequencies, lossOptions})` | per-section `loss` and `summary.loss` ([Along a route](#along-a-route-on-a-real-board)) |
+
+Python has the same functions in snake case (`line_loss(model, params, fs, **opts)`, `section_loss`, `dielectric_at`,
+`roughness_factor`, `cannonball`, `microstrip_dispersion`, `coupled_microstrip_dispersion`, `s_parameters`,
+`touchstone`, `skin_depth`, `surface_resistance`, `LOSS_DEFAULTS`); `LossResult.to_dict()` is the JS object.
+
+### Method
+
+- **Dielectrics: Djordjevic-Sarkar.** ε(ω) = ε∞ + Δε/ln(ω2/ω1) · ln((ω2 + jω)/(ω1 + jω)), a continuum of Debye poles
+  between f_low = 1 kHz and f_high = 1 THz, fitted to (Dk, Df) at the reference frequency (the layer's `frequency`, else
+  1 GHz). It is causal (Dk falls by (2/π) ln 10 · ε'' per decade, the Kramers-Kronig partner of a flat loss) and its
+  loss tangent is nearly flat across the band, as laminates are. `model: 'constant'` keeps Dk and Df fixed.
+- **Tier 2 reuses its capacitance solve.** The stored energy is a sum over cells, so the solver splits the Maxwell
+  matrix exactly into one part per dielectric material, K = Σ_m K_m (+ the background). K is stationary in φ, so a
+  change of one material's permittivity changes K by (Δε_m/ε_m) K_m to first order, and a complex ε_m = ε'_m (1 − j tan δ_m)
+  gives G/ω = Σ_m tan δ_m (ε'_m(f)/ε_m) K_m: the standard perturbation result for loss, applied per material and
+  frequency to the extrapolated Z and εeff. The alternatives were a complex-permittivity solve (a complex
+  factorisation per frequency) or a real solve per frequency (one factorisation per frequency, ~50–150 ms each);
+  this costs one solve for the whole sweep, is exact for one material (stripline in one laminate: K scales), and
+  for a mix its error is second order in the Dk change: against a full re-solve at each frequency, a masked FR-4
+  microstrip (Dk moving ~8 % over 100 MHz–40 GHz, the mask's not) is within 4e-5 in εeff. The partials add ~5 % to
+  a solve.
+- **Conductors: Wheeler's incremental inductance rule**, R = (Rs/μ0) ∂L/∂n, per metal (copper layer):
+  - tier 1: on the closed-form air impedance, every surface of that metal receded (strip narrower and thinner, gaps
+    wider, the distance to the plane larger), by central differences; signal and ground separately;
+  - tier 2: the exact derivative of the discrete system. The grid lines that carry conductor faces move with them
+    (the mesh is morphed, so its topology and discretisation error stay the same) and, φ being stationary,
+    d(φᵀAψ)/dθ = φᵀ(∂A/∂θ)ψ: one pass over the vacuum solution's edges, no extra solve. Each moved line's share goes
+    to the nearest conductor face along it, so every `metal` gets its own ∂L/∂n, conductivity and roughness. It
+    converges with the grid (0.5 % between levels 0 and 3) and agrees with tier 1 within 1–5 %.
+  - R = √(Rdc² + Rac²) with Rdc = 1/(σ A) of the trace; the internal inductance is Rac,smooth/ω, held below the
+    frequency where δ = t/2.
+- **Roughness** multiplies Rs: Hammerstad-Bekkadal K = 1 + (2/π) atan(1.4 (Rq/δ)²) (saturates at 2); Huray
+  K = A_matte/A_flat + (3/2) (N 4πa²/A_flat)/(1 + δ/a + δ²/2a²); the cannonball model takes the datasheet Rz alone:
+  14 spheres of radius Rz/16.73 on a square tile of side 6a (Simonovich; Polar AP8195).
+- **Dispersion** (tier 1): Kirschning-Jansen εeff(f) and Jansen-Kirschning Z0(f) for microstrip and coated microstrip,
+  Kirschning-Jansen 1984 even/odd εeff(f) and Z(f) for coupled microstrip (`dispersion: false` turns it off); the
+  static values keep boarddd's thickness and mask terms. The dielectric loss share follows the field into the
+  substrate as εeff rises. Stripline is TEM (no geometric dispersion); CPW/CPWG and tier 2 are quasi-static: the
+  Kirschning-Jansen correction for 0.1–0.2 mm PCB dielectrics is under 2 % in εeff below 20 GHz.
+- **Per mode** (single, or a pair's odd and even modes per line): L = Zair/c + Lint, C = ε'eff/(c Zair),
+  G = ω ε''eff/(c Zair); γ = √((R + jωL)(G + jωC)), Zc = √((R + jωL)/(G + jωC)). `db_per_mm` is 8.686 Re γ (a matched
+  line); `alpha_c` = R/2Z0 and `alpha_d` = G Z0/2 split it. A pair reports Zdiff = 2 Zodd, Zcommon = Zeven/2 and the
+  differential loss (the odd mode's). `sParameters` builds a single line from its ABCD matrix and a pair's 4-port
+  from the even and odd 2-ports (exact for a symmetric pair).
+
+### From the stackup
+
+`lineFromStackup(…, { loss: true })` reads, per layer of `boarddd/board@1`:
+
+| layer | fields | default (with a warning) |
+|---|---|---|
+| dielectric, mask | `epsilon_r`, `loss_tangent` at `frequency` (Hz), `dielectric_model` (`constant` \| `djordjevic_sarkar`) | tan δ 0.02 (mask 0.02); 1 GHz; Djordjevic-Sarkar |
+| copper | `conductivity`; roughness: `roughness_model`, `roughness_rq` (Hammerstad), `roughness_rz` (cannonball), `nodule_radius` + `nodule_ratio` (Huray), mm | 5.8e7 S/m; smooth |
+
+`roughness_rz`, `nodule_radius`, `nodule_ratio` and `roughness_model` are new optional board@1 fields (still @1).
+Without `roughness_model` the model follows the fields given: nodules → Huray, Rz → cannonball, Rq → Hammerstad.
+Tier 2 sections carry each dielectric's `tand` and `material` (its layer) and each conductor's `metal` (its copper
+layer), so every layer keeps its own Df, frequency model, conductivity and roughness; tier 1 uses the dielectric's
+thickness-weighted tan δ (between two planes, weighted like εr by εr/h) and the signal and reference layers' copper.
+
+### Validation
+
+`node fixtures/impedance/loss_report.mjs` (errors are signed for the worst case; the tolerances are the tests'):
+
+| source | quantity | n | median |err| | worst | tolerance |
+|---|---|---|---|---|---|
+| polar | section alpha_c_db_per_inch | 5 | 5.17 % | +6.61 % | 8 % |
+| polar | section alpha_d_db_per_inch | 5 | 1.14 % | -2.16 % | 3 % |
+| polar | section db_per_inch | 5 | 0.98 % | -1.45 % | 3 % |
+| polar | section alpha_c_db_per_inch (rough) | 5 | 3.60 % | +3.98 % | 6 % |
+| polar | section db_per_inch (rough) | 5 | 0.44 % | +0.80 % | 3 % |
+| polar | section Z0 | 1 | 0.38 % | +0.38 % | 1 % |
+| polar | dielectric er | 12 | 0.022 % | -0.042 % | 0.1 % |
+| polar_params | cannonball radius | 2 | 0.14 % | -0.16 % | 0.5 % |
+| polar_params | huray_area area | 1 | 0.027 % | +0.027 % | 0.5 % |
+| pozar | line Z0_lossless | 1 | 0.92 % | -0.92 % | 2 % |
+| pozar | line alpha_d | 1 | 0.32 % | +0.32 % | 2 % |
+| pozar | line alpha_c | 1 | 1.92 % | -1.92 % | 10 % |
+| rogers | line alpha_d_db_per_inch | 3 | 3.76 % | -7.71 % | 10 % |
+| skrf | dielectric er | 24 | 0.0e+0 % | +2.2e-14 % | 0.000001 % |
+| skrf | dielectric tand | 24 | 0.0e+0 % | -1.8e-14 % | 0.000001 % |
+| skrf | dispersion eps_eff | 24 | 0.0e+0 % | +0.0e+0 % | 0.000001 % |
+| skrf | dispersion Z0 | 24 | 0.0e+0 % | -2.4e-14 % | 0.000001 % |
+| skrf | line alpha_d | 24 | 0.99 % | +1.85 % | 2 % |
+| wide | wheeler R_over_2Rs_per_w | 1 | 5.94 % | -5.94 % | 7 % |
+
+- **Polar Si9000e** (AP8195, the one published loss example with its full inputs): offset stripline in FR408HR,
+  Df 0.0094/0.0095 at 10 GHz, causal Dk, Huray cannonball copper, 10–50 GHz. The reference curves are digitised
+  from Polar's screenshots (±0.01 dB/in). Total loss is within 1.5 % (smooth) and 0.8 % (rough); smooth conductor
+  loss is 5–7 % above Polar's BEM, rough 3–4 %; Dk(f) within 0.04 %.
+- **Pozar** Example 3.5 (50 Ω stripline, 10 GHz): α_d exact to 0.3 %, α_c within 2 % of Pozar's approximate formula.
+- **Rogers** (RO4350B 50 Ω microstrip, 6.6–20 mil): dielectric loss within 8 % of the published 0.13–0.14 dB/in. Their
+  conductor loss (0.14–0.42 dB/in, rough ED copper of unstated roughness) is 13–22 % above boarddd's with
+  Hammerstad Rq = 2.8 µm (saturated at K = 2), within what the roughness model and value change (a cannonball Rz of
+  6 µm gives K = 2.6 at 10 GHz, 30 % more); not tested.
+- **scikit-rf** (MLine, BSD-3, an independent implementation): Djordjevic-Sarkar and Kirschning-Jansen dispersion agree
+  to 1e-13 given the same static values; its dielectric attenuation (the (εeff − 1)/(εr − 1) filling factor) within
+  1.9 % of boarddd's (∂εeff/∂εr from the model). Its conductor loss uses Hammerstad-Jensen's current-distribution
+  approximation Rs/(Z0 w) · exp(−1.2 (Z0/η0)^0.7) and reads 24–39 % above Wheeler's rule on these lines; both of
+  boarddd's tiers (two independent derivatives) and Polar's stripline agree with Wheeler, so that formula is left
+  as a known outlier and not tested.
+- **Wide-strip limit**: a microstrip 100 h wide approaches R = 2 Rs/w from below (0.94: fringing spreads the current).
+- **Tier 1 = tier 2**: α_c within 5 % and α_d within 3 % on microstrip, coated microstrip, stripline, CPWG and coupled
+  microstrip, 1–10 GHz (tested); stackup lines within 4 % in dB/mm.
+- **JS = Python**: every parity case to 1e-8 (observed ≤ 3e-9), Touchstone files byte for byte, analyzeNet documents
+  with loss to 1e-6 (the route parity tests).
+
+### Performance budget
+
+Measured on the claud container (Node 22, Chromium; shared machine):
+
+| | time |
+|---|---|
+| `sectionLoss`, 13 frequencies, from a solve | 0.05 ms |
+| `lineLoss`, 13 frequencies (coupled microstrip, with dispersion) | 0.6 ms |
+| loss partials in a solve (`loss: true`) | +5 % (44 → 46 ms) |
+| `analyzeNet` with `frequency`, cold: royalblue USB pair / CM5 ETH pair | 1.27 s / 1.75 s (without: 1.09 / 1.59 s) |
+| the same at another frequency, warm cache (the panel's worker) | 0.12 s / 0.31 s |
+| panel: another frequency from the select or the sparkline | no re-run (the sweep is in the document) |
+
+The browser test holds a cold analysis with loss to under 1.35× one without (+300 ms) and a warm re-analysis to under
+400 ms.
+
+### Sources
+
+- A. R. Djordjevic, R. M. Biljić, V. D. Likar-Smiljanić, T. K. Sarkar, "Wideband frequency-domain characterization of FR-4 and time-domain causality", IEEE Trans. EMC 43(4), 2001, pp. 662–667.
+- H. A. Wheeler, "Formulas for the skin effect", Proc. IRE 30(9), 1942, pp. 412–424.
+- E. Hammerstad, Ø. Bekkadal, "Microstrip Handbook", ELAB report STF44 A74169, University of Trondheim, 1975.
+- P. G. Huray, "The Foundations of Signal Integrity", Wiley 2009; P. G. Huray et al., "Impact of copper surface texture on loss: a model that works", DesignCon 2010.
+- B. Simonovich, "Practical method for modeling conductor surface roughness using close packing of equal spheres", DesignCon 2015; Polar Instruments application note AP8195, 2017.
+- M. Kirschning, R. H. Jansen, "Accurate model for effective dielectric constant of microstrip with validity up to millimetre-wave frequencies", Electronics Letters 18(6), 1982, pp. 272–273.
+- R. H. Jansen, M. Kirschning, "Arguments and an accurate model for the power-current formulation of microstrip characteristic impedance", AEÜ 37, 1983, pp. 108–112.
+- M. Kirschning, R. H. Jansen, IEEE Trans. MTT-32(1), 1984, pp. 83–90, and corrections MTT-33(3), 1985, p. 288 (coupled lines).
+- D. M. Pozar, "Microwave Engineering", 3rd ed., Wiley 2005 (Example 3.5, the stripline reference).
+
+No code was taken from KiCad, Qucs or js_2d_fields; Qucs's technical documentation was read as a reference for the
+1984 coupled-line equations. scikit-rf is only run as an independent check (its numbers are in `skrf-loss-refs.json`).
+
+### Limits
+
+- Quasi-static fields: no radiation, surface waves or higher-order modes (fine for PCB lines well below the first
+  TE cut-off, c/(4h√(εr − 1)): about 100 GHz on 0.2 mm FR-4).
+- One roughness per copper layer (the foil's two sides are not told apart); roughness only scales R (no extra
+  internal inductance).
+- Inputs dominate, as for impedance: Df at frequency, the foil's roughness and the etched shape move loss more than
+  any of the errors above.
 
 ## UI (`boarddd/impedance/ui`)
 
@@ -432,6 +631,11 @@ and show symbols and numbers, with the words in tooltips. The README has the API
   - ✓ within tolerance;
   - ⚠ within it but beyond 80 % of it;
   - ✗ outside it, or no Z.
+
+  Below the header: `IL −1.39 dB [18 GHz ▾]`, the route's insertion loss at a frequency (option `frequency`,
+  default 5.6 GHz; `null` turns loss off), and two sparklines over the sweep, each with its own scale: the route's
+  loss and the hovered section's Z. Picking a frequency (the select, or a click on the sparklines) uses the sweep the
+  analysis already has: no re-run.
 
   The profile is Z per section along the first net, with the target band and vias as ticks; hover moves the stage
   marker (`routePoint`) and the cross-section. The discontinuity list merges events at one spot (a via is often a
@@ -481,6 +685,15 @@ and show symbols and numbers, with the words in tooltips. The README has the API
 - The UI: `test/impedance-ui/` (node: picking, pairs, slices, layouts, the gbrjob stackup; Chromium:
   `examples/impedance.html` end to end, the 3D hook, a `file://` bundle). `python/tests/io/test_gbrjob_stackup.py`
   checks `stackupFromJob` against `gbrjob.read_stackup`.
+
+- Loss: `fixtures/impedance/loss-cases.json` (`node fixtures/impedance/make_loss_cases.mjs`, `--check` in CI): the
+  `golden` references of [Loss and frequency](#loss-and-frequency) with their tolerances, and `parity` (helpers, every
+  tier-1 model, field sections with their loss partials, Touchstone files) with the JS results, which Python matches
+  to 1e-8. `skrf-loss-refs.json` holds the scikit-rf numbers (`skrf_loss_refs.py`); `loss_report.mjs` prints the
+  validation table. `test/impedance/loss.test.mjs` and `python/tests/test_impedance_loss.py` run them, plus physics
+  checks (Kramers-Kronig slope, roughness limits, DC resistance, passivity and reciprocity of S, tier 1 = tier 2 within
+  5 %, Σ dielectric parts = C, ∂K0/∂n convergence) and analyzeNet with a frequency; the Chromium test checks the panel
+  and prints the timings.
 
 When a formula changes, run `node fixtures/impedance/make_cases.mjs`, port the change to the other language, and
 check that both test suites pass. When the field solver's numerics change, regenerate the sweeps and refit.
