@@ -1,0 +1,6 @@
+class,target,tolerance,kind,nets,layer,width,gap
+USB,90 ohm,±10 %,diff,"USB_D{P,N}",F.Cu,0.2,0.15
+USB,90,10,differential,"USB_D{P,N}",B.Cu,0.18,0.17
+RF,50R,5 ohm,single,RF_* ANT_*,,,
+CLK,,10,,CLK*,,,
+DDR,40,,,"DDR_DQ[0-7] DDR_DQS*",L3,4 mil,

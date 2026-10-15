@@ -29,11 +29,15 @@ def _no_errors(result: dict) -> dict:
 @pytest.mark.parametrize("case", CASES["patterns"], ids=lambda c: "|".join(c["patterns"]) or "empty")
 def test_patterns_match_js(case):
     board = BOARDS.get(case.get("board"))
-    got = bn.match_nets(case["names"], case["patterns"], board=board, case_sensitive=case["options"].get("caseSensitive", False))
+    got = bn.match_nets(
+        case["names"], case["patterns"], board=board, case_sensitive=case["options"].get("caseSensitive", False)
+    )
     assert _no_errors(got) == _no_errors(case["result"])
 
 
-@pytest.mark.parametrize("case", CASES["similar"], ids=lambda c: f"{c['copper']}-{c['seed']['layer']}-{'|'.join(c['seed']['nets'])}")
+@pytest.mark.parametrize(
+    "case", CASES["similar"], ids=lambda c: f"{c['copper']}-{c['seed']['layer']}-{'|'.join(c['seed']['nets'])}"
+)
 def test_similar_matches_js(case):
     got = bn.similar_tracks(COPPER[case["copper"]], case["seed"], board=BOARDS[case["copper"]])
     assert got == case["result"]
@@ -53,7 +57,9 @@ def test_kicad_patterns_give_kicads_classes():
 
 def test_select_similar_pair_is_the_100_ohm_class():
     """A 100 Ω Ethernet pair picked on F.Cu: select-similar finds exactly the 13 pairs of the 100ohm class."""
-    s = bn.similar_tracks(CM5["copper"], {"layer": "F.Cu", "nets": ["/CM5/ETH_PI.TRD0_P", "/CM5/ETH_PI.TRD0_N"]}, board=CM5["board"])
+    s = bn.similar_tracks(
+        CM5["copper"], {"layer": "F.Cu", "nets": ["/CM5/ETH_PI.TRD0_P", "/CM5/ETH_PI.TRD0_N"]}, board=CM5["board"]
+    )
     klass = next(c for c in CM5["board"]["net_classes"] if c["name"] == "100ohm")
     assert (s["width"], s["gap"]) == (0.13, 0.25)
     assert sorted(n for p in s["pairs"] for n in p["nets"]) == sorted(klass["nets"])

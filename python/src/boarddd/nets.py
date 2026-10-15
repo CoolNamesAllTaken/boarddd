@@ -101,7 +101,12 @@ class Pattern:
     res: list[re.Pattern] = field(default_factory=list, repr=False)
 
     def to_dict(self) -> dict:
-        return {"text": self.text, "regex": self.regex, "pair": list(self.pair) if self.pair else None, "error": self.error}
+        return {
+            "text": self.text,
+            "regex": self.regex,
+            "pair": list(self.pair) if self.pair else None,
+            "error": self.error,
+        }
 
 
 def parse_pattern(text: str, *, case_sensitive: bool = False) -> Pattern:
@@ -377,7 +382,9 @@ def similar_tracks(copper, seed: dict, *, board=None) -> dict:
 
     for p, n in pairs_among(names, board=board):
         consider(p, n)
-    lone = [v["net"] for v in out["nets"] if v["net"] not in used and v["net"] not in partner and v["net"] not in planes]
+    lone = [
+        v["net"] for v in out["nets"] if v["net"] not in used and v["net"] not in partner and v["net"] not in planes
+    ]
     for i in range(len(lone)):
         if lone[i] in used:
             continue

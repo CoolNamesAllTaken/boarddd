@@ -1,0 +1,8 @@
+{
+  "classes": [
+    {"class": "PCIE", "target": 85, "tolerance": 10, "kind": "differential", "nets": ["*PCIE*_{P,N}"],
+     "layer": "In2.Cu", "width": 0.11, "gap": 0.13, "reference": "In1.Cu In3.Cu"},
+    {"name": "RF", "z0": "50 Ω", "nets": "RF_*", "structure": "CPWG", "coplanar gap": 0.15},
+    {"name": "LVDS", "Zdiff": 100, "nets": "LVDS*"}
+  ]
+}

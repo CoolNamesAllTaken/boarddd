@@ -89,6 +89,39 @@ export const DISCONTINUITIES: Record<Discontinuity['type'], [string, string]>;
 /** ✓ ok, ⚠ warn (≥ 80 % of the tolerance), ✗ bad (outside, or no Z), none (no target). */
 export function verdict(z: number | null, target: Target | null): 'ok' | 'warn' | 'bad' | 'none';
 
+/** A group of nets (netGroup): tracks like a pick, or net-name patterns, with the members ticked. */
+export interface NetGroupValue {
+  source: 'similar' | 'pattern';
+  kind: 'single' | 'differential';
+  /** select similar: the layer, track width and pair gap (mm) matched. */
+  layer: string | null;
+  width: number | null;
+  gap: number | null;
+  /** pattern: the patterns. */
+  patterns: string[];
+  members: Array<{ nets: string[]; on: boolean; length?: number; note?: string }>;
+  /** The ticked members' nets. */
+  nets: string[];
+  /** The ticked pairs. */
+  pairs: Array<[string, string]>;
+}
+export interface NetGroup {
+  readonly root: HTMLDivElement;
+  readonly value: NetGroupValue | null;
+  /** What ≋ starts from, or null (≋ disabled). */
+  setSeed(seed: { layer: string; width?: number | null; nets: string[] } | null): void;
+  similar(seed?: { layer: string; width?: number | null; nets: string[] }): NetGroupValue | null;
+  patterns(texts: string | string[]): NetGroupValue | null;
+  toggle(net: string, on?: boolean): void;
+  clear(): void;
+  on(name: 'change' | 'apply' | 'clear', fn: (v: NetGroupValue | null) => void): () => void;
+  destroy(): void;
+}
+/** The group box: ≋ select similar, ⌕ net-name patterns, ticked chips, ✓ apply. */
+export function netGroup(el: HTMLElement, options: { copper: Copper; board?: Pick<Board, 'nets'> | null; names?: string[] | null; placeholder?: string }): NetGroup;
+/** A short name for a net or a pair (last path part, without the pair suffix). */
+export function shortName(nets: string[]): string;
+
 export interface ImpedancePanel {
   readonly root: HTMLDivElement;
   readonly analyzer: Analyzer;
@@ -97,6 +130,10 @@ export interface ImpedancePanel {
   readonly runs: number;
   /** The section in the cross-section. */
   readonly section: Section | null;
+  /** The group box, or null with `group: false`. */
+  readonly group: NetGroup | null;
+  /** ≋ from the current pick. */
+  selectSimilar(): NetGroupValue | null;
   select(s: string | string[] | Selection): Promise<void | null>;
   setOverride(structure: '' | Section['structure']): Promise<void>;
   /** Show route position s (mm along the first net): stage marker, section, cross-section. */
@@ -107,7 +144,7 @@ export interface ImpedancePanel {
   readonly frequency: number | null;
   /** Show the loss at another frequency (snapped to the analysis's sweep; no re-run). */
   setFrequency(f: number): number;
-  on(name: 'select' | 'result' | 'hover' | 'error' | 'focus' | 'frequency', fn: (v: any) => void): () => void;
+  on(name: 'select' | 'result' | 'hover' | 'error' | 'focus' | 'frequency' | 'group', fn: (v: any) => void): () => void;
   destroy(): void;
 }
 /** The click-a-trace impedance panel (see docs/impedance.md "UI"). */
@@ -122,6 +159,8 @@ export function impedancePanel(el: HTMLElement, options: {
   injectCss?: boolean;
   /** Hz: the loss shown and analyzeNet's frequency (default 5.6e9); null: no loss. */
   frequency?: number | null;
+  /** false: no group box (≋ select similar, net-name patterns). */
+  group?: boolean;
 }): ImpedancePanel;
 /** 5.6e9 → '5.6 GHz'. */
 export function fmtHz(f: number): string;

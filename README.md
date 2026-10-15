@@ -32,6 +32,9 @@ PR review) and internal tools. Framework-free ES modules, no build step, `.d.ts`
   with holes, keepouts, pads as copper, net ties, plane coverage, all with nets): `validateCopper`, and
   `copperFromGerbers` for Gerber X2 uploads in the browser. Server side, `boarddd.io.kicad.read_kicad_copper`
   and `boarddd.io.gerber_copper` write it. See [docs/copper.md](docs/copper.md).
+- **`boarddd/nets`**: nets by group: net-name patterns (`USB_D*`, `*_{P,N}`, `re:…`) and tracks like a picked one
+  (same width on the layer; a pair: same gap), in JS and Python (`boarddd.nets`). The Python readers give net
+  classes and impedance targets from KiCad, Eagle, IPC-2581, ODB++ and an impedance file. See [docs/nets.md](docs/nets.md).
 
 The Python package in [`python/`](python/README.md) (same repository, same version tag) holds the
 server-side readers and owns the board model. Readers are server-side (Python), renderers are
@@ -263,7 +266,11 @@ panel.on('result', (doc) => doc.summary.z_weighted);                    // the b
   - `createHighlight` (the nets over a dimmed board, a section, a marker);
   - `crossSection(el, section, { board })`;
   - `createAnalyzer` (`analyzeNet` in a module Worker, on the main thread from `file://`);
-  - `copperContent` (draws a copper@1 document, for boards without Gerbers).
+  - `copperContent` (draws a copper@1 document, for boards without Gerbers);
+  - `netGroup` (the group box on its own).
+- **Group:** `[≋] [USB_D* ] 13 ⇄ [✓] [✕]` at the top of the panel. ≋ selects every track like the picked one (same width
+  on the layer; a pair: same gap); typing patterns previews their matches. The matches are chips on the stage and
+  in the list; untick one to drop it. ✓ emits `'group'` (`{ source, kind, layer, width, gap, patterns, nets, pairs }`).
 - **3D:** `boardPointFromPick(viewer.pick(x, y))` gives the board mm of a pick on the board solid;
   `panel.selectAt(x, y)` selects there.
 - **Gerber-only uploads:** `copperFromGerbers(files)` (boarddd/copper) gives the copper. `stackupFromJob(gbrjob)`
@@ -389,7 +396,10 @@ coordinates), z up out of the top copper, board bottom face at z = 0 and top fac
   - a click picks the net and its pair, and the panel's Z matches analyzeNet's;
   - alt-click picks one segment, the profile moves the marker, and a discontinuity zooms;
   - an override re-runs, and the cross-section draws;
-  - CM5's 100 Ω pair, the 3D hook, and a `file://` bundle (main thread). `IMP_SHOTS=dir` saves screenshots.
+  - CM5's 100 Ω pair, the 3D hook, and a `file://` bundle (main thread). `IMP_SHOTS=dir` saves screenshots;
+  - ≋ from CM5's Ethernet pair finds the 13 pairs of its 100 Ω class; a dropped chip, patterns as typed.
+- `boarddd/nets`: JS↔Python parity on `fixtures/nets/cases.json` (`node fixtures/nets/make_cases.mjs --check`);
+  the CAD readers' net classes on `fixtures/cad/` (`python fixtures/cad/make_cad.py --check`).
 - Python: `cd python && pip install -e ".[dev]" && pytest` (model, validator, golden board, impedance, copper), `ruff`,
   `python -m boarddd.model --check` (generated schema/typings up to date).
 - `npm run typecheck`: the `.d.ts` files, plus `test/types/` (type-level use of `boarddd/gerber` and `boarddd/view2d`).

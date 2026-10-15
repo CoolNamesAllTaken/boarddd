@@ -253,3 +253,47 @@ test('loss: IL at the chosen frequency, the frequency chart, switching frequency
   expect(t.warm).toBeLessThan(400);                    // a warm re-analysis at another frequency is interactive
   expect(errors).toEqual([]);
 });
+
+test('group: ≋ finds the 100 Ω pairs like the picked one; drop one; patterns preview as typed', async ({ page }) => {
+  const errors = await openDemo(page, 'b=cm5&select=0');
+  const [x, y] = await trackMid(page, '/CM5/ETH_PI.TRD0_P');
+  await page.evaluate(([x, y]) => window.demo.stage.zoomTo({ minX: x - 2, maxX: x + 2, minY: y - 1.5, maxY: y + 1.5 }), [x, y]);
+  await page.evaluate(() => window.demo.stage.ready());
+  const [px, py] = await screenOf(page, x, y);
+  await page.mouse.click(px, py);
+  await page.waitForFunction(() => window.demo.panel.result, null, { timeout: 60_000 });
+  await expect(page.locator('.bdi-similar')).toBeEnabled();
+  await page.locator('.bdi-similar').click();
+  await expect(page.locator('.bdi-gcount')).toHaveText('13 ⇄');
+  await expect(page.locator('.bdi-ggeom')).toHaveText('w 0.13 s 0.25 F.Cu');
+  // every member's nets are on the stage overlay
+  const drawn = await page.evaluate(() => window.demo.panel.group.value.nets.length);
+  expect(drawn).toBe(26);
+  await shot(page, 'group-similar');
+  await page.locator('.bdi-member', { hasText: 'HDMI_PI.CK' }).locator('input').uncheck();
+  await expect(page.locator('.bdi-gcount')).toHaveText('12 ⇄');
+  await page.locator('.bdi-apply').click();
+  const applied = await page.evaluate(() => window.demo.applied);
+  expect(applied.source).toBe('similar');
+  expect(applied.pairs.length).toBe(12);
+  expect(applied.nets).not.toContain('/CM5/HDMI_PI.CK_P');
+  await expect(page.locator('#applied')).toHaveText('✓ 12 ⇄ w 0.13 s 0.25 F.Cu');
+  // patterns: typed, previewed, a bad one flagged
+  await page.locator('.bdi-pattern').fill('*ETH_PI.TRD{0,1}_{P,N}');
+  await expect(page.locator('.bdi-gcount')).toHaveText('2 ⇄');
+  await page.locator('.bdi-pattern').fill('NOTHING*');
+  await expect(page.locator('.bdi-gcount')).toHaveText('0');
+  await page.locator('.bdi-pattern').fill('*ETH_PI*  /USB_C.D_{P,N}');
+  await expect(page.locator('.bdi-gcount')).toHaveText('5 ⇄');
+  await shot(page, 'group-pattern');
+  await page.locator('.bdi-pattern').press('Enter');
+  const g = await page.evaluate(() => window.demo.applied);
+  expect(g.source).toBe('pattern');
+  expect(g.patterns).toEqual(['*ETH_PI*', '/USB_C.D_{P,N}']);
+  expect(g.kind).toBe('differential');
+  await page.locator('.bdi-pattern').fill('bad[');
+  await expect(page.locator('.bdi-pattern')).toHaveClass(/is-bad/);
+  await page.locator('.bdi-gclear').click();
+  await expect(page.locator('.bdi-members')).toBeHidden();
+  expect(errors).toEqual([]);
+});

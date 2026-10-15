@@ -14,8 +14,10 @@ open("board.json", "w").write(board.to_json())
 | module | reads | source (magpie `src/magpie/…` at `3a0374d3`) |
 |---|---|---|
 | `io.package` | a folder, zip or single file → `Board` (the one entry point; detects IPC-2581 and ODB++) | boarddd (new) |
-| `io.ipc2581` | IPC-2581 rev A/B/C (`.xml`/`.cvg`, gzip accepted) → `Board`: components + packages (`read_components`), profile, holes and slots, layers, stackup with Er/Df, nets | `pcb/ipc2581.py`; `read_ipc2581` (board level) new (F3) |
-| `io.odbpp` | ODB++ v7/v8 (dir, `.zip`, `.tgz`/`.tar`, `.Z`/`.gz` members) → `Board`: components + packages (`read_components`), profile, drill-layer holes and slots, matrix layers, per-layer stackup values, nets | `pcb/odbpp.py`; `read_odbpp` (board level) new (F3); two fixes, below |
+| `io.ipc2581` | IPC-2581 rev A/B/C (`.xml`/`.cvg`, gzip accepted) → `Board`: components + packages (`read_components`), profile, holes and slots, layers, stackup with Er/Df, nets, impedance specs as net classes (`read_net_classes`, [nets.md](nets.md)) | `pcb/ipc2581.py`; `read_ipc2581` (board level) new (F3) |
+| `io.odbpp` | ODB++ v7/v8 (dir, `.zip`, `.tgz`/`.tar`, `.Z`/`.gz` members) → `Board`: components + packages (`read_components`), profile, drill-layer holes and slots, matrix layers, per-layer stackup values, nets, net attributes and `impedance.xml` as net classes (`read_net_classes`) | `pcb/odbpp.py`; `read_odbpp` (board level) new (F3); two fixes, below |
+| `io.eagle` | Eagle / Fusion `.brd` (XML, Eagle 6+) → `Board`: nets (pairs by name), net classes (width, clearance, drill; targets by class name); `read_eagle_copper` → copper@1 tracks (arcs) and vias | boarddd (new) |
+| `io.impedance_file` | an impedance file (CSV, JSON, xlsx: class, target, tolerance, kind, net patterns, layer, width, gap) → net classes with targets ([nets.md](nets.md#impedance-file)) | boarddd (new) |
 | `io.eda` | the component model both readers build, and `to_model` onto `boarddd.model` | `footprint/model.py` (subset); `to_model` new |
 | `io.layers` | layer ids (KiCad names) and `order`, shared by package, IPC-2581 and ODB++ | boarddd (new) |
 | `io.archive` | zips, safely (zip slip, bombs, symlinks, member floods) | `pcb/extract.py` |
