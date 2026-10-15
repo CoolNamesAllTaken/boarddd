@@ -647,6 +647,10 @@ and show symbols and numbers, with the words in tooltips. The README has the API
 
   It solves nothing; it calls `lineFromStackup(..., { solver: 'field', layout })` and draws the conductors and
   dielectrics it returns, with εr labels; w, s, g and h show on hover. A section with no reference has none (✗).
+- **Group.** `netGroup` (in the panel unless `group: false`): ≋ runs `similarTracks` from the pick (the picked
+  track's layer and width; a pair: its gap too), the pattern box runs `matchNets` as it is typed
+  ([nets.md](nets.md)). Members are ticked chips, all highlighted on the stage; a plane net starts unticked. ✓
+  emits `'group'`; the host makes the targets.
 - **3D.** `boardPointFromPick(hit)` maps a `boarddd/scene` pick on the board solid back to board mm through the
   mesh's own transform (its geometry is board mm). `panel.selectAt(x, y)` selects there.
 

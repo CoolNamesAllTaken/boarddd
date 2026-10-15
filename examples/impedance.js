@@ -65,6 +65,15 @@ async function open(which) {
   data = cache.get(which);
   stage = v2.createStage($('stage'), { renderer: () => renderer, bounds: data.bounds, background: '#14161a' });
   panel = impedancePanel($('panel'), { board: data.board, copper: data.copper, stage, layers: () => data.views[view].layers });
+  // a host would make targets from an applied group; the demo shows what it got
+  const applied = document.createElement('div');
+  applied.id = 'applied';
+  $('panel').append(applied);
+  panel.on('group', (g) => {
+    applied.textContent = `✓ ${g.pairs.length ? `${g.pairs.length} ⇄` : `${g.nets.length} —`}${g.source === 'similar' ? ` w ${g.width}${g.gap != null ? ` s ${g.gap}` : ''} ${g.layer}` : ` ${g.patterns.join(' ')}`}`;
+    applied.title = g.nets.join(' ');
+    window.demo.applied = g;
+  });
   const contents = Object.fromEntries(Object.entries(data.views).map(([k, v]) => [k, v.content()]));
   const show = (k) => {
     view = k;

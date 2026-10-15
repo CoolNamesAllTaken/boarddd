@@ -54,7 +54,16 @@ from boarddd.io.eda import Aperture, Board, Component, Drill, Footprint, Footpri
 from boarddd.io.layers import layer_id as eda_layer_id
 from boarddd.io.layers import layer_order, sort_key
 
-__all__ = ["Board", "Component", "read_components", "read_odbpp", "Job", "symbol_shape", "uncompress_z"]
+__all__ = [
+    "Board",
+    "Component",
+    "read_components",
+    "read_odbpp",
+    "read_net_classes",
+    "Job",
+    "symbol_shape",
+    "uncompress_z",
+]
 
 Point = tuple[float, float]
 _UNIT_MM = {"MM": 1.0, "INCH": 25.4}
@@ -80,6 +89,20 @@ class Job:
             else:
                 self._archive(path.read_bytes())
         self._strip_root()
+
+    @classmethod
+    def from_files(cls, files: dict[str, bytes]) -> Job:
+        """A job from its members by path (an expanded upload): the folder holding matrix/matrix is the root."""
+        job = cls.__new__(cls)
+        job.files = {}
+        for name, data in files.items():
+            job._add(name, data)
+        roots = sorted(
+            k[: -len("matrix/matrix")] for k in job.files if k == "matrix/matrix" or k.endswith("/matrix/matrix")
+        )
+        if roots and roots[0]:
+            job.files = {k[len(roots[0]) :]: v for k, v in job.files.items() if k.startswith(roots[0])}
+        return job
 
     def _archive(self, data: bytes) -> None:
         if data[:4] == b"PK\x03\x04":
@@ -1130,6 +1153,7 @@ def read_odbpp(source, *, step: str = "", name: str | None = None) -> m.Board:
     matrix = _matrix(job)
     layers, copper_ids, ids = _model_layers(matrix)
     drills = _model_drills(job, base, matrix, ids, warnings)
+    nets, classes, class_warnings = _net_classes(job, base, matrix, ids)
     for layer in layers:
         plating = {d.plated for d in drills if d.layer == layer.id}
         if layer.role == "drill" and len(plating) == 1:
@@ -1159,8 +1183,9 @@ def read_odbpp(source, *, step: str = "", name: str | None = None) -> m.Board:
         drills=drills,
         footprints=footprints,
         components=components,
-        nets=[m.Net(name=n) for n in _net_names(job.text(f"{base}/eda/data") or "")],
-        warnings=board.warnings + warnings,
+        nets=nets,
+        net_classes=classes,
+        warnings=board.warnings + warnings + class_warnings,
     )
     return out
 
@@ -1410,5 +1435,261 @@ def _model_stackup(
 
 
 def _net_names(text: str) -> list[str]:
-    names = {ln.split(None, 1)[1].strip() for ln in text.splitlines() if ln.startswith("NET ") and len(ln.split()) > 1}
+    names = {_net_name(ln) for ln in text.splitlines() if ln.startswith("NET ")}
     return sorted(n for n in names if n and n != "$NONE$")
+
+
+def _net_name(line: str) -> str:
+    """NET <name>[ ];<attributes>;ID=<id>: the name (it has no blanks or semicolons)."""
+    return line[4:].split(";", 1)[0].strip()
+
+
+# ─── Net attributes and impedance constraints ────────────────────────────────
+
+_TEXT_ATTRS = (".diff_pair", ".net_type", ".electrical_class")
+
+
+def _lookup(text: str) -> tuple[dict[int, str], dict[int, str]]:
+    """The @ (attribute names) and & (text values) tables of eda/data or a features file."""
+    names, texts = {}, {}
+    for raw in text.splitlines():
+        line = raw.strip().lstrip("#")
+        if mt := re.match(r"^([@&])(\d+)\s+(.*)$", line):
+            (names if mt.group(1) == "@" else texts)[int(mt.group(2))] = mt.group(3).strip()
+    return names, texts
+
+
+def _assigned(attrs: str, names: dict[int, str], texts: dict[int, str]) -> dict[str, str]:
+    """'0,2=1,5=1.5' -> {name: value}: a bare index is a boolean, a text attribute's value is a & index."""
+    out = {}
+    for item in attrs.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        idx, _, value = item.partition("=")
+        try:
+            name = names.get(int(idx))
+        except ValueError:
+            continue
+        if name is None:
+            continue
+        if not value:
+            out[name] = "true"
+        elif name in _TEXT_ATTRS or not name.startswith("."):
+            try:
+                out[name] = texts.get(int(value), value)
+            except ValueError:
+                out[name] = value
+        else:
+            out[name] = value
+    return out
+
+
+def _eda_nets(text: str) -> tuple[list[tuple[str, dict[str, str]]], dict[tuple[str, int], str]]:
+    """eda/data: [(net, attributes)] and the net of each feature its FID records name ((layer, feature) -> net)."""
+    names, texts = _lookup(text)
+    layers: list[str] = []
+    nets: list[tuple[str, dict[str, str]]] = []
+    feature_net: dict[tuple[str, int], str] = {}
+    current = None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("LYR "):
+            layers = [x.lower() for x in line.split()[1:]]
+        elif line.startswith("NET "):
+            parts = line[4:].split(";")
+            current = parts[0].strip()
+            attrs = next((p for p in parts[1:] if p and not p.strip().startswith("ID=")), "")
+            nets.append((current, _assigned(attrs, names, texts)))
+        elif line.startswith(("PKG ", "FGR ")):
+            current = None
+        elif line.startswith("FID ") and current:
+            t = line.split()
+            if len(t) >= 4:
+                try:
+                    lyr, feat = int(t[2]), int(t[3])
+                except ValueError:
+                    continue
+                if 0 <= lyr < len(layers):
+                    feature_net[(layers[lyr], feat)] = current
+    return nets, feature_net
+
+
+def _imp_features(text: str) -> dict[int, list[int]]:
+    """A layer's features file: constraint id -> the feature numbers carrying .imp_constraint_id."""
+    names, _ = _lookup(text)
+    key = next((i for i, n in names.items() if n == ".imp_constraint_id"), None)
+    out: dict[int, list[int]] = {}
+    if key is None:
+        return out
+    index = -1
+    in_surface = False
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line[0] in "#$@&" or line.startswith("UNITS") or line.startswith("U "):
+            continue
+        head = line.split()[0]
+        if in_surface:
+            if head == "SE":
+                in_surface = False
+            continue
+        if head not in ("P", "L", "A", "T", "B", "S"):
+            continue
+        index += 1
+        if head == "S":
+            in_surface = True
+        attrs = line.split(";")[1] if ";" in line else ""
+        for item in attrs.split(","):
+            idx, _, value = item.strip().partition("=")
+            if idx.isdigit() and int(idx) == key and value.strip().lstrip("-").isdigit():
+                out.setdefault(int(value), []).append(index)
+    return out
+
+
+def _odb_length(el, default_unit: str = "MIL") -> float | None:
+    if el is None or el.get("Val") in (None, ""):
+        return None
+    scale = {"MM": 1.0, "MICRON": 0.001, "INCH": 25.4, "MIL": 0.0254}.get(
+        str(el.get("Units") or default_unit).upper(), 0.0254
+    )
+    try:
+        return round(float(el.get("Val")) * scale, 6)
+    except ValueError:
+        return None
+
+
+def read_net_classes(source, *, step: str = "") -> tuple[list[m.Net], list[m.NetClass], list[str]]:
+    """
+    An ODB++ job's nets and net classes, without reading its components: pairs from `.diff_pair`; a class per
+    `.electrical_class` (else `.net_type`) value, with the class-name convention's target (DP_90, 50ohm...) and
+    `.dpair_gap`; and a class per `steps/<step>/impedance.xml` Descriptor (target, tolerance, width, spacing,
+    reference planes) holding the nets of the line features that carry its `.imp_constraint_id`.
+    """
+    job = source if isinstance(source, Job) else Job(source)
+    steps = job.steps()
+    if not steps:
+        return [], [], ["ODB++: no step"]
+    chosen = step.lower() if step else ([s for s in steps if s in ("pcb", "board")] or steps)[0]
+    matrix = _matrix(job)
+    _, _, ids = _model_layers(matrix)
+    return _net_classes(job, f"steps/{chosen}", matrix, ids)
+
+
+def _net_classes(job: Job, base: str, matrix, ids: dict[str, str]) -> tuple[list[m.Net], list[m.NetClass], list[str]]:
+    import xml.etree.ElementTree as ET
+
+    from boarddd.io.kicad.project import impedance_from_name
+    from boarddd.nets import pairs_among
+
+    warnings: list[str] = []
+    eda_text = job.text(f"{base}/eda/data") or ""
+    units = _units(eda_text)
+    records, feature_net = _eda_nets(eda_text)
+    attrs = {n: a for n, a in records if n and n != "$NONE$"}
+    names = sorted(attrs)
+    by_pair: dict[str, list[str]] = {}
+    for n, a in attrs.items():
+        if a.get(".diff_pair"):
+            by_pair.setdefault(a[".diff_pair"], []).append(n)
+    partner: dict[str, str] = {}
+    for group in by_pair.values():
+        if len(group) == 2:
+            ((p, n),) = pairs_among(group) or [tuple(sorted(group))]
+            partner[p], partner[n] = n, p
+    for p, n in pairs_among([x for x in names if x not in partner]):
+        partner[p], partner[n] = n, p
+    nets = [
+        m.Net(name=n, pair=partner.get(n), net_class=attrs[n].get(".electrical_class") or attrs[n].get(".net_type"))
+        for n in names
+    ]
+
+    classes: dict[str, m.NetClass] = {}
+    for net in nets:
+        if not net.net_class:
+            continue
+        nc = classes.setdefault(
+            net.net_class, m.NetClass(name=net.net_class, impedance=impedance_from_name(net.net_class))
+        )
+        nc.nets.append(net.name)
+        gap = attrs[net.name].get(".dpair_gap")
+        if gap and nc.diff_pair_gap is None:
+            try:
+                nc.diff_pair_gap = round(float(gap) * (_UNIT_MM[units]), 6)
+            except ValueError:
+                pass
+    for nc in classes.values():
+        imp = nc.impedance
+        if imp and imp.kind == "single" and nc.nets and all(partner.get(n) in nc.nets for n in nc.nets):
+            imp.kind = "differential"
+
+    text = job.text(f"{base}/impedance.xml")
+    if text:
+        try:
+            root = ET.fromstring(text.encode("utf-8"))
+        except ET.ParseError as exc:
+            root = None
+            warnings.append(f"ODB++ impedance.xml: {exc}")
+        by_id = {}
+        for b in _blocks(job.text("matrix/matrix") or "", "LAYER"):
+            if b.get("ID"):
+                by_id[b["ID"]] = ids.get(b.get("NAME", "").lower(), b.get("NAME", "").lower())
+        features: dict[str, dict[int, list[int]]] = {}
+        for desc in root.iter() if root is not None else []:
+            if desc.tag.rsplit("}", 1)[-1] != "Descriptor":
+                continue
+            child = {c.tag.rsplit("}", 1)[-1]: c for c in desc}
+            req = child.get("RequiredImpedance")
+            try:
+                target = float(req.get("ValOhms")) if req is not None else 0.0
+            except (TypeError, ValueError):
+                target = 0.0
+            if target <= 0:
+                continue
+            did = desc.get("id") or desc.get("Id") or desc.get("ID") or ""
+            layer = (desc.get("TraceLayerName") or "").lower()
+            if layer not in features:
+                features[layer] = _imp_features(job.text(f"{base}/layers/{layer}/features") or "")
+            members = sorted(
+                {
+                    feature_net[(layer, f)]
+                    for f in features[layer].get(int(did) if did.isdigit() else -1, [])
+                    if (layer, f) in feature_net
+                }
+                - {"$NONE$"}
+            )
+            tol = None
+            plus, minus = (float(req.get(k) or 0) for k in ("PlusVal", "MinusVal"))
+            if max(plus, minus) > 0:
+                percent = str(req.get("ValPercent", "true")).lower() != "false"
+                tol = round(max(plus, minus) if percent else 100 * max(plus, minus) / target, 6)
+            width = _odb_length(child.get("OriginalTraceWidth"))
+            spacing = _odb_length(child.get("OriginalSpacing"))
+            refs = [by_id.get(r.get("Val", ""), r.get("Val")) for r in desc if r.tag.rsplit("}", 1)[-1] == "RefPlane"]
+            differential = spacing is not None and bool(members) and all(partner.get(n) in members for n in members)
+            lid = ids.get(layer, layer)
+            name = f"impedance_{did}"
+            classes[name] = m.NetClass(
+                name=name,
+                nets=members,
+                track_width=None if differential else width,
+                diff_pair_width=width if differential else None,
+                diff_pair_gap=spacing if differential else None,
+                impedance=m.ImpedanceTarget(
+                    kind="differential" if differential else "single",
+                    target=target,
+                    tolerance_pct=tol,
+                    source="odbpp",
+                    layers=[
+                        m.ImpedanceLayer(
+                            layer=lid,
+                            width=width,
+                            gap=spacing if differential else None,
+                            ref_top=refs[0] if refs else None,
+                            ref_bottom=refs[1] if len(refs) > 1 else None,
+                        )
+                    ],
+                ),
+            )
+            if not members:
+                warnings.append(f"ODB++ impedance {did} on {layer}: no line feature carries it")
+    return nets, list(classes.values()), warnings

@@ -54,7 +54,7 @@ from boarddd.io.eda import Aperture, Board, Component, Drill, Footprint, Footpri
 from boarddd.io.layers import layer_id as eda_layer_id
 from boarddd.io.layers import layer_order, sort_key
 
-__all__ = ["Board", "Component", "read_components", "read_ipc2581", "UNITS"]
+__all__ = ["Board", "Component", "read_components", "read_ipc2581", "read_net_classes", "UNITS"]
 
 UNITS = {"MILLIMETER": 1.0, "MM": 1.0, "INCH": 25.4, "MICRON": 0.001, "MILS": 0.0254, "MIL": 0.0254}
 
@@ -974,6 +974,8 @@ def read_ipc2581(source, *, name: str | None = None) -> m.Board:
     scale = UNITS.get(str(header.get("units") if header is not None else "MILLIMETER").upper(), 1.0)
     step = cad.findall("Step")[0]
     layers, copper_ids = _model_layers(cad)
+    nets, classes, class_warnings = _net_classes(root)
+    warnings += class_warnings
     drills = _model_drills(step, cad, scale)
     for layer in layers:
         plating = {d.plated for d in drills if d.layer == layer.id}
@@ -1004,7 +1006,8 @@ def read_ipc2581(source, *, name: str | None = None) -> m.Board:
         drills=drills,
         footprints=footprints,
         components=components,
-        nets=[m.Net(name=n) for n in _net_names(step)],
+        nets=nets,
+        net_classes=classes,
         warnings=board.warnings + warnings,
     )
     if out.stackup.copper_layers is None and copper_ids:
@@ -1271,3 +1274,226 @@ def _net_names(step: ET.Element) -> list[str]:
     names |= {el.get("name", "") for el in step.iter("LogicalNet")}
     names |= {el.get("name", "") for el in step.iter("PhyNet")}
     return sorted(n for n in names if n and n.lower() not in ("no_net", "nonet", "$none$"))
+
+
+# ─── Nets, pairs and impedance specs ─────────────────────────────────────────
+
+_LENGTH_UNITS = {"MM": 1.0, "INCH": 25.4, "MICRON": 0.001, "MILS": 0.0254, "MIL": 0.0254}
+_DIFFERENTIAL = ("EdgeCoupled", "BroadsideCoupled")
+
+
+def _structure(transmission: str, structure: str, refs: int) -> str | None:
+    s = structure.upper()
+    if transmission == "CoplanarWaveguide" or s.startswith("COPLANAR"):
+        return "coplanar_grounded" if refs or "STRIPLINE" in s or "EMBEDDED" in s else "coplanar"
+    if transmission == "BroadsideCoupled" or s.startswith("STRIPLINE"):
+        return "stripline"
+    if s.startswith("MICROSTRIP"):
+        return "microstrip"
+    return None
+
+
+def _tolerance_pct(value: float, el: ET.Element) -> float | None:
+    tol = max(_f(el, "tolPlus"), _f(el, "tolMinus"))
+    if tol <= 0:
+        return None
+    return round(tol if _true(el.get("tolPercent")) else 100 * tol / value, 6)
+
+
+def _impedance_spec(spec: ET.Element, scale: float, layer_ids: dict[str, str]) -> dict | None:
+    """
+    A Spec's Impedance as {target, tolerance_pct, transmission, structure, width, gap, coplanar_gap, refs}, or None.
+    Rev C: one Impedance (value, tolerances) with a TransmissionType child (SingleEnded, EdgeCoupled,
+    BroadsideCoupled, CoplanarWaveguide: LineWidth, Spacing or Pitch, CoplanarGroundSpacing, RefPlane). Rev B: one
+    Impedance per `type` (IMPEDANCE, LINEWIDTH, SPACING, COPLANAR_GROUND_SPACING, REF_PLANE_LAYER_ID), each with a
+    Property.
+    """
+    imps = spec.findall("Impedance")
+    if not imps:
+        return None
+    out = {
+        "target": None,
+        "tolerance_pct": None,
+        "transmission": "",
+        "structure": None,
+        "width": None,
+        "gap": None,
+        "coplanar_gap": None,
+        "refs": [],
+    }
+
+    def length(el: ET.Element | None) -> float | None:
+        if el is None or el.get("value") in (None, ""):
+            return None
+        unit = str(el.get("unit") or "").upper()
+        return round(_f(el, "value") * _LENGTH_UNITS.get(unit, scale), 6)
+
+    def ref(el: ET.Element) -> str | None:
+        name = el.get("layerOrGroupRef") or el.get("text") or ""
+        return layer_ids.get(name, name) or None
+
+    structure = ""
+    for imp in imps:
+        kind = str(imp.get("type") or "").upper()
+        if imp.get("value") not in (None, ""):  # rev C
+            out["target"] = _f(imp, "value")
+            out["tolerance_pct"] = _tolerance_pct(out["target"], imp)
+            for line in imp:
+                out["transmission"] = line.tag
+                structure = str(line.get("structure") or "")
+                out["width"] = length(line.find("LineWidth"))
+                if (sp := line.find("Spacing")) is not None:
+                    out["gap"] = length(sp)
+                elif (pitch := length(line.find("Pitch"))) is not None and out["width"] is not None:
+                    out["gap"] = round(pitch - out["width"], 6)
+                out["coplanar_gap"] = length(line.find("CoplanarGroundSpacing"))
+                out["refs"] = [r for r in (ref(el) for el in line.findall("RefPlane")) if r]
+            continue
+        props = imp.findall("Property")  # rev B
+        if not props:
+            continue
+        prop = props[0]
+        if kind == "IMPEDANCE" and prop.get("value") not in (None, ""):
+            out["target"] = _f(prop, "value")
+            out["tolerance_pct"] = _tolerance_pct(out["target"], prop)
+        elif kind == "LINEWIDTH":
+            out["width"] = length(prop)
+        elif kind == "SPACING":
+            out["gap"] = length(prop)
+        elif kind == "COPLANAR_GROUND_SPACING":
+            out["coplanar_gap"] = length(prop)
+        elif kind == "REF_PLANE_LAYER_ID":
+            out["refs"] += [r for r in (ref(p) for p in props) if r]
+    if not out["target"] or out["target"] <= 0:
+        return None
+    out["structure"] = _structure(out["transmission"], structure, len(out["refs"]))
+    if out["structure"] is None and out["coplanar_gap"] is not None:
+        out["structure"] = "coplanar_grounded" if out["refs"] else "coplanar"
+    return out
+
+
+def _layer_name_ids(cad: ET.Element) -> dict[str, str]:
+    """Copper layer name -> model layer id (as `_model_layers` numbers them)."""
+    out = {}
+    for el in cad.findall("Layer"):
+        lid = _copper_id(cad, el.get("name", ""))
+        if lid:
+            out[el.get("name", "")] = lid
+    return out
+
+
+def _copper_id(cad: ET.Element, name: str) -> str | None:
+    rows = [el for el in cad.findall("Layer") if _LAYER_ROLE.get(str(el.get("layerFunction", "")).upper()) == "copper"]
+    sequence = {}
+    for i, sl in enumerate(cad.iter("StackupLayer")):
+        sequence[sl.get("layerOrGroupRef", "")] = _f(sl, "sequence", float(i))
+    order = [el.get("name", "") for el in rows]
+    written = {n: i for i, n in enumerate(order)}
+    order.sort(key=lambda n: sequence.get(n, written[n]))
+    if name not in order:
+        return None
+    index, count = order.index(name) + 1, len(order)
+    side = "top" if index == 1 else "bottom" if index == count else "inner"
+    return eda_layer_id("copper", side, index, count)
+
+
+def read_net_classes(source) -> tuple[list[m.Net], list[m.NetClass], list[str]]:
+    """
+    An IPC-2581 file's nets (with `Net.pair` from `netPair`, else the naming rule) and one NetClass per impedance
+    Spec that nets reference: `LogicalNet/SpecRef` (the whole net) or `LayerFeature/Set[@net]/SpecRef` (the net on
+    that layer, which gives the target's layers). Without reading the rest of the file.
+    """
+    return _net_classes(_load(source))
+
+
+def _net_classes(root: ET.Element) -> tuple[list[m.Net], list[m.NetClass], list[str]]:
+    from boarddd.nets import pairs_among
+
+    warnings: list[str] = []
+    ecad = root.find("Ecad")
+    cad = ecad.find("CadData") if ecad is not None else None
+    if cad is None:
+        return [], [], ["IPC-2581: no Ecad/CadData"]
+    header = ecad.find("CadHeader")
+    scale = UNITS.get(str(header.get("units") if header is not None else "MILLIMETER").upper(), 1.0)
+    steps = cad.findall("Step")
+    if not steps:
+        return [], [], ["IPC-2581: no Step"]
+    step = steps[0]
+    layer_ids = _layer_name_ids(cad)
+    specs = {}
+    for spec in list(header.iter("Spec") if header is not None else []) + list(step.iter("Spec")):
+        found = _impedance_spec(spec, scale, layer_ids)
+        if found is not None:
+            specs[spec.get("name", "")] = found
+    names = _net_names(step)
+    pairs: dict[str, str] = {}
+    refs: dict[str, dict[str, set[str]]] = {}  # spec -> net -> layers ('' = the whole net)
+
+    def note(spec_id: str, net: str, layer: str) -> None:
+        if spec_id not in specs:
+            return
+        refs.setdefault(spec_id, {}).setdefault(net, set()).add(layer)
+
+    for ln in step.iter("LogicalNet"):
+        net = ln.get("name", "")
+        if ln.get("netPair"):
+            pairs[net], pairs[ln.get("netPair")] = ln.get("netPair"), net
+        for sr in ln.findall("SpecRef"):
+            note(sr.get("id", ""), net, "")
+    for lf in step.iter("LayerFeature"):
+        layer = layer_ids.get(lf.get("layerRef", ""), "")
+        for st in lf.iter("Set"):
+            net = st.get("net", "")
+            if net and st.get("netPair"):
+                pairs[net], pairs[st.get("netPair")] = st.get("netPair"), net
+            if net:
+                for sr in st.findall("SpecRef"):
+                    note(sr.get("id", ""), net, layer)
+    unknown = {sr.get("id", "") for sr in step.iter("SpecRef")} - set(specs)
+    for refd in refs.values():
+        names += sorted(n for n in refd if n not in names)
+    rule = {}
+    for p, n in pairs_among([x for x in names if x not in pairs]):
+        rule[p], rule[n] = n, p
+    nets = [m.Net(name=n, pair=pairs.get(n) or rule.get(n)) for n in names]
+    pair_of = {n.name: n.pair for n in nets}
+    classes = []
+    for spec_id, refd in refs.items():
+        sp = specs[spec_id]
+        members = sorted(refd)
+        differential = sp["transmission"] in _DIFFERENTIAL or (
+            sp["transmission"] != "SingleEnded" and bool(members) and all(pair_of.get(n) in refd for n in members)
+        )
+        layers = sorted({la for v in refd.values() for la in v if la})
+        imp = m.ImpedanceTarget(
+            kind="differential" if differential else "single",
+            target=sp["target"],
+            tolerance_pct=sp["tolerance_pct"],
+            structure=sp["structure"],
+            source="ipc2581",
+            layers=[
+                m.ImpedanceLayer(
+                    layer=la,
+                    width=sp["width"],
+                    gap=sp["gap"] if differential else None,
+                    coplanar_gap=sp["coplanar_gap"],
+                    ref_top=sp["refs"][0] if sp["refs"] else None,
+                    ref_bottom=sp["refs"][1] if len(sp["refs"]) > 1 else None,
+                )
+                for la in layers
+            ],
+        )
+        classes.append(
+            m.NetClass(
+                name=spec_id,
+                nets=members,
+                track_width=sp["width"] if not differential else None,
+                diff_pair_width=sp["width"] if differential else None,
+                diff_pair_gap=sp["gap"] if differential else None,
+                impedance=imp,
+            )
+        )
+    if unknown - {s.get("name", "") for s in root.iter("Spec")}:
+        warnings.append(f"IPC-2581: SpecRef to unknown spec(s) {', '.join(sorted(unknown))}")
+    return nets, classes, warnings

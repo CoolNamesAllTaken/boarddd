@@ -14,6 +14,7 @@
   #stage { min-height: 0; margin: 0 0 10px 10px; }
   #panel { margin: 0 10px 10px; overflow: auto; }
   #panel .bdi-panel { border-radius: 6px; }
+  #applied { margin-top: 6px; color: var(--on); font-variant-numeric: tabular-nums; }
   @media (max-width: 700px) { body { grid-template: auto 1fr auto / 1fr; } #stage { margin: 0 10px; min-height: 50vh; } }
 </style>
 <div id="bar">
@@ -23,7 +24,7 @@
   </select>
   <span id="views"></span>
   <button id="fit" title="fit">⤢</button>
-  <span id="hint" title="click a trace: its net and pair · alt-click: one segment · hover the profile: the position on the board">⊕</span>
+  <span id="hint" title="click a trace: its net and pair · alt-click: one segment · hover the profile: the position on the board · ≋ every track like it · type net patterns (USB_D*, *_{P,N})">⊕</span>
 </div>
 <div id="stage"></div>
 <div id="panel"></div>

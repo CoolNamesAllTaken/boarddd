@@ -78,7 +78,7 @@ class SourceFile:
 class Source:
     """Where the model came from (provenance)."""
 
-    kind: Literal["kicad_pcb", "gerber", "odbpp", "ipc2581", "step", "other"] = _f(
+    kind: Literal["kicad_pcb", "gerber", "odbpp", "ipc2581", "eagle", "step", "other"] = _f(
         "The primary input format the reader used."
     )
     files: list[SourceFile] = _f("Input files.", factory=list)
@@ -455,6 +455,7 @@ class ImpedanceLayer:
     layer: str = _f("Signal layer ('F.Cu', 'In1.Cu').")
     width: float | None = _f("Track width, mm.", default=None, minimum=0)
     gap: float | None = _f("Differential pair gap, mm.", default=None, minimum=0)
+    coplanar_gap: float | None = _f("Gap to the coplanar ground, mm.", default=None, minimum=0)
     ref_top: str | None = _f("Reference plane above, if any.", default=None)
     ref_bottom: str | None = _f("Reference plane below, if any.", default=None)
 
@@ -472,20 +473,21 @@ class ImpedanceTarget:
     structure: Literal["microstrip", "stripline", "coplanar", "coplanar_grounded"] | None = _f(
         "Transmission-line structure, when the source says (MS, SL, CPW, CPWG).", default=None
     )
-    source: Literal["tuning_profile", "ipc2581", "odbpp", "name", "user"] = _f(
+    source: Literal["tuning_profile", "ipc2581", "odbpp", "name", "file", "user"] = _f(
         "Where the target comes from: a KiCad tuning profile, an IPC-2581/ODB++ spec, the class name convention "
-        "(SE_50_CP, DP_90_MS, 90ohm...) or a user entry."
+        "(SE_50_CP, DP_90_MS, 90ohm...), an impedance file (boarddd.io.impedance_file) or a user entry."
     )
     layers: list[ImpedanceLayer] = _f("Per-layer geometry, when the source gives it.", factory=list)
 
 
 @dataclass(kw_only=True)
 class NetClass:
-    """A net class (KiCad .kicad_pro net_settings) with its design rules and impedance target."""
+    """A net class (KiCad .kicad_pro net_settings, Eagle classes, an IPC-2581/ODB++ impedance spec, an impedance
+    file) with its design rules and impedance target."""
 
     name: str = _f("Class name.")
     nets: list[str] = _f("Net names in the class.", factory=list)
-    patterns: list[str] = _f("Assignment patterns (KiCad netclass_patterns, wildcards).", factory=list)
+    patterns: list[str] = _f("Assignment patterns (KiCad netclass_patterns; boarddd.nets patterns).", factory=list)
     track_width: float | None = _f("mm.", default=None, minimum=0)
     clearance: float | None = _f("mm.", default=None, minimum=0)
     diff_pair_width: float | None = _f("mm.", default=None, minimum=0)

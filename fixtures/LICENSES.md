@@ -53,3 +53,6 @@ MIT, `LICENSE.txt`); `KiCad_Stock_Excerpt.kicad_sym` (eleven symbols of KiCad's 
 inputs, MIT, `kipr/make_golden.py`); `magpie/*.svg` (magpie's review drawings of the same public footprints,
 `magpie/make_golden.py`); `kicad/royalblue54L-F_Mask.svg` (KiCad's plot of royalblue's F.Mask, CERN-OHL-P v2,
 `kicad/make.sh`). The scripts are MIT.
+| `cad/pic_programmer-impedance-ipc2581.xml.gz`, `cad/pic_programmer-impedance-odb.zip` | pic_programmer's IPC-2581 and ODB++ exports (`pic_programmer/exchange/`) with impedance specs, net attributes and an `impedance.xml` added | `cad/make_cad.py` | derived from KiCad's pic_programmer demo (as `pic_programmer/kicad/` above) |
+| `cad/usb.brd`, `cad/impedance.csv`, `cad/impedance.json`, `cad/impedance_control.xlsx`, `cad/make_cad.py` | a synthetic Eagle board and impedance files | written for boarddd (`cad/make_cad.py`) | MIT (this repository) |
+| `nets/cases.json`, `nets/make_cases.mjs` | boarddd/nets cases with the JS results; the `lanes` copper is synthetic, the rest uses `impedance/route/` | written for boarddd | MIT, and as `impedance/route/cm5.json.gz` for the CM5 seeds |

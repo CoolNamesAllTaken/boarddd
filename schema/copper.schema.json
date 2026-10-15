@@ -500,6 +500,7 @@
             "gerber",
             "odbpp",
             "ipc2581",
+            "eagle",
             "step",
             "other"
           ]

@@ -502,6 +502,7 @@ export default {
             "gerber",
             "odbpp",
             "ipc2581",
+            "eagle",
             "step",
             "other"
           ]

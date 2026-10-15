@@ -67,5 +67,22 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-hl .bdi-hl-pad, .bdi-hl .bdi-hl-via { fill: var(--bdi-hl); } .bdi-hl .bdi-hl-zone { fill: var(--bdi-hl); opacity: 0.5; }
 .bdi-hl .bdi-hl-section { fill: none; stroke: var(--bdi-hl-section); stroke-linecap: round; opacity: 0.85; }
 .bdi-hl .bdi-marker { fill: none; stroke: var(--bdi-marker); } .bdi-hl .bdi-marker-halo { fill: none; stroke: #000; opacity: 0.6; } .bdi-hl .bdi-ring { fill: none; stroke: var(--bdi-bad); }
+.bdi-group { display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid var(--bdi-line); padding-bottom: 6px; }
+.bdi-group-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.bdi-gbtn { font: inherit; min-width: 26px; height: 24px; background: var(--bdi-chip); color: inherit; border: 1px solid var(--bdi-line); border-radius: 4px; padding: 0 6px; cursor: pointer; }
+.bdi-gbtn:disabled { opacity: 0.4; cursor: default; }
+.bdi-gbtn:not(:disabled):hover, .bdi-gbtn:focus-visible { outline: 1px solid var(--bdi-accent); }
+.bdi-similar { font-size: 15px; }
+.bdi-apply:not(:disabled) { background: var(--bdi-accent); border-color: var(--bdi-accent); color: #fff; }
+.bdi-pattern { font: inherit; flex: 1 1 140px; min-width: 0; height: 24px; box-sizing: border-box; background: var(--bdi-bg); color: inherit; border: 1px solid var(--bdi-line); border-radius: 4px; padding: 0 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.bdi-pattern.is-bad { border-color: var(--bdi-bad); }
+.bdi-gcount { font-weight: 600; font-variant-numeric: tabular-nums; cursor: help; }
+.bdi-ggeom { color: var(--bdi-muted); font-variant-numeric: tabular-nums; cursor: help; }
+.bdi-group[data-state=empty] :is(.bdi-apply, .bdi-gclear, .bdi-members) { display: none; }
+.bdi-members { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; max-height: 128px; overflow-y: auto; }
+.bdi-member label { display: inline-flex; align-items: center; gap: 4px; background: var(--bdi-chip); border-radius: 4px; padding: 1px 6px 1px 3px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.bdi-member:not(.is-on) label { opacity: 0.45; text-decoration: line-through; }
+.bdi-member input { margin: 0; accent-color: var(--bdi-accent); }
+.bdi-msym { color: var(--bdi-muted); }
 .bdi-tip { position: absolute; z-index: 5; pointer-events: none; background: var(--bdi-bg); color: var(--bdi-fg); font: var(--bdi-font); padding: 2px 6px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); white-space: nowrap; }
 `;

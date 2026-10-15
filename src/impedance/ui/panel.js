@@ -6,9 +6,11 @@
 //   ‾‾‾╲__  ___/‾  (route loss, then the section's Z, over frequency; hover: values; click: that frequency)
 //   [cross-section]
 //   ◎ 4.5  ⊘ 4.5  ⇹ 0.0 …  (discontinuities; click: zoom there)
+//   [≋] [⌕ USB_D*   ] 13 ⇄ [✓] [✕]  (a group: tracks like the pick, or net-name patterns; see group.js)
 // Colours and sizes are CSS variables (IMPEDANCE_UI_CSS); a host restyles them on .bdi-panel or an ancestor.
 import { createAnalyzer } from './analyzer.js';
 import { crossSection } from './crosssection.js';
+import { netGroup } from './group.js';
 import { pairOf, pairOrder } from './pick.js';
 import { attachPicker, createHighlight, routePoint } from './stage.js';
 import { IMPEDANCE_UI_CSS } from './style.js';
@@ -84,15 +86,17 @@ function injectCss(doc) {
  * syncs hovers both ways. Options: `analyzer` (createAnalyzer options, or an analyzer), `options` (analyzeNet
  * options), `pick: false` (select() only), `layers` (what clicks may pick: a list or a function returning the
  * layers on show), `injectCss: false`, `frequency` (Hz, default 5.6 GHz: the loss shown, and analyzeNet's;
- * null: no loss). Events: 'select', 'result', 'hover', 'error', 'frequency'.
+ * null: no loss), `group: false` (no group box). Events: 'select', 'result', 'hover', 'error', 'frequency', and
+ * 'group' (a group of nets applied: netGroup's value).
  */
 export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}, options = {}, pick = true, layers = null, injectCss: inject = true,
-  frequency = 5.6e9 } = {}) {
+  frequency = 5.6e9, group: withGroup = true } = {}) {
   if (inject) injectCss(el0.ownerDocument);
   const an = typeof analyzer?.analyze === 'function' ? analyzer : createAnalyzer({ board, copper, ...analyzer });
   const listeners = new Map();
   const emit = (n, v) => { for (const fn of listeners.get(n) ?? []) fn(v); };
   const root = el('div', 'bdi-panel', el0);
+  const grp = withGroup ? netGroup(root, { copper, board }) : null;
   const head = el('div', 'bdi-head', root);
   const netEl = el('span', 'bdi-nets', head);
   const zEl = el('span', 'bdi-z', head);
@@ -123,6 +127,20 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
   const hl = stage ? createHighlight(stage, copper) : null;
   const picker = stage && pick ? attachPicker(stage, copper, { board, layers, onSelect: (s) => api.select(s) }) : null;
   root.dataset.state = 'empty';
+  if (grp) {
+    // the group's nets on the stage while it is open; the selection again when it closes
+    grp.on('change', (g) => { root.dataset.group = g ? 'on' : ''; hl?.set(g ? { nets: g.nets } : selection); });
+    grp.on('apply', (g) => emit('group', g));
+  }
+
+  /** What ≋ starts from: the picked track's layer and width, else the analysis's longest stretch. */
+  function seedOf(hit, doc) {
+    if (!selection.nets.length) return null;
+    if (hit?.kind === 'track' && hit.width) return { layer: hit.layer, width: hit.width, nets: selection.nets };
+    const s = doc ? [...doc.sections].filter((x) => x.net === selection.nets[0]).sort((a, b) => b.length - a.length)[0] : null;
+    return s ? { layer: s.layer, width: s.geometry?.width ?? null, nets: selection.nets } : null;
+  }
+  let lastHit = null;
 
   function busy(on, p = null) {
     root.dataset.state = on ? 'busy' : result ? 'ready' : selection.nets.length ? 'error' : 'empty';
@@ -333,6 +351,7 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
       showLoss(doc);
       const main = [...doc.sections].filter((s) => s.z).sort((a, b) => b.length - a.length)[0] ?? doc.sections[0] ?? null;
       showSection(main);
+      if (grp && !(lastHit?.kind === 'track')) grp.setSeed(seedOf(null, doc));
       emit('result', doc);
     } catch (err) {
       if (err?.message === 'superseded' || myRun !== runs) return;
@@ -355,10 +374,16 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
     get result() { return result; },
     get runs() { return runs; },
     get section() { return current; },
+    /** The group box (netGroup), or null with `group: false`. */
+    get group() { return grp; },
+    /** ≋ from the current pick: the group of tracks like it. */
+    selectSimilar() { return grp ? grp.similar() : null; },
     /** Select nets ({ nets: [net] | [p, n], track? }; a string or an array also works) and analyse them. */
     select(s) {
       const v = typeof s === 'string' ? { nets: [s] } : Array.isArray(s) ? { nets: s } : s ?? { nets: [] };
       selection = { nets: v.nets ?? [], track: v.track ?? null };
+      lastHit = v.hit ?? null;
+      if (grp) { if (grp.value) grp.clear(); grp.setSeed(seedOf(lastHit, null)); }
       hl?.set(selection);
       emit('select', { ...selection, hit: v.hit ?? null });
       // while it runs: the nets, the previous numbers cleared
@@ -404,7 +429,7 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
       if (alt && d.track != null) return api.select({ nets: [d.net], track: d.track, hit: d });
       return api.select({ nets: [d.net], hit: d, ...pairFrom(d) });
     },
-    destroy() { picker?.detach(); hl?.remove(); an.destroy?.(); root.remove(); },
+    destroy() { picker?.detach(); hl?.remove(); grp?.destroy(); an.destroy?.(); root.remove(); },
   };
   function pairFrom(d) {
     const partner = pairOf(d.net, { board, names: copper.nets ?? [] });

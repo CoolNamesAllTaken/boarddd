@@ -49,7 +49,7 @@ export interface Board {
 /** Where the model came from (provenance). */
 export interface Source {
   /** The primary input format the reader used. */
-  kind: "kicad_pcb" | "gerber" | "odbpp" | "ipc2581" | "step" | "other";
+  kind: "kicad_pcb" | "gerber" | "odbpp" | "ipc2581" | "eagle" | "step" | "other";
   /** Input files. */
   files?: SourceFile[];
   /** The tool that wrote the inputs, e.g. 'KiCad Pcbnew 10.0.6' (Gerber X2/gbrjob GenerationSoftware). */
@@ -428,13 +428,13 @@ export interface Net {
   pair?: string | null;
 }
 
-/** A net class (KiCad .kicad_pro net_settings) with its design rules and impedance target. */
+/** A net class (KiCad .kicad_pro net_settings, Eagle classes, an IPC-2581/ODB++ impedance spec, an impedance file) with its design rules and impedance target. */
 export interface NetClass {
   /** Class name. */
   name: string;
   /** Net names in the class. */
   nets?: string[];
-  /** Assignment patterns (KiCad netclass_patterns, wildcards). */
+  /** Assignment patterns (KiCad netclass_patterns; boarddd.nets patterns). */
   patterns?: string[];
   /** mm. */
   track_width?: number | null;
@@ -468,8 +468,8 @@ export interface ImpedanceTarget {
   common_mode?: number | null;
   /** Transmission-line structure, when the source says (MS, SL, CPW, CPWG). */
   structure?: "microstrip" | "stripline" | "coplanar" | "coplanar_grounded" | null;
-  /** Where the target comes from: a KiCad tuning profile, an IPC-2581/ODB++ spec, the class name convention (SE_50_CP, DP_90_MS, 90ohm...) or a user entry. */
-  source: "tuning_profile" | "ipc2581" | "odbpp" | "name" | "user";
+  /** Where the target comes from: a KiCad tuning profile, an IPC-2581/ODB++ spec, the class name convention (SE_50_CP, DP_90_MS, 90ohm...), an impedance file (boarddd.io.impedance_file) or a user entry. */
+  source: "tuning_profile" | "ipc2581" | "odbpp" | "name" | "file" | "user";
   /** Per-layer geometry, when the source gives it. */
   layers?: ImpedanceLayer[];
 }
@@ -482,6 +482,8 @@ export interface ImpedanceLayer {
   width?: number | null;
   /** Differential pair gap, mm. */
   gap?: number | null;
+  /** Gap to the coplanar ground, mm. */
+  coplanar_gap?: number | null;
   /** Reference plane above, if any. */
   ref_top?: string | null;
   /** Reference plane below, if any. */

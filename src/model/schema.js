@@ -581,6 +581,15 @@ export default {
           "minimum": 0,
           "default": null
         },
+        "coplanar_gap": {
+          "description": "Gap to the coplanar ground, mm.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "default": null
+        },
         "ref_top": {
           "description": "Reference plane above, if any.",
           "type": [
@@ -652,13 +661,14 @@ export default {
           "default": null
         },
         "source": {
-          "description": "Where the target comes from: a KiCad tuning profile, an IPC-2581/ODB++ spec, the class name convention (SE_50_CP, DP_90_MS, 90ohm...) or a user entry.",
+          "description": "Where the target comes from: a KiCad tuning profile, an IPC-2581/ODB++ spec, the class name convention (SE_50_CP, DP_90_MS, 90ohm...), an impedance file (boarddd.io.impedance_file) or a user entry.",
           "type": "string",
           "enum": [
             "tuning_profile",
             "ipc2581",
             "odbpp",
             "name",
+            "file",
             "user"
           ]
         },
@@ -893,7 +903,7 @@ export default {
     },
     "NetClass": {
       "type": "object",
-      "description": "A net class (KiCad .kicad_pro net_settings) with its design rules and impedance target.",
+      "description": "A net class (KiCad .kicad_pro net_settings, Eagle classes, an IPC-2581/ODB++ impedance spec, an impedance file) with its design rules and impedance target.",
       "properties": {
         "name": {
           "description": "Class name.",
@@ -908,7 +918,7 @@ export default {
           "default": []
         },
         "patterns": {
-          "description": "Assignment patterns (KiCad netclass_patterns, wildcards).",
+          "description": "Assignment patterns (KiCad netclass_patterns; boarddd.nets patterns).",
           "type": "array",
           "items": {
             "type": "string"
@@ -1592,6 +1602,7 @@ export default {
             "gerber",
             "odbpp",
             "ipc2581",
+            "eagle",
             "step",
             "other"
           ]
