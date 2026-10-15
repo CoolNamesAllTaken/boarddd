@@ -90,6 +90,20 @@ class Job:
                 self._archive(path.read_bytes())
         self._strip_root()
 
+    @classmethod
+    def from_files(cls, files: dict[str, bytes]) -> Job:
+        """A job from its members by path (an expanded upload): the folder holding matrix/matrix is the root."""
+        job = cls.__new__(cls)
+        job.files = {}
+        for name, data in files.items():
+            job._add(name, data)
+        roots = sorted(
+            k[: -len("matrix/matrix")] for k in job.files if k == "matrix/matrix" or k.endswith("/matrix/matrix")
+        )
+        if roots and roots[0]:
+            job.files = {k[len(roots[0]) :]: v for k, v in job.files.items() if k.startswith(roots[0])}
+        return job
+
     def _archive(self, data: bytes) -> None:
         if data[:4] == b"PK\x03\x04":
             with zipfile.ZipFile(io.BytesIO(data)) as z:

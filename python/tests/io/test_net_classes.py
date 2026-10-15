@@ -98,6 +98,15 @@ def test_odbpp_attributes_and_impedance_xml():
     assert by["/PC-CLOCK-OUT"].pair == "/PC-DATA-OUT" and by["/VPP_ON"].net_class == "SE_50"
 
 
+def test_odbpp_from_expanded_files():
+    import zipfile
+
+    with zipfile.ZipFile(CAD / "pic_programmer-impedance-odb.zip") as z:
+        files = {f"upload/pic/{n}": z.read(n) for n in z.namelist() if not n.endswith("/")}
+    _, classes, _ = odbpp.read_net_classes(odbpp.Job.from_files(files))
+    assert "impedance_2" in {c.name for c in classes}
+
+
 def test_odbpp_full_reader_and_names():
     board = odbpp.read_odbpp(CAD / "pic_programmer-impedance-odb.zip")
     assert {"DP_90", "SE_50", "impedance_1", "impedance_2"} <= {c.name for c in board.net_classes}
