@@ -82,16 +82,12 @@ def _spec_refs(xml: str, layer: str, net: str, spec: str) -> str:
     """Add <SpecRef id=spec/> to every Set of `net` in the LayerFeature of `layer`."""
     start = xml.index(f'<LayerFeature layerRef="{layer}">')
     end = xml.index("</LayerFeature>", start)
-    body = xml[start:end].replace(
-        f'<Set net="{net}">', f'<Set net="{net}">\n            <SpecRef id="{spec}"/>'
-    )
+    body = xml[start:end].replace(f'<Set net="{net}">', f'<Set net="{net}">\n            <SpecRef id="{spec}"/>')
     return xml[:start] + body + xml[end:]
 
 
 def ipc2581() -> bytes:
-    xml = gzip.decompress((PIC / "pic_programmer-ipc2581.xml.gz").read_bytes()).decode(
-        "utf-8"
-    )
+    xml = gzip.decompress((PIC / "pic_programmer-ipc2581.xml.gz").read_bytes()).decode("utf-8")
     xml = xml.replace("    </CadHeader>", SPECS + "    </CadHeader>", 1)
     first = xml.index("        <LayerFeature ")
     xml = xml[:first] + LOGICAL + xml[first:]
@@ -301,9 +297,7 @@ def xlsx() -> bytes:
     sheet.append(["L1", "Differential", 90, 10, "6 mil", "6 mil", "L2"])
     sheet.append(["L4", "Differential", 100, 10, "5 mil", "7 mil", "L3"])
     out = io.BytesIO()
-    book.properties.created = book.properties.modified = __import__(
-        "datetime"
-    ).datetime(2026, 1, 1)
+    book.properties.created = book.properties.modified = __import__("datetime").datetime(2026, 1, 1)
     book.save(out)
     # openpyxl writes timestamps into docProps/core.xml and zip entries: rewrite with fixed times
     src = zipfile.ZipFile(io.BytesIO(out.getvalue()))
@@ -331,10 +325,7 @@ def _same(name: str, old: bytes, new: bytes) -> bool:
 
     def cells(data: bytes):
         book = openpyxl.load_workbook(io.BytesIO(data), read_only=True)
-        return [
-            [list(r) for r in sheet.iter_rows(values_only=True)]
-            for sheet in book.worksheets
-        ]
+        return [[list(r) for r in sheet.iter_rows(values_only=True)] for sheet in book.worksheets]
 
     return cells(old) == cells(new)
 
@@ -348,11 +339,7 @@ def main() -> int:
         "impedance.json": JSON_DOC.encode("utf-8"),
         "impedance_control.xlsx": xlsx(),
     }
-    stale = [
-        n
-        for n, data in files.items()
-        if not (HERE / n).is_file() or not _same(n, (HERE / n).read_bytes(), data)
-    ]
+    stale = [n for n, data in files.items() if not (HERE / n).is_file() or not _same(n, (HERE / n).read_bytes(), data)]
     if "--check" in sys.argv:
         if stale:
             print(

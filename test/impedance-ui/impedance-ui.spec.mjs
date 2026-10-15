@@ -111,7 +111,7 @@ test('alt-click selects one segment; the profile moves the stage marker; discont
   await page.locator('.bdi-d-via').first().click();
   const after = await page.evaluate(() => window.demo.stage.getView().s);
   expect(after).toBeGreaterThan(before * 2);
-  expect(await page.locator('.bdi-ring').count()).toBe(1);
+  await expect(page.locator('.bdi-ring')).toHaveCount(1);
 });
 
 test('an override re-runs; the cross-section draws the solved geometry', async ({ page }) => {
