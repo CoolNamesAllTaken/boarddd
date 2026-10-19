@@ -269,7 +269,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     const head = el('div', 'bdi-ctl-head', form);
     const name = el('strong', 'bdi-ctl-net', head, `${nets.length === 2 ? '⇄ ' : ''}${nets.join(' ')}`);
     name.title = nets.map((n) => `${n}${netInfo[n]?.pads != null ? ` · ${netInfo[n].pads} pads` : ''}${netInfo[n]?.auto ? ' · named here (no net name in the files)' : ''}`).join('\n');
-    if (rename && nets.length === 1 && netInfo[nets[0]]?.auto !== false) {
+    if (rename && nets.length === 1 && netInfo[nets[0]]?.auto) {
       const b = el('button', 'bdi-gbtn bdi-ctl-rename', head, '✎');
       b.type = 'button'; b.title = 'name this net'; b.setAttribute('aria-label', 'Rename net');
       b.addEventListener('click', async () => {
