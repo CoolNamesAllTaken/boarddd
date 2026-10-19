@@ -9,7 +9,7 @@ pip install "boarddd[step] @ git+https://github.com/CoolNamesAllTaken/boarddd@vX
 | | modules | needs |
 |---|---|---|
 | text | `text` (assembly tree, refdes, placements, extents), `slim` (a STEP without the board dressing), `modelfile` (sniffing), `registration` (STEP frame ⇄ placements) | stdlib |
-| engine | `occ`, `index`, `split`, `measure`, `fingerprint`, `work`, `cache`, `hlr`, `cli` | the `[step]` extra: cadquery-ocp, numpy, shapely |
+| engine | `occ`, `index`, `split`, `measure`, `fingerprint`, `work`, `cache`, `hlr`, `cli`, `glb` | the `[step]` extra: cadquery-ocp, numpy, shapely (DracoPy for `glb`) |
 
 Importing an engine module without the extra raises an `ImportError` that names it:
 `boarddd.step.split needs the [step] extra (OCP, numpy, shapely not installed): pip install 'boarddd[step]'`.
@@ -46,6 +46,18 @@ python -m boarddd.step.cli split board.step --pos pos.csv --out parts/    # per-
   `brep_key` (every face) and `color_key`; `same(a, b)` compares with tolerances.
 - **`hlr`**: four-view SVG line drawings and overlay diffs of two models (OCCT hidden-line removal); CSS
   variables `--boarddd-step-*` theme them.
+- **`glb`**: the whole board as one compact GLB per level of detail, for viewers that should not read the STEP
+  (`python -m boarddd.step.glb board.step --out dir/` writes `coarse.glb`, `full.glb`, `summary.json`). Each
+  distinct product is cut out of the text and tessellated once (`LODS`: coarse 0.2 mm / 1.0 rad, full 0.02 mm /
+  0.5 rad); its mesh is shared by every instance; faces of one colour are one primitive; one node per top-level
+  instance, named as the STEP names it (KiCad: the designator), its placement as the matrix. Under a root node
+  that turns mm Z-up into glTF's metres Y-up, everything is in the STEP's frame. Draco
+  (`KHR_draco_mesh_compression`, 14-bit positions, 10-bit normals; `--compression quantize` for
+  `KHR_mesh_quantization` and no decoder). Levels share nodes, meshes and primitives, so a viewer swaps geometry
+  (`boarddd/models` `loadBoardGLB` / `upgradeBoardGLB`). Material `extras.step_color` is the STEP's colour, so
+  the viewer colours parts as from the STEP. With `cache=`, tessellations are kept per product
+  (`VERSION` and the levels are in the key). A KiCad export of 33 MB (289 instances, 65 products) is about
+  1 MB (full) in 40 s, 0.75 GB.
 - **`work`**: models are worked out in a process pool (`BOARDDD_STEP_WORKERS`, default 3). Applications add
   per-model work with `work.register_hook(name, function)`: the result is in `model.extras[name]` and in the
   cache.

@@ -23,3 +23,5 @@
 - `pic_programmer_sch/`: the root schematic sheet of KiCad's `demos/pic_programmer` (**KiCad demo data**)
   exported with kicad-cli 10.0.6, cropped to sheet mm 120,5..200,60 and minified; `head.svg` has R7's
   value changed 10K → 4.7K. Rebuilt by `make.sh` (`crop_svg.py`).
+- `tiny-board/`: `python/tests/step/fixtures_occ/tiny.step` through `python -m boarddd.step.glb` (boarddd 0.12.0):
+  `draco-{coarse,full}.glb` (default) and `quantize-full.glb` (`--compression quantize`).
