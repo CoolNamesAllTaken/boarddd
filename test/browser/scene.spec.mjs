@@ -334,14 +334,15 @@ test('context: a touch held still is a long-press; a moving one is not', async (
   const at = await screenOf(page, 10, 10, 3.6);
   const touch = (type, x, y) => page.evaluate(([t, px, py]) => window.v.canvas.dispatchEvent(new PointerEvent(t, {
     pointerId: 7, pointerType: 'touch', clientX: px, clientY: py, bubbles: true, isPrimary: true, button: 0 })), [type, x, y]);
+  // Held: the finger stays down until the menu would show (a busy CI page runs the timer late).
   await touch('pointerdown', at.x, at.y);
-  await page.waitForTimeout(800);
+  await page.waitForFunction(() => window.contexts.length === 1, null, { timeout: 10_000 });
   await touch('pointerup', at.x, at.y);
   expect(await page.evaluate(() => window.contexts)).toEqual(['U1']);
   await page.waitForTimeout(800);
   await touch('pointerdown', at.x, at.y);
   await touch('pointermove', at.x + 30, at.y);
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(2000);
   await touch('pointerup', at.x + 30, at.y);
   expect(await page.evaluate(() => window.contexts)).toEqual(['U1']);
 });
