@@ -471,7 +471,7 @@ class _Writer:
 
 
 def _draco(positions: np.ndarray, normals: np.ndarray, indices: np.ndarray) -> tuple[bytes, int]:
-    """KHR_draco_mesh_compression bytes (POSITION id 0, NORMAL id 1) and the vertex count they decode to."""
+    """KHR_draco_mesh_compression bytes and the vertex count they decode to (attribute ids: DRACO_IDS)."""
     import DracoPy
 
     encoded = DracoPy.encode(
@@ -486,6 +486,10 @@ def _draco(positions: np.ndarray, normals: np.ndarray, indices: np.ndarray) -> t
     return encoded, len(DracoPy.decode(encoded).points)
 
 
+#: The unique ids DracoPy gives the attributes, which the glTF primitive must name: it adds the
+#: normals first. A viewer reading them the other way round draws the normals as positions (a
+#: unit cube per part), so the browser tests check real vertices, not the accessors' bounds.
+DRACO_IDS = {"POSITION": 1, "NORMAL": 0}
 #: Draco quantization: 14 bits of a part's own extent (a 10 mm part: 0.6 um), normals 10 bits.
 DRACO_POSITION_BITS = 14
 DRACO_NORMAL_BITS = 10
@@ -548,7 +552,7 @@ def _write(instances: list, products: dict, lod: str, meta: dict, compression: s
                     "indices": bare(5125, "SCALAR", int(len(indices))),
                     "material": material_of[color],
                     "extensions": {
-                        "KHR_draco_mesh_compression": {"bufferView": view, "attributes": {"POSITION": 0, "NORMAL": 1}}
+                        "KHR_draco_mesh_compression": {"bufferView": view, "attributes": dict(DRACO_IDS)}
                     },
                 }
             else:

@@ -21,13 +21,23 @@
     const up = await upgradeBoardGLB(coarse.object, '/test/fixtures/tiny-board/draco-full.glb', { dracoLoader });
     dracoLoader.dispose();
     coarse.object.updateMatrixWorld(true);
+    // From the vertices themselves (precise), not the accessors' bounds: those were right while
+    // the decoded positions were the normals.
     const box = (name) => {
-      const b = new THREE.Box3().setFromObject(coarse.nodes.find((n) => n.name === name).group);
+      const b = new THREE.Box3().setFromObject(coarse.nodes.find((n) => n.name === name).group, true);
       return [b.min.toArray(), b.max.toArray()];
+    };
+    const ray = (name) => {
+      const [lo, hi] = box(name);
+      const caster = new THREE.Raycaster(new THREE.Vector3((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, 50), new THREE.Vector3(0, 0, -1));
+      const hit = caster.intersectObjects(coarse.object.children, true)[0];
+      let node = hit ? hit.object : null;
+      while (node && node.parent !== coarse.object) node = node.parent;
+      return node ? node.name : null;
     };
     window.report = {
       names: coarse.nodes.map((n) => n.name), coarse: coarse.triangles, full: up.triangles, swapped: up.swapped,
-      R1: box('R1'), R5: box('R5'), meta: coarse.meta,
+      R1: box('R1'), R5: box('R5'), meta: coarse.meta, hitR1: ray('R1'), hitU1: ray('U1'),
     };
     v.render?.();
   } catch (e) { window.errors.push(String(e.stack || e)); }

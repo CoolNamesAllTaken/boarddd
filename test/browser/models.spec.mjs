@@ -54,5 +54,9 @@ test('a Draco board GLB loads coarse, upgrades to full, keeps names and boxes', 
   expect(r.R1[0][2]).toBeGreaterThan(1.0);
   expect(r.R5[1][2]).toBeLessThan(0.1);
   expect(r.R1[1][0] - r.R1[0][0]).toBeGreaterThan(0.9);
+  expect(r.R1[1][0] - r.R1[0][0]).toBeLessThan(1.2);
+  // A ray from above lands on the part under it.
+  expect(r.hitR1).toBe('R1');
+  expect(r.hitU1).toBe('U1');
   if (shots) await page.locator('#v').screenshot({ path: `${shots}/boardglb.png` });
 });
