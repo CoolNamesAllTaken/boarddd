@@ -48,6 +48,8 @@ export interface Highlight {
   marker(p: Vec2 | null): void;
   rings(points: Vec2[] | null): void;
   routeOf(net: string): RouteStep[];
+  /** The layer on show: the nets' copper on other layers is drawn fainter (null: every layer alike). */
+  focus(layer: string | null): void;
   invalidate(): void;
   remove(): void;
 }
@@ -164,6 +166,72 @@ export function impedancePanel(el: HTMLElement, options: {
 }): ImpedancePanel;
 /** 5.6e9 → '5.6 GHz'. */
 export function fmtHz(f: number): string;
+
+/** A stop of the layer view's stepper: a copper layer, or the dielectric between two (stackup layers merged). */
+export type LayerStop =
+  | { kind: 'copper'; layer: string; name: string; thickness: number | null }
+  | { kind: 'dielectric'; name: string; thickness: number | null; epsilon_r: number | null; material?: string | null; dielectric?: 'prepreg' | 'core' | null; parts: unknown[] };
+/** Top to bottom: every copper layer of the copper, and the stackup's dielectrics between them. */
+export function layerStops(copper: Copper, stackup?: Board['stackup'] | null): LayerStop[];
+/** The section most of a net's route is (layer, structure, width / gap), from an analysis. */
+export function mainSection(doc: ImpedanceAnalysis | null): Section | null;
+
+/** What the layer view's control form says: a structure to control. */
+export interface ControlDraft {
+  nets: string[];
+  kind: 'single' | 'differential';
+  layer: string;
+  /** The stackup's structure names; null: microstrip / stripline by the layer. */
+  structure: 'microstrip' | 'stripline' | 'coplanar' | 'coplanar_grounded' | null;
+  target: number;
+  tolerance_pct: number;
+  width: number | null;
+  gap: number | null;
+  coplanar_gap: number | null;
+  /** A point on each net's copper, for an app that keeps nets by place across revisions. */
+  anchors: Array<{ net: string; layer: string; x: number; y: number }>;
+  /** Tier 1 on the board's stackup: Z at the routed width, and the width for the target. */
+  tier1?: { z: number; model: string; width_for_target: number };
+}
+export interface LayerView {
+  readonly root: HTMLDivElement;
+  readonly stage: Stage;
+  readonly stops: LayerStop[];
+  readonly index: number;
+  readonly stop: LayerStop & { index: number };
+  readonly selection: { nets: string[]; layers: string[] } | null;
+  readonly draft: ControlDraft | null;
+  readonly panel: ImpedancePanel | null;
+  /** A stop by index, or a copper layer by id. */
+  show(stop: number | string): void;
+  step(by: number): void;
+  /** Pick nets as a right click would. */
+  pick(nets: string[], options?: { guessPair?: boolean }): void;
+  /** Pick what is under a board point (mm) on the layer on show. */
+  pickAt(x: number, y: number): CopperHit | null;
+  clear(): void;
+  setTarget(v: { target?: number; tolerance?: number }): void;
+  on(name: 'layer' | 'segment' | 'net' | 'draft' | 'control' | 'rename' | 'error', fn: (v: any) => void): () => void;
+  destroy(): void;
+}
+/**
+ * The board one copper layer at a time (the layers above ghosted), a stepper through the stackup (↑/↓), click a
+ * trace for its segment, right click / long-press for its net on every layer and a form to control it.
+ */
+export function layerView(el: HTMLElement, options: {
+  board: Board;
+  copper: Copper;
+  /** createAnalyzer options: the net's Z along its route under the form; false (default): none. */
+  route?: false | { worker?: boolean | string | URL };
+  /** Nets named here (auto) can be renamed; pads per net. */
+  netInfo?: Record<string, { auto?: boolean; pads?: number }>;
+  rename?: ((net: string, name: string) => Promise<unknown>) | null;
+  /** The app's tier-2 figure for a draft. */
+  evaluate?: ((draft: ControlDraft) => Promise<{ z: number | null; width?: number | null; gap?: number | null; why?: string; note?: string } | null>) | null;
+  editable?: boolean;
+  defaults?: { target?: { single?: number; differential?: number }; tolerance?: number; pair?: boolean };
+  injectCss?: boolean;
+}): LayerView;
 
 /** The components' CSS (variables --bdi-*), injected by impedancePanel unless injectCss: false. */
 export const IMPEDANCE_UI_CSS: string;

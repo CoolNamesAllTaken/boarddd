@@ -1,19 +1,19 @@
 // boarddd/impedance/ui: the components' CSS. Every colour and size is a variable a host overrides on .bdi-panel,
 // .bd2-stage or any ancestor (e.g. :root); light by default, dark under prefers-color-scheme or [data-theme=dark].
 export const IMPEDANCE_UI_CSS = `
-:where(.bdi-panel, .bd2-stage) {
+:where(.bdi-panel, .bd2-stage, .bdi-lv) {
   --bdi-bg: #fcfcfb; --bdi-fg: #0b0b0b; --bdi-muted: #6b6a66; --bdi-line: #e4e3df; --bdi-chip: #efeee9;
   --bdi-ok: #1a8f5a; --bdi-warn: #c98500; --bdi-bad: #d0402b; --bdi-accent: #2a78d6; --bdi-band: rgba(26, 143, 90, 0.10);
   --bdi-cu: #c8803a; --bdi-plane: #9a6630; --bdi-diel: #e9ddb8; --bdi-mask: #6da86f; --bdi-dim: #000;
   --bdi-hl: #ffd23f; --bdi-hl-section: #2a78d6; --bdi-marker: #ffffff; --bdi-font: 12px/1.3 system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
-  :where(.bdi-panel, .bd2-stage):where(:not([data-theme=light] *)) {
+  :where(.bdi-panel, .bd2-stage, .bdi-lv):where(:not([data-theme=light] *)) {
     --bdi-bg: #1a1a19; --bdi-fg: #f2f1ec; --bdi-muted: #a3a29a; --bdi-line: #34342f; --bdi-chip: #2a2a27;
     --bdi-band: rgba(46, 178, 112, 0.14); --bdi-diel: #5b5133; --bdi-mask: #3f7a42;
   }
 }
-:where([data-theme=dark]) :where(.bdi-panel, .bd2-stage) {
+:where([data-theme=dark]) :where(.bdi-panel, .bd2-stage, .bdi-lv) {
   --bdi-bg: #1a1a19; --bdi-fg: #f2f1ec; --bdi-muted: #a3a29a; --bdi-line: #34342f; --bdi-chip: #2a2a27;
   --bdi-band: rgba(46, 178, 112, 0.14); --bdi-diel: #5b5133; --bdi-mask: #3f7a42;
 }
@@ -84,5 +84,35 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-member:not(.is-on) label { opacity: 0.45; text-decoration: line-through; }
 .bdi-member input { margin: 0; accent-color: var(--bdi-accent); }
 .bdi-msym { color: var(--bdi-muted); }
+.bdi-hl .bdi-hl-other { opacity: 0.35; } .bdi-hl .bdi-hl-zone.bdi-hl-other { opacity: 0.18; }
+.bdi-lv { display: flex; flex-wrap: wrap; gap: 8px; font: var(--bdi-font); color: var(--bdi-fg); outline: none; }
+.bdi-lv:focus-visible { outline: 2px solid var(--bdi-accent); outline-offset: 2px; }
+.bdi-lv-main { display: flex; gap: 6px; flex: 3 1 320px; min-width: 0; }
+.bdi-lv-steps { display: flex; flex-direction: column; align-items: stretch; gap: 3px; width: 64px; flex: none; }
+.bdi-lv-step { font: inherit; min-height: 36px; background: var(--bdi-chip); color: inherit; border: 1px solid var(--bdi-line); border-radius: 6px; cursor: pointer; }
+.bdi-lv-step:disabled { opacity: 0.35; cursor: default; }
+.bdi-lv-stack { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; overflow-y: auto; }
+.bdi-lv-stop { cursor: pointer; border-radius: 4px; text-align: center; font-variant-numeric: tabular-nums; user-select: none; }
+.bdi-lv-stop.is-copper { --c: var(--bdi-cu); min-height: 26px; line-height: 26px; background: color-mix(in srgb, var(--c) 30%, var(--bdi-bg)); border-left: 4px solid var(--c); font-weight: 600; }
+.bdi-lv-stop.is-dielectric { min-height: 16px; line-height: 16px; font-size: 10px; color: var(--bdi-muted); background: var(--bdi-diel); opacity: 0.8; }
+.bdi-lv-stop.is-on { outline: 2px solid var(--bdi-accent); outline-offset: -2px; opacity: 1; }
+.bdi-lv-stop.has-net::after { content: ' ●'; color: var(--bdi-hl); text-shadow: 0 0 1px #000; }
+.bdi-lv-stage { position: relative; flex: 1 1 auto; min-width: 0; min-height: 280px; border: 1px solid var(--bdi-line); border-radius: 6px; overflow: hidden; background: #10140f; }
+.bdi-lv-stage > .bd2-stage { position: absolute; inset: 0; }
+.bdi-lv-caption { position: absolute; z-index: 4; left: 6px; top: 6px; padding: 1px 6px; border-radius: 4px; background: rgba(0,0,0,0.55); color: #fff; pointer-events: none; }
+.bdi-lv[data-pairing=on] .bdi-lv-stage { outline: 2px dashed var(--bdi-accent); outline-offset: -2px; cursor: crosshair; }
+.bdi-lv-side { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.bdi-lv-seg { color: var(--bdi-muted); }
+.bdi-ctl[hidden], .bdi-lv-route[hidden] { display: none; }
+.bdi-ctl { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--bdi-line); border-radius: 6px; background: var(--bdi-bg); }
+.bdi-ctl-head, .bdi-ctl-row, .bdi-ctl-out { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.bdi-ctl-layer { font: inherit; border: 0; cursor: pointer; } .bdi-ctl-layer.is-on { outline: 1px solid var(--bdi-accent); }
+.bdi-ctl-target, .bdi-ctl-tol { flex: 0 0 auto; width: 4.5em; text-align: right; }
+.bdi-ctl-z[data-v=ok] { color: var(--bdi-ok); } .bdi-ctl-z[data-v=warn] { color: var(--bdi-warn); } .bdi-ctl-z[data-v=bad] { color: var(--bdi-bad); }
+.bdi-ctl-sug { color: var(--bdi-accent); font-variant-numeric: tabular-nums; cursor: help; }
+.bdi-ctl-t2 { color: var(--bdi-muted); font-variant-numeric: tabular-nums; min-height: 1.3em; } .bdi-ctl-t2z { color: var(--bdi-fg); font-weight: 600; }
+.bdi-ctl-ok { min-height: 32px; font-weight: 600; }
+.bdi-lv-route > summary { cursor: pointer; color: var(--bdi-muted); }
+@media (max-width: 560px) { .bdi-lv-steps { width: 52px; } .bdi-lv-stage { min-height: 240px; } }
 .bdi-tip { position: absolute; z-index: 5; pointer-events: none; background: var(--bdi-bg); color: var(--bdi-fg); font: var(--bdi-font); padding: 2px 6px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); white-space: nowrap; }
 `;

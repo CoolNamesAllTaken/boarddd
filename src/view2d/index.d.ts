@@ -224,6 +224,8 @@ export type OverlayContext = {
 export type StageEvents = {
   view: { view: View; region: Region | null; flip: boolean };
   click: PointerHit;
+  /** A right click, or a touch held still (long-press). */
+  context: PointerHit;
   move: PointerHit;
   leave: { pane: number };
   measure: { points: Array<{ x: number; y: number }>; result: MeasureResult | null };

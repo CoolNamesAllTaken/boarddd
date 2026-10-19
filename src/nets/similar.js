@@ -144,3 +144,53 @@ export function similarTracks(copper, seed, { board = null } = {}) {
   out.pairs = candidates;
   return out;
 }
+
+/**
+ * The net that runs beside `net` as a pair partner would: parallel at one gap (pairGap) for at least `share` of its
+ * routed length, on `layer` or (default) summed over every layer it is routed on. For boards whose nets carry no
+ * names to pair them by (plain Gerbers: N1, N2...). `{ net, gap, length, share, layer }` (`gap` and `layer`: where
+ * they run together longest), or null.
+ */
+export function parallelPartner(copper, net, { layer = null, share = 0.5, exclude = [] } = {}) {
+  const mine = (copper.tracks ?? []).filter((t) => t.net === net && (layer == null || t.layer === layer));
+  const routed = mine.reduce((s, t) => s + trackLength(t), 0);
+  if (routed <= 0) return null;
+  const layers = [...new Set(mine.map((t) => t.layer))];
+  const skip = new Set([net, ...exclude]);
+  const planes = new Set((copper.planes ?? []).filter((p) => p.solid).map((p) => p.net));
+  const near = new Map(); // layer -> candidate nets with a track within the pair window of ours
+  for (const l of layers) {
+    const own = mine.filter((t) => t.layer === l);
+    const reach = Math.max(...own.map((t) => Math.max(0.5, 4 * t.width)));
+    const box = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+    for (const t of own) for (const [p, q] of pieces(t)) for (const [x, y] of [p, q]) {
+      box.minX = Math.min(box.minX, x); box.maxX = Math.max(box.maxX, x); box.minY = Math.min(box.minY, y); box.maxY = Math.max(box.maxY, y);
+    }
+    const found = new Set();
+    for (const t of copper.tracks ?? []) {
+      if (t.layer !== l || !t.net || skip.has(t.net) || planes.has(t.net)) continue;
+      const [x0, y0] = t.start, [x1, y1] = t.end;
+      if (Math.max(x0, x1) < box.minX - reach || Math.min(x0, x1) > box.maxX + reach
+        || Math.max(y0, y1) < box.minY - reach || Math.min(y0, y1) > box.maxY + reach) continue;
+      found.add(t.net);
+    }
+    near.set(l, found);
+  }
+  const by = new Map(); // other net -> { length, best: { layer, gap, length } }
+  for (const [l, nets] of near) {
+    for (const other of nets) {
+      const g = pairGap(copper, net, other, { layer: l });
+      if (!g) continue;
+      const was = by.get(other) ?? { length: 0, best: null };
+      was.length += g.length;
+      if (!was.best || g.length > was.best.length) was.best = { layer: l, gap: g.gap, length: g.length };
+      by.set(other, was);
+    }
+  }
+  let best = null;
+  for (const [other, v] of by) {
+    const s = v.length / routed;
+    if (s >= share && (!best || v.length > best.length)) best = { net: other, gap: v.best.gap, length: round(v.length, 3), share: round(s, 3), layer: v.best.layer };
+  }
+  return best;
+}

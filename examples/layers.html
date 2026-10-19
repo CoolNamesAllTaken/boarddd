@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>boarddd layer view</title>
+<style>
+  :root { color-scheme: light dark; --bg: #e4e6ec; --fg: #1b1f24; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #15181d; --fg: #e6e8ec; } }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); font: 13px system-ui, sans-serif; }
+  body { padding: 10px; }
+  #hint { margin: 0 0 8px; color: #6b6a66; }
+  #view .bdi-lv-stage { min-height: min(70vh, 560px); }
+  #out { margin-top: 8px; font-variant-numeric: tabular-nums; white-space: pre-wrap; }
+</style>
+<p id="hint">CM5 MINIMA from plain Gerbers (no X2): ↑ ↓ step through the layers · click a trace: its segment · right click (or hold): its net on every layer, then set a target.</p>
+<div id="view"></div>
+<div id="out"></div>
+<script src="./importmap.js"></script>
+<script type="module" src="./layers.js"></script>
