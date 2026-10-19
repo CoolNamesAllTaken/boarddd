@@ -20,6 +20,8 @@ import { BACKGROUNDS, gradientTexture, roomEnvironment, kicadLights } from './li
 import { VIEWS, fitCamera, clipPlanes } from './views.js';
 
 const CLICK_SLOP_PX = 5;
+const FLY_MS = 380;
+const LONG_PRESS_MS = 550;
 
 function disposeTree(root) {
   const seen = new Set();
@@ -56,12 +58,13 @@ function makeControls(kind, camera, el) {
  * opts: controls 'trackball' | 'orbit'; theme 'light' | 'dark'; background [top, bottom] CSS
  *   colours, one colour, or null for transparent; viewCube (true); fov (30); pixelRatio;
  *   environment (true: RoomEnvironment reflections); onPick({object, ref, point} | null);
- *   onRender(); antialias (true).
+ *   onContextPick(hit | null, {clientX, clientY, pointerType}) for a right click or a touch
+ *   long-press; onRender(); antialias (true).
  */
 export function createViewer(el, opts = {}) {
   const {
     controls: controlsKind = 'trackball', fov = 30, viewCube = true, environment = true,
-    antialias = true, onPick = null, onRender = null, preserveDrawingBuffer = false,
+    antialias = true, onPick = null, onContextPick = null, onRender = null, preserveDrawingBuffer = false,
   } = opts;
   let theme = opts.theme === 'dark' ? 'dark' : 'light';
   let backgroundSpec = opts.background === undefined ? 'theme' : opts.background;
@@ -109,12 +112,13 @@ export function createViewer(el, opts = {}) {
 
   const cube = viewCube ? new ViewCube(theme) : null;
   const raycaster = new THREE.Raycaster();
-  const listeners = { render: new Set(), view: new Set(), cube: new Set() };
+  const listeners = { render: new Set(), view: new Set(), cube: new Set(), context: new Set() };
   const stats = { frames: 0, requests: 0 };
   let width = 1, height = 1;
   let frame = 0, dirty = true, disposed = false;
   let controls = null;
   let panes = null;              // null, or [[Object3D, ...], ...]: what only that pane shows
+  let flight = null;             // the camera move flyTo is making, while it makes it
 
   /** Pane i's rectangle in CSS px (x from the left), or the whole canvas. */
   function paneRect(i) {
@@ -218,15 +222,42 @@ export function createViewer(el, opts = {}) {
   /* Pointer: view cube hover/click, pick on click, and frames while the user interacts. */
   const local = (e) => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
   let pressed = null, cubeDown = false;
+  // Context: a right click, or a touch held still for LONG_PRESS_MS. One gesture can raise both
+  // (mobile Chrome sends contextmenu for a long-press), so a second within a moment is dropped.
+  let longPress = null, contextAt = -Infinity, deferredContext = null;
+  const fireContext = (clientX, clientY, pointerType) => {
+    const now = performance.now();
+    if (now - contextAt < 700) return;
+    contextAt = now;
+    const hit = api.pick(clientX, clientY);
+    const where = { clientX, clientY, pointerType };
+    onContextPick?.(hit, where);
+    for (const f of listeners.context) f(hit, where);
+  };
+  const cancelLongPress = () => { if (longPress) { clearTimeout(longPress.timer); longPress = null; } };
   const onDown = (e) => {
     const p = local(e);
-    pressed = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    if (pressed && pressed.id !== e.pointerId) cancelLongPress();   // a second finger: a pinch
+    if (flight) { cancelAnimationFrame(flight.frame); flight.done(); }   // taking hold stops a flight
+    pressed = { x: e.clientX, y: e.clientY, id: e.pointerId, button: e.button, long: false };
     cubeDown = !!cube && cube.faceAt(p.x, p.y, width, height) !== null;
     // Before the controls' own listener (capture phase): a press on the cube never starts a drag.
     if (cubeDown) { e.stopImmediatePropagation(); e.preventDefault(); }
+    else if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+      cancelLongPress();
+      const press = pressed;
+      longPress = { id: e.pointerId, timer: setTimeout(() => {
+        longPress = null;
+        if (pressed !== press) return;
+        press.long = true;
+        fireContext(press.x, press.y, e.pointerType);
+      }, LONG_PRESS_MS) };
+    }
     requestRender();
   };
   const onMove = (e) => {
+    if (longPress && longPress.id === e.pointerId && pressed
+        && Math.hypot(e.clientX - pressed.x, e.clientY - pressed.y) > CLICK_SLOP_PX) cancelLongPress();
     if (cube) {
       const p = local(e);
       const face = e.buttons ? null : cube.faceAt(p.x, p.y, width, height);
@@ -238,9 +269,18 @@ export function createViewer(el, opts = {}) {
   const onUp = (e) => {
     const press = pressed;
     pressed = null;
+    cancelLongPress();
     requestRender();
     if (!press || press.id !== e.pointerId) return;
-    if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > CLICK_SLOP_PX) return;
+    const still = Math.hypot(e.clientX - press.x, e.clientY - press.y) <= CLICK_SLOP_PX;
+    if (deferredContext) {
+      const asked = deferredContext;
+      deferredContext = null;
+      if (still) fireContext(asked.clientX, asked.clientY, e.pointerType || 'mouse');
+      return;
+    }
+    // A long-press was the context gesture, not a click; a right button never picks.
+    if (!still || press.long || press.button === 2) return;
     const p = local(e);
     if (cubeDown) {
       cubeDown = false;
@@ -254,11 +294,22 @@ export function createViewer(el, opts = {}) {
     if (onPick) onPick(api.pick(e.clientX, e.clientY));
   };
   const onLeave = () => { if (cube?.setHover(null)) requestRender(); };
+  const onCancel = () => { cancelLongPress(); deferredContext = null; };
+  // Some systems send contextmenu as the right button goes down (a drag that pans may follow:
+  // wait for the release), others after it comes up (fire now).
+  const onContextMenu = (e) => {
+    e.preventDefault();
+    if (pressed && pressed.button === 2) { deferredContext = { clientX: e.clientX, clientY: e.clientY }; return; }
+    if (pressed && pressed.long) return;
+    fireContext(e.clientX, e.clientY, pressed ? 'touch' : 'mouse');
+  };
   const onWheel = () => requestRender();
   canvas.addEventListener('pointerdown', onDown, true);
   canvas.addEventListener('pointermove', onMove);
   canvas.addEventListener('pointerup', onUp);
   canvas.addEventListener('pointerleave', onLeave);
+  canvas.addEventListener('pointercancel', onCancel);
+  canvas.addEventListener('contextmenu', onContextMenu);
   canvas.addEventListener('wheel', onWheel, { passive: true });
   const resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => resize()) : null;
   resizeObserver?.observe(el);
@@ -313,6 +364,97 @@ export function createViewer(el, opts = {}) {
       controls.update();
       onControlsChange();
       return api;
+    },
+
+    /**
+     * Ease the camera to frame `box` (a Box3 or {min, max}), keeping the current direction unless
+     * `view` says otherwise. `minSize` (mm) keeps a tiny part from filling the screen; a pointer
+     * press, another flyTo or `duration: 0` (and prefers-reduced-motion) cut it short. Resolves
+     * when the camera is there.
+     */
+    flyTo(box, { duration = FLY_MS, pad = 1.6, minSize = 0, view = null } = {}) {
+      const b = box?.isBox3 ? box.clone() : new THREE.Box3(new THREE.Vector3(...box.min), new THREE.Vector3(...box.max));
+      if (b.isEmpty()) return Promise.resolve(api);
+      if (minSize > 0) {
+        const size = b.getSize(new THREE.Vector3()), mid = b.getCenter(new THREE.Vector3());
+        b.setFromCenterAndSize(mid, size.max(new THREE.Vector3(minSize, minSize, Math.min(minSize, size.z || minSize))));
+      }
+      const v = typeof view === 'string' ? VIEWS[view] : view;
+      const dir = v || { dir: camera.position.clone().sub(controls.target).toArray(), up: camera.up.toArray() };
+      const f = fitCamera({ min: b.min.toArray(), max: b.max.toArray() }, dir, camera.fov, aspect(), pad);
+      const end = { target: new THREE.Vector3(...f.target), position: new THREE.Vector3(...f.position), up: new THREE.Vector3(...f.up) };
+      const start = { target: controls.target.clone(), position: camera.position.clone(), up: camera.up.clone() };
+      if (flight) { cancelAnimationFrame(flight.frame); flight.done(); }
+      const still = duration <= 0 || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      return new Promise((resolve) => {
+        const t0 = performance.now();
+        const me = { frame: 0, done: () => { if (flight === me) flight = null; resolve(api); } };
+        flight = me;
+        const step = () => {
+          const k = still ? 1 : Math.min(1, (performance.now() - t0) / duration);
+          const e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2;
+          controls.target.lerpVectors(start.target, end.target, e);
+          // Along the arc rather than the chord, so the distance eases too and nothing clips through.
+          const from = start.position.clone().sub(start.target), to = end.position.clone().sub(end.target);
+          const length = from.length() + (to.length() - from.length()) * e;
+          const way = from.normalize().lerp(to.normalize(), e);
+          if (way.lengthSq() < 1e-9) way.copy(to);
+          camera.position.copy(controls.target).addScaledVector(way.normalize(), length);
+          camera.up.lerpVectors(start.up, end.up, e).normalize();
+          camera.lookAt(controls.target);
+          controls.update();
+          onControlsChange();
+          if (k < 1 && flight === me) me.frame = requestAnimationFrame(step);
+          else me.done();
+        };
+        step();
+      });
+    },
+
+    /**
+     * PNG data URL of `objects` alone, framed: everything else in the content is hidden for the
+     * frame, then put back with the camera. For a picture of one part (a catalog image, a
+     * thumbnail). opts: width / height (512), view (the current direction, or a preset name),
+     * pad (1.15), transparent (true), type.
+     */
+    captureObjects(objects, { width: w = 512, height: h = 512, view = null, pad = 1.15, transparent = true, type = 'image/png' } = {}) {
+      const list = [objects].flat().filter(Boolean);
+      if (!list.length) return null;
+      const keep = new Set();
+      for (const o of list) {
+        o.traverse((n) => keep.add(n));
+        for (let up = o.parent; up; up = up.parent) keep.add(up);
+      }
+      const saved = [];
+      content.traverse((n) => {
+        const want = keep.has(n);
+        if (n.visible !== want) { saved.push([n, n.visible]); n.visible = want; }
+      });
+      const pose = { target: controls.target.clone(), position: camera.position.clone(), up: camera.up.clone() };
+      const box = new THREE.Box3();
+      for (const o of list) box.expandByObject(o);
+      let url = null;
+      try {
+        if (!box.isEmpty()) {
+          const v = typeof view === 'string' ? VIEWS[view] : view;
+          const dir = v || { dir: camera.position.clone().sub(controls.target).toArray(), up: camera.up.toArray() };
+          const f = fitCamera({ min: box.min.toArray(), max: box.max.toArray() }, dir, camera.fov, w / h, pad);
+          controls.target.set(...f.target);
+          camera.position.set(...f.position);
+          camera.up.set(...f.up);
+          camera.lookAt(controls.target);
+          url = api.capture({ width: w, height: h, transparent, type });
+        }
+      } finally {
+        for (const [n, was] of saved) n.visible = was;
+        controls.target.copy(pose.target);
+        camera.position.copy(pose.position);
+        camera.up.copy(pose.up);
+        camera.lookAt(controls.target);
+        controls.update();
+        requestRender();
+      }
+      return url;
     },
 
     setTheme(t) {
@@ -412,7 +554,11 @@ export function createViewer(el, opts = {}) {
 
     resize,
 
-    /** 'render' (after each frame), 'view' (camera moved) or 'cube' (a cube face was clicked; fn(face)); returns an unsubscribe function. */
+    /**
+     * 'render' (after each frame), 'view' (camera moved), 'cube' (a cube face was clicked; fn(face))
+     * or 'context' (right click / long-press; fn(hit | null, {clientX, clientY, pointerType}));
+     * returns an unsubscribe function.
+     */
     on(event, fn) { listeners[event].add(fn); return () => listeners[event].delete(fn); },
 
     /** Stop drawing, free every GL resource (content included unless content: false) and remove the canvas. */
@@ -426,7 +572,11 @@ export function createViewer(el, opts = {}) {
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp);
       canvas.removeEventListener('pointerleave', onLeave);
+      canvas.removeEventListener('pointercancel', onCancel);
+      canvas.removeEventListener('contextmenu', onContextMenu);
       canvas.removeEventListener('wheel', onWheel);
+      cancelLongPress();
+      if (flight) cancelAnimationFrame(flight.frame);
       controls.removeEventListener('change', onControlsChange);
       controls.dispose();
       if (freeContent) disposeTree(content);

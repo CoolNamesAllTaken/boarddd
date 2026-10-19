@@ -221,6 +221,9 @@ v.setView('top');             // bottom, front (side), back, left, right, iso, i
 v.fit();                      // refit from the current direction
 v.setTheme('dark');
 const png = v.capture({ width: 1200, height: 800, transparent: true });
+await v.flyTo(part.box, { minSize: 4 });   // eased camera move to frame a box, same direction
+const shot = v.captureObjects([partGroup], { width: 512, height: 512 });   // that part alone, framed
+v.on('context', (hit, { clientX, clientY }) => {});   // right click or touch long-press
 v.setPanes([[baseGroup], [headGroup]]);   // side by side with ONE camera (null: one view again)
 v.requestRender();            // after changing objects yourself
 v.dispose();                  // frees GL (content included) and removes the canvas
@@ -229,6 +232,12 @@ v.dispose();                  // frees GL (content included) and removes the can
 - Renders on demand: no animation loop; frames are drawn while the controls move and then stop.
 - KiCad-like look: neutral tone mapping, a generated room environment (no network), ambient + key +
   camera headlight, light/dark gradient backgrounds. Near/far are fitted to the content every frame.
+- `flyTo` keeps the view direction unless given one; a press, another flight or
+  `prefers-reduced-motion` cuts it short. `captureObjects` hides the rest of the content for one frame
+  and puts it and the camera back.
+- Context: `onContextPick` / `on('context')` fire on a right click (deferred to the release where the
+  system sends `contextmenu` on press, so a right-drag still pans) and on a touch held still for
+  550 ms. A right click or a long-press never also fires `onPick`.
 - Panes: each listed object shows only in its own pane; the rest shows in all. `fit()` uses a pane's
   aspect and `pick()` reports the pane under the point and only hits what that pane shows.
 - The view cube (top right) shows the orientation; click a face to look from it (`on('cube', face => ...)`
