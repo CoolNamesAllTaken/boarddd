@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>boarddd board GLB test</title>
+<style>html, body { margin: 0 } #v { width: 960px; height: 600px }</style>
+<script src="/test/browser/pages/importmap.js"></script>
+<div id="v"></div>
+<script type="module">
+  // boarddd.step.glb's output for python/tests/step/fixtures_occ/tiny.step: Draco, coarse then full.
+  import * as THREE from 'three';
+  import { createViewer } from '/src/scene/index.js';
+  import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+  import { loadBoardGLB, upgradeBoardGLB } from '/src/models/index.js';
+  const dracoLoader = new DRACOLoader().setDecoderPath('/node_modules/three/examples/jsm/libs/draco/gltf/');
+  window.errors = [];
+  try {
+    const v = createViewer(document.getElementById('v'), { theme: 'light' });
+    const coarse = await loadBoardGLB('/test/fixtures/tiny-board/draco-coarse.glb', { dracoLoader });
+    v.add(coarse.object);
+    v.setView('iso');
+    window.v = v;
+    const up = await upgradeBoardGLB(coarse.object, '/test/fixtures/tiny-board/draco-full.glb', { dracoLoader });
+    dracoLoader.dispose();
+    coarse.object.updateMatrixWorld(true);
+    const box = (name) => {
+      const b = new THREE.Box3().setFromObject(coarse.nodes.find((n) => n.name === name).group);
+      return [b.min.toArray(), b.max.toArray()];
+    };
+    window.report = {
+      names: coarse.nodes.map((n) => n.name), coarse: coarse.triangles, full: up.triangles, swapped: up.swapped,
+      R1: box('R1'), R5: box('R5'), meta: coarse.meta,
+    };
+    v.render?.();
+  } catch (e) { window.errors.push(String(e.stack || e)); }
+  window.ready = true;
+</script>

@@ -44,6 +44,18 @@ export function stepColorToLinear(rgb: [number, number, number] | null): [number
 export interface LoadedGLB { scene: Group; gltf: unknown; meshName(object: Object3D): string }
 export function loadGLB(source: string | URL | ArrayBuffer | Uint8Array, opts?: { signal?: AbortSignal; loader?: unknown }): Promise<LoadedGLB>;
 
+/** A board GLB from boarddd.step.glb (python), loaded into the STEP frame (mm, z up). */
+export interface BoardGLBNode { name: string; product: string; group: Group }
+export interface LoadedBoardGLB { object: Group; nodes: BoardGLBNode[]; meta: Record<string, unknown>; triangles: number }
+export interface BoardGLBOptions {
+  /** three's DRACOLoader (decoder path set) for a Draco-compressed file; boarddd does not import it. */
+  dracoLoader?: unknown; polygonOffset?: boolean; signal?: AbortSignal;
+  onProgress?: (received: number, total: number) => void;
+}
+export const BOARD_GLB_ROOT: string;
+export function loadBoardGLB(source: string | URL | ArrayBuffer | Uint8Array, opts?: BoardGLBOptions): Promise<LoadedBoardGLB>;
+export function upgradeBoardGLB(roots: Object3D | Object3D[], source: string | URL | ArrayBuffer | Uint8Array, opts?: BoardGLBOptions): Promise<{ swapped: number; triangles: number }>;
+
 export interface OcctUrls { js: string; wasm: string }
 export interface StepOptions {
   /** URLs of occt-import-js (LGPL-2.1, not bundled): used in the Worker or loaded by a script tag. */
