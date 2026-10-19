@@ -2,7 +2,7 @@
 // hidden), a stepper through the stackup (copper and the dielectrics between), and picking nets to control:
 //   click a trace            its segment (width, length, layer)
 //   right click / long-press its whole net on every layer, and the control form:
-//      N12 ✎   F.Cu In2.Cu         ⇄ N13 ✓ / pair with… ⌖
+//      N12 ✎   F.Cu In2.Cu         ⇄ N13 ✓ / ⇄ pair with…
 //      [MS ▾]  [50] Ω ± [10] %
 //      Z 52.3 Ω at w 0.200 mm  ·  → w 0.212 mm for 50 Ω
 //      [✓ control impedance]
@@ -301,7 +301,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
         s.title = `runs beside it at ${mm(suggestion.gap)} mm for ${f1(suggestion.length)} mm (${Math.round(100 * suggestion.share)} % of its route on ${suggestion.layer}): a differential pair?`;
         s.addEventListener('click', () => setNets(pairOrder(nets[0], suggestion.net), picked.hit));
       }
-      const p = el('button', 'bdi-gbtn bdi-ctl-pairwith', pairRow, 'pair with… ⌖');
+      const p = el('button', 'bdi-gbtn bdi-ctl-pairwith', pairRow, '⇄ pair with…');
       p.type = 'button'; p.title = 'click the partner trace on the board';
       p.addEventListener('click', () => { pairing = true; root.dataset.pairing = 'on'; stage.root.focus?.(); });
     }

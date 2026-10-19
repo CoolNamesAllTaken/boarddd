@@ -284,7 +284,7 @@ panel.on('result', (doc) => doc.summary.z_weighted);                    // the b
   `panel.selectAt(x, y)` selects there.
 - **Layer view:** `layerView(el, { board, copper, route: {} })`: one copper layer at a time (the layers above
   ghosted), ▲ ▼ / ↑ ↓ through the stackup with its dielectrics. Click a trace: its segment. Right click or long-press:
-  its net on every layer and a form to control it (pair from the names or from the copper, `pair with… ⌖`, structure,
+  its net on every layer and a form to control it (pair from the names or from the copper, `⇄ pair with…`, structure,
   target, live tier-1 Z and the width for the target; `evaluate` for the app's field-solver figure). ✓ emits
   `'control'` with the draft. Works on plain Gerbers: the nets come from `boarddd.connectivity` (Python, below).
   `examples/layers.html` has CM5 MINIMA from plain Gerbers.

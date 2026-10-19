@@ -658,7 +658,7 @@ and show symbols and numbers, with the words in tooltips. The README has the API
   (width, length); a right click or a touch long-press (view2d's `context` event) picks its net: the highlight shows
   it on every layer (on the others fainter: `Highlight.focus`), and the control form opens:
   - the pair: `pairOf` (names), else `parallelPartner` (the net beside it at one gap for half its route or more:
-    plain Gerbers have no names to pair by), offered as `⇄ N13 ✓`; or `pair with… ⌖` and a click on the partner;
+    plain Gerbers have no names to pair by), offered as `⇄ N13 ✓`; or `⇄ pair with…` and a click on the partner;
   - the structure: auto from the route's main section (`mainSection`, with `route` the impedance panel runs
     `analyzeNet` under the form), or set; the target and tolerance;
   - Z at the routed width and the width for the target, tier 1 on `board.stackup` as they are typed (a coplanar
