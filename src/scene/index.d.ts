@@ -22,8 +22,21 @@ export interface ViewerOptions {
   /** Keep the drawn frame readable after compositing (toDataURL / drawImage outside a frame). Default false. */
   preserveDrawingBuffer?: boolean;
   onPick?(hit: PickHit | null): void;
+  /** A right click, or a touch held still: the hit under it (null for none) and where it was. */
+  onContextPick?(hit: PickHit | null, where: ContextWhere): void;
   onRender?(): void;
 }
+export interface ContextWhere { clientX: number; clientY: number; pointerType: string }
+export interface FlyOptions {
+  /** ms (380); 0, or prefers-reduced-motion, jumps. */
+  duration?: number;
+  pad?: number;
+  /** Frame at least this many mm, so a tiny part does not fill the screen. */
+  minSize?: number;
+  /** Keep the current direction unless given. */
+  view?: ViewName | View | null;
+}
+export interface CaptureObjectsOptions { width?: number; height?: number; view?: ViewName | View | null; pad?: number; transparent?: boolean; type?: string }
 export interface CaptureOptions { width?: number; height?: number; transparent?: boolean; viewCube?: boolean; type?: string }
 export interface Viewer {
   readonly renderer: WebGLRenderer;
@@ -53,10 +66,15 @@ export interface Viewer {
   cubeAt(clientX: number, clientY: number): string | null;
   cubeFacePoint(face: string): { x: number; y: number } | null;
   capture(opts?: CaptureOptions): string;
+  /** Ease the camera to frame a box (Box3 or {min, max}); resolves once there. A press cuts it short. */
+  flyTo(box: Box3 | { min: Vec3; max: Vec3 }, opts?: FlyOptions): Promise<Viewer>;
+  /** PNG data URL of these objects alone, framed; the rest of the content and the camera are put back. */
+  captureObjects(objects: Object3D | Object3D[], opts?: CaptureObjectsOptions): string | null;
   captureBlob(opts?: CaptureOptions): Promise<Blob>;
   resize(): void;
   on(event: 'render' | 'view', fn: () => void): () => void;
   on(event: 'cube', fn: (face: string) => void): () => void;
+  on(event: 'context', fn: (hit: PickHit | null, where: ContextWhere) => void): () => void;
   dispose(opts?: { content?: boolean }): void;
 }
 export function createViewer(el: HTMLElement, opts?: ViewerOptions): Viewer;

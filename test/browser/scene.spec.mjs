@@ -235,3 +235,113 @@ test('panes: one camera, each pane shows only its own objects; pick knows the pa
   expect(out.single).toBeNull();
   expect(out.pickSingle.pane).toBe(0);
 });
+
+// Client point of a board-frame point, for pointer events.
+const screenOf = (page, x, y, z) => page.evaluate(([px, py, pz]) => {
+  const { camera, canvas } = window.v;
+  const p = new window.THREE.Vector3(px, py, pz).project(camera);
+  const r = canvas.getBoundingClientRect();
+  return { x: r.left + ((p.x + 1) / 2) * r.width, y: r.top + ((1 - p.y) / 2) * r.height };
+}, [x, y, z]);
+
+test('flyTo: eases to frame a part, keeps the direction, and resolves there', async ({ page }) => {
+  await open(page);
+  const out = await page.evaluate(async () => {
+    const v = window.v;
+    const before = v.camera.position.clone().sub(v.controls.target).normalize();
+    const part = v.content.children.find((o) => o.userData.ref === 'U1');
+    const box = new window.THREE.Box3().setFromObject(part);
+    const frames = v.stats.frames;
+    await v.flyTo(box, { minSize: 4 });
+    const after = v.camera.position.clone().sub(v.controls.target).normalize();
+    const mid = box.getCenter(new window.THREE.Vector3());
+    return { dot: before.dot(after), off: v.controls.target.distanceTo(mid),
+             distance: v.camera.position.distanceTo(v.controls.target), frames: v.stats.frames - frames };
+  });
+  expect(out.dot).toBeGreaterThan(0.999);
+  expect(out.off).toBeLessThan(1e-6);
+  expect(out.distance).toBeLessThan(60);          // closer than the whole board
+  expect(out.frames).toBeGreaterThan(1);          // eased, not a jump
+});
+
+test('flyTo: a press cuts the flight short', async ({ page }) => {
+  await open(page);
+  const box = await page.locator('#v canvas').boundingBox();
+  const moved = page.evaluate(() => window.v.flyTo({ min: [9, 9, 1.6], max: [11, 11, 3.6] }, { duration: 5000 })
+    .then(() => window.v.controls.target.toArray()));
+  await page.waitForTimeout(150);
+  await page.mouse.move(box.x + 50, box.y + 50);
+  await page.mouse.down();
+  await page.mouse.up();
+  const target = await moved;
+  expect(Math.hypot(target[0] - 10, target[1] - 10)).toBeGreaterThan(0.5);
+});
+
+test('captureObjects: the part alone, framed, and the scene put back', async ({ page }) => {
+  await open(page);
+  const out = await page.evaluate(async () => {
+    const v = window.v;
+    const part = v.content.children.find((o) => o.userData.ref === 'U1');
+    const board = v.content.children.find((o) => o !== part);
+    const pose = v.camera.position.toArray().join();
+    const url = v.captureObjects([part], { width: 200, height: 200 });
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = img.width; c.height = img.height;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const d = ctx.getImageData(0, 0, c.width, c.height).data;
+    let opaque = 0, blue = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] > 200) opaque++;
+      if (d[i + 3] > 200 && d[i + 2] > d[i] + 40) blue++;
+    }
+    return { w: img.width, share: opaque / (d.length / 4), blue, boardShown: board.visible,
+             poseKept: v.camera.position.toArray().join() === pose };
+  });
+  expect(out.w).toBe(200);
+  expect(out.share).toBeGreaterThan(0.2);   // framed: the part fills a good share of the picture
+  expect(out.blue).toBe(0);                 // the blue board is not in it
+  expect(out.boardShown).toBe(true);
+  expect(out.poseKept).toBe(true);
+});
+
+test('context: a right click reports the part under it', async ({ page }) => {
+  await page.goto('/test/browser/pages/scene.html');
+  await page.waitForFunction(() => window.ready);
+  await page.evaluate(() => {
+    window.picks = [];
+    window.contexts = [];
+    window.v.on('context', (hit, where) => window.contexts.push({ ref: hit && hit.ref, type: where.pointerType }));
+    window.v.setView('top');
+  });
+  const at = await screenOf(page, 10, 10, 3.6);
+  await page.mouse.click(at.x, at.y, { button: 'right' });
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(() => window.contexts)).toEqual([{ ref: 'U1', type: 'mouse' }]);
+});
+
+test('context: a touch held still is a long-press; a moving one is not', async ({ page }) => {
+  await page.goto('/test/browser/pages/scene.html');
+  await page.waitForFunction(() => window.ready);
+  await page.evaluate(() => {
+    window.contexts = [];
+    window.v.on('context', (hit) => window.contexts.push(hit && hit.ref));
+    window.v.setView('top');
+  });
+  const at = await screenOf(page, 10, 10, 3.6);
+  const touch = (type, x, y) => page.evaluate(([t, px, py]) => window.v.canvas.dispatchEvent(new PointerEvent(t, {
+    pointerId: 7, pointerType: 'touch', clientX: px, clientY: py, bubbles: true, isPrimary: true, button: 0 })), [type, x, y]);
+  await touch('pointerdown', at.x, at.y);
+  await page.waitForTimeout(800);
+  await touch('pointerup', at.x, at.y);
+  expect(await page.evaluate(() => window.contexts)).toEqual(['U1']);
+  await page.waitForTimeout(800);
+  await touch('pointerdown', at.x, at.y);
+  await touch('pointermove', at.x + 30, at.y);
+  await page.waitForTimeout(800);
+  await touch('pointerup', at.x + 30, at.y);
+  expect(await page.evaluate(() => window.contexts)).toEqual(['U1']);
+});
