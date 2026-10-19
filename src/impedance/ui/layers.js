@@ -165,7 +165,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
         li.textContent = s.epsilon_r ? `εr ${(+s.epsilon_r).toFixed(2)}` : '';
         li.title = [s.dielectric || 'dielectric', s.material, s.thickness ? `${mm(s.thickness)} mm` : null, s.epsilon_r ? `εr ${s.epsilon_r}` : null].filter(Boolean).join(' · ');
       }
-      li.setAttribute('role', 'button');
+      if (s.kind === 'copper') li.setAttribute('role', 'button'); // a dielectric is a step (▲ ▼, ↑ ↓), not a tap target
       li.setAttribute('aria-current', i === at ? 'true' : 'false');
     });
     up.disabled = at <= 0;
