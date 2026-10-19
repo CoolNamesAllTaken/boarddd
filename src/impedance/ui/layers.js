@@ -130,6 +130,8 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
 
   // ---- the stage: one content per copper layer (scrubbing changes opacities only: no re-render)
   const bounds = copper.bounds ?? boundsOf(copper);
+  // the stage takes the board's shape (within the CSS's min / max heights)
+  stageEl.style.aspectRatio = `${(bounds.maxX - bounds.minX).toFixed(3)} / ${(bounds.maxY - bounds.minY).toFixed(3)}`;
   const stage = createStage(stageEl, { bounds, injectCss: inject });
   const contents = order.map((l) => copperContent(copper, { layers: [l], zoneAlpha: 0.45, alpha: 1 }));
   const dielectric = draw((g) => {
@@ -222,12 +224,13 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
       return;
     }
     if (!d || d.kind !== 'track') {
-      if (!picked) { hl.set({}); info.replaceChildren(); emit('segment', null); }
+      if (!picked) { hl.set({}); info.replaceChildren(); delete root.dataset.picked; emit('segment', null); }
       return;
     }
     const t = copper.tracks[d.track];
     const seg = { track: d.track, net: t.net, layer: t.layer, width: t.width, length: len(t) };
     if (!picked) hl.set({ nets: [t.net], track: d.track });
+    if (!picked) root.dataset.picked = 'segment';
     info.replaceChildren();
     const line = el('div', 'bdi-lv-seg', info);
     line.append(el('span', 'bdi-chip', null, t.net || '(no net)'), ` w ${mm(t.width)} mm · ${f1(seg.length)} mm · ${t.layer}`);
@@ -254,6 +257,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
       if (p) suggestion = p;
     }
     drawStack();
+    root.dataset.picked = 'net';
     emit('net', { nets, layers });
     buildForm(suggestion);
     if (panel) { routeBox.hidden = false; panel.select({ nets, hit })?.catch?.(() => {}); }
@@ -449,7 +453,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     pick(nets, { guessPair = nets.length === 1 } = {}) { setNets(nets, null, guessPair); },
     /** Pick what is under a board point on the layer on show, as a right click there. */
     pickAt(x, y) { const d = pickAt(x, y); if (d?.net) setNets([d.net], d, true); return d; },
-    clear() { picked = null; pairing = false; root.dataset.pairing = ''; hl.set({}); form.hidden = true; info.replaceChildren(); drawStack(); emit('net', null); },
+    clear() { picked = null; pairing = false; root.dataset.pairing = ''; delete root.dataset.picked; hl.set({}); form.hidden = true; info.replaceChildren(); drawStack(); emit('net', null); },
     /** Set the form's figures (e.g. a row the app already has). */
     setTarget({ target, tolerance } = {}) { if (tgtIn && target != null) tgtIn.value = String(target); if (tolIn && tolerance != null) tolIn.value = String(tolerance); compute(true); },
     on(name, fn) { if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(fn); return () => listeners.get(name)?.delete(fn); },

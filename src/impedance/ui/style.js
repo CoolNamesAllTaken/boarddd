@@ -97,11 +97,12 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-lv-stop.is-dielectric { min-height: 16px; line-height: 16px; font-size: 10px; color: var(--bdi-muted); background: var(--bdi-diel); opacity: 0.8; }
 .bdi-lv-stop.is-on { outline: 2px solid var(--bdi-accent); outline-offset: -2px; opacity: 1; }
 .bdi-lv-stop.has-net::after { content: ' ●'; color: var(--bdi-hl); text-shadow: 0 0 1px #000; }
-.bdi-lv-stage { position: relative; flex: 1 1 auto; min-width: 0; min-height: 280px; border: 1px solid var(--bdi-line); border-radius: 6px; overflow: hidden; background: #10140f; }
+.bdi-lv-stage { position: relative; flex: 1 1 auto; min-width: 0; min-height: 260px; max-height: 75vh; border: 1px solid var(--bdi-line); border-radius: 6px; overflow: hidden; background: #10140f; }
 .bdi-lv-stage > .bd2-stage { position: absolute; inset: 0; }
 .bdi-lv-caption { position: absolute; z-index: 4; left: 6px; top: 6px; padding: 1px 6px; border-radius: 4px; background: rgba(0,0,0,0.55); color: #fff; pointer-events: none; }
 .bdi-lv[data-pairing=on] .bdi-lv-stage { outline: 2px dashed var(--bdi-accent); outline-offset: -2px; cursor: crosshair; }
 .bdi-lv-side { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.bdi-lv:not([data-picked]) .bdi-lv-side { display: none; }
 .bdi-lv-seg { color: var(--bdi-muted); }
 .bdi-ctl[hidden], .bdi-lv-route[hidden] { display: none; }
 .bdi-ctl { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--bdi-line); border-radius: 6px; background: var(--bdi-bg); }
@@ -113,6 +114,6 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-ctl-t2 { color: var(--bdi-muted); font-variant-numeric: tabular-nums; min-height: 1.3em; } .bdi-ctl-t2z { color: var(--bdi-fg); font-weight: 600; }
 .bdi-ctl-ok { min-height: 32px; font-weight: 600; }
 .bdi-lv-route > summary { cursor: pointer; color: var(--bdi-muted); }
-@media (max-width: 560px) { .bdi-lv-steps { width: 52px; } .bdi-lv-stage { min-height: 240px; } }
+@media (max-width: 560px) { .bdi-lv-steps { width: 52px; } .bdi-lv-stage { min-height: 220px; } }
 .bdi-tip { position: absolute; z-index: 5; pointer-events: none; background: var(--bdi-bg); color: var(--bdi-fg); font: var(--bdi-font); padding: 2px 6px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); white-space: nowrap; }
 `;
