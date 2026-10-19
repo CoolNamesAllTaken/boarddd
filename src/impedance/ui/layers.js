@@ -317,9 +317,11 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     tolIn.inputMode = 'decimal'; tolIn.value = String(defaults.tolerance ?? 10); tolIn.setAttribute('aria-label', 'Tolerance percent');
     row.append(' %');
     const out = el('div', 'bdi-ctl-out', form);
+    el('span', 'bdi-ctl-tier', out, 'closed form').title = 'tier 1: closed-form formulas, as you type';
     zEl = el('span', 'bdi-z bdi-ctl-z', out, '…');
     sugEl = el('span', 'bdi-ctl-sug', out);
     t2El = el('div', 'bdi-ctl-t2', form);
+    t2El.hidden = !evaluate;
     if (editable) {
       okBtn = el('button', 'bdi-gbtn bdi-apply bdi-ctl-ok', form, '✓ control impedance');
       okBtn.type = 'button';
@@ -380,8 +382,8 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
       zEl.textContent = `≈ ${f1(now.value)} Ω`;
       zEl.dataset.v = v;
       zEl.title = `${kind === 'differential' ? 'Zdiff' : 'Z0'} at w ${mm(g.width)} mm${draft.gap != null ? `, s ${mm(draft.gap)} mm` : ''} on ${g.layer} (tier 1, ${now.model}) · ${off >= 0 ? '+' : ''}${f1(off)} % of ${target} Ω${approx}`;
-      sugEl.textContent = Math.abs(want.width - g.width) > 1e-4 ? `→ w ${mm(want.width)} mm` : '✓ w';
-      sugEl.title = `the width for ${target} Ω on this stackup (tier 1)${draft.gap != null ? ` at s ${mm(draft.gap)} mm` : ''}`;
+      sugEl.textContent = Math.abs(want.width - g.width) > 1e-4 ? `${target} Ω at w ${mm(want.width)} mm` : '✓ w';
+      sugEl.title = `the width for ${target} Ω on this stackup (tier 1)${draft.gap != null ? ` at s ${mm(draft.gap)} mm` : ''}; routed: w ${mm(g.width)} mm`;
       draft.tier1 = { z: now.value, model: now.model, width_for_target: want.width };
     } catch (err) {
       zEl.textContent = '✗';
@@ -393,11 +395,12 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
       const mine = ++t2Run;
       clearTimeout(compute.timer);
       compute.timer = setTimeout(async () => {
-        t2El.textContent = '…';
+        t2El.replaceChildren(el('span', 'bdi-ctl-tier', null, 'field solver'), ' …');
         try {
           const r = await evaluate({ ...draft });
           if (mine !== t2Run || !r) return;
-          t2El.replaceChildren();
+          t2El.replaceChildren(el('span', 'bdi-ctl-tier', null, 'field solver'), ' ');
+          t2El.firstChild.title = 'tier 2: the final figure';
           const z = el('span', 'bdi-ctl-t2z', t2El, r.z != null ? `${f1(r.z)} Ω` : '–');
           z.title = r.why ?? 'field solver (tier 2): the final figure';
           if (r.width != null) t2El.append(el('span', 'bdi-ctl-t2w', null, ` → w ${mm(r.width)}${r.gap != null ? ` s ${mm(r.gap)}` : ''} mm`));

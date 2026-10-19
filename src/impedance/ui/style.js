@@ -111,6 +111,8 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-ctl-target, .bdi-ctl-tol { flex: 0 0 auto; width: 4.5em; text-align: right; }
 .bdi-ctl-z[data-v=ok] { color: var(--bdi-ok); } .bdi-ctl-z[data-v=warn] { color: var(--bdi-warn); } .bdi-ctl-z[data-v=bad] { color: var(--bdi-bad); }
 .bdi-ctl-sug { color: var(--bdi-accent); font-variant-numeric: tabular-nums; cursor: help; }
+.bdi-ctl-tier { color: var(--bdi-muted); font-size: 11px; min-width: 6.5em; cursor: help; }
+.bdi-ctl-out .bdi-z { font-size: 18px; }
 .bdi-ctl-t2 { color: var(--bdi-muted); font-variant-numeric: tabular-nums; min-height: 1.3em; } .bdi-ctl-t2z { color: var(--bdi-fg); font-weight: 600; }
 .bdi-ctl-ok { min-height: 32px; font-weight: 600; }
 .bdi-lv-route > summary { cursor: pointer; color: var(--bdi-muted); }

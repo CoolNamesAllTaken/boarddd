@@ -97,7 +97,7 @@ test('right click a trace: its net on every layer, its partner from the copper, 
   await page.locator('.bdi-ctl-target').fill('100');
   await page.waitForFunction(() => window.demo.view.panel?.result, null, { timeout: 60_000 });
   await expect(page.locator('.bdi-ctl-z')).toHaveText(/≈ \d+\.\d Ω/);
-  await expect(page.locator('.bdi-ctl-sug')).toHaveText(/→ w 0\.\d+ mm|✓ w/);
+  await expect(page.locator('.bdi-ctl-sug')).toHaveText(/100 Ω at w 0\.\d+ mm|✓ w/);
   const draft = await page.evaluate(() => window.demo.view.draft);
   expect(draft.kind).toBe('differential');
   expect(draft.layer).toBe(p.main); // where most of the route is (the pair breaks out on F.Cu, runs on B.Cu)
