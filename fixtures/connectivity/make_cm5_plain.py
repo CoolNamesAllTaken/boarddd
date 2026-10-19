@@ -43,7 +43,20 @@ def main() -> None:
         out.mkdir()
         cli = args.kicad_cli
         subprocess.run(
-            [cli, "pcb", "export", "gerbers", "--no-x2", "--no-netlist", "--check-zones", "-l", ",".join([*cu, "Edge.Cuts", "F.Mask", "B.Mask"]), "-o", f"{out}/", str(pcb)],
+            [
+                cli,
+                "pcb",
+                "export",
+                "gerbers",
+                "--no-x2",
+                "--no-netlist",
+                "--check-zones",
+                "-l",
+                ",".join([*cu, "Edge.Cuts", "F.Mask", "B.Mask"]),
+                "-o",
+                f"{out}/",
+                str(pcb),
+            ],
             check=True,
             capture_output=True,
         )
@@ -59,14 +72,27 @@ def main() -> None:
         doc, conn = connect_files(files, name="CM5_MINIMA_3")
         ref_board = read_kicad_pcb(pcb)
         ref = read_kicad_copper(pcb)
-    truth = {(p.at[0], p.at[1], lid): p.net or f"~{p.ref}.{p.number}@{p.at}" for p in ref.pads for lid in p.layers if lid in doc.layers}
+    truth = {
+        (p.at[0], p.at[1], lid): p.net or f"~{p.ref}.{p.number}@{p.at}"
+        for p in ref.pads
+        for lid in p.layers
+        if lid in doc.layers
+    }
     acc = compare_nets(truth, doc)
-    board = m.Board(name="CM5_MINIMA_3 (plain Gerbers)", source=ref_board.source, layers=ref_board.layers, stackup=ref_board.stackup, outline=ref_board.outline)
+    board = m.Board(
+        name="CM5_MINIMA_3 (plain Gerbers)",
+        source=ref_board.source,
+        layers=ref_board.layers,
+        stackup=ref_board.stackup,
+        outline=ref_board.outline,
+    )
     data = {"board": board.to_dict(), "copper": doc.to_dict(), "connectivity": conn.to_json(), "accuracy": acc}
     data["connectivity"]["timings"] = {}
     blob = json.dumps(data, separators=(",", ":"), sort_keys=True).encode()
     (HERE / "cm5-plain.json.gz").write_bytes(gzip.compress(blob, mtime=0))
-    print(f"cm5-plain.json.gz: {len(conn.nets)} nets, {len(doc.tracks)} tracks, accuracy {acc['pct']} % ({acc['matched']}/{acc['nets']})")
+    print(
+        f"cm5-plain.json.gz: {len(conn.nets)} nets, {len(doc.tracks)} tracks, accuracy {acc['pct']} % ({acc['matched']}/{acc['nets']})"
+    )
 
 
 if __name__ == "__main__":

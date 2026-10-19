@@ -115,7 +115,7 @@ the fill can only be a fill left from before the copper moved, so the zone gets 
 
 Layer ids come from `%TF.FileFunction` (`Copper,L2,Inr` → `In1.Cu`) or KiCad/Protel file names, the same way
 `io.package` names layers, so they match the package's `board.json`. A Gerber without X2 attributes reads as
-tracks and regions on no net (with a warning); finding connectivity from geometry is not done here.
+tracks and regions on no net (with a warning); `boarddd.connectivity` (below) finds the nets from the geometry.
 
 The browser's `copperFromGerbers` (`src/copper/gerber.js`, a small tokenizer: the wasm renderer ignores `%TO`)
 follows the same rules and gives the same document as the Python reader: python/tests/io/test_gerber_copper.py
@@ -149,6 +149,51 @@ draws; KiCad plots a custom pad as several flashes; Gerber has no zone outlines,
 
 The two fixtures run in CI; the other eleven were run locally with the same comparison (the demos are not in the
 repository).
+
+## Connectivity from the copper (`boarddd.connectivity`, extra `connect`)
+
+Most fabs get plain Gerbers: no `%TO.N`, no job file, often no X2 drill functions. `connect_files(files)` gives the
+copper@1 document with every track, pad, via and zone on a net found from the copper itself, and a summary
+(`Connectivity`: the nets with their pad count, layers and an anchor point; timings; warnings). Needs shapely.
+
+- **Each layer is painted** in drawing order, as the photoplotter would: draws (round apertures buffered; one buffer
+  per width), flashes (apertures as shapes; macros evaluated with their exposure-off primitives cutting and
+  thermals as rings with four gaps), regions (contours XORed, fractured cut-ins repaired), dark then clear runs
+  (`%LPC`), and a `%IPNEG` or X2-negative layer as the board outline minus what is drawn. The image falls apart into
+  islands; copper closer than `TOLERANCE` (2 µm) is one piece.
+- **Plated holes join layers.** A plated drill joins the islands it touches on each layer of its span (a drill file
+  with an X2 `Plated,a,b,Blind/Buried` function: copper layers a to b; else all). Non-plated holes join nothing.
+- **Nets** are the joined islands. A net is named by the X2 `%TO.N` of its copper when the files have one (the most
+  common, `merged` lists them all when the copper joins several: a short, a net tie, a bridged solder jumper),
+  otherwise `N1`, `N2`… by pad count (most first; ties by area, then position), so the same files give the same names.
+  `NetInfo.anchor` is a point on the net (a pad centre) for an app that keeps a customer's own name across revisions.
+- **Vias.** Without X2 a via is a flash like a pad. A plated hole is a via when the mask files leave it covered
+  (tented), or, without mask files, when it is at most `VIA_MAX_DRILL` (0.45 mm). A round flash about that size on
+  it is its ring, not a pad; a pad around a via (via-in-pad) stays a pad.
+- **Zones** are the etched islands that hold region copper: a pour with its clearances, thermals and the tracks
+  merged into it.
+
+Measured on KiCad's demos exported with `kicad-cli pcb export gerbers --no-x2 --no-netlist` (no job file, drill X2
+comments removed), against the KiCad file's own nets, every pad on every layer:
+
+| board | layers | tracks | KiCad nets | as KiCad | the rest | time |
+|---|---|---|---|---|---|---|
+| pic_programmer | 2 | 1580 | 115 | 100 % | | 0.7 s |
+| StickHub | 2 | 1293 | 47 | 100 % | | 0.6 s |
+| multichannel_mixer | 2 | 576 | 127 | 100 % | | 0.9 s |
+| kit-dev-coldfire-xilinx_5213 | 4 | 3256 | 287 | 100 % | | 1.8 s |
+| video | 4 | 7946 | 660 | 100 % | | 7.9 s |
+| One-Air-Max | 4 | 1663 | 163 | 94.5 % | 9: a fuse footprint's own copper, a bridged jumper, MOSFET pads overlapping their exposed pad | 1.8 s |
+| tinytapeout-demo | 4 | 2143 | 117 | 81.2 % | 22: 8 bridged solder jumpers, a net tie, two DRC shorts, one DRC unconnected | 3.3 s |
+| CM5_MINIMA_3 | 6 | 2084 | 227 | 99.6 % | 1: DRC unconnected after the zone refill | 2.4 s |
+| royalblue54L_feather (X2 stripped) | 8 | | 95 | 97.9 % | 2: a bridged solder jumper | 2.3 s |
+
+Every difference is copper that KiCad itself reports (`kicad-cli pcb drc --refill-zones`: shorts, unconnected) or a
+footprint whose own copper joins two nets: the copper is what the fab etches, so these are right. Timings are one
+core (Python 3.12, shapely 2.2): parsing ~25 %, painting ~50 %; budget about 1 s per 1000 tracks.
+`python/tests/test_connectivity.py` holds synthetic cases (a via, NPTH, clear-polarity antipads, a negative plane
+with and without thermal spokes, tolerance, X2 names and a short, a fractured pour hole, a blind drill span) and
+royalblue's stripped Gerbers. `fixtures/connectivity/cm5-plain.json.gz` is CM5's (`make_cm5_plain.py`).
 
 ## Later
 
