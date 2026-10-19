@@ -263,6 +263,12 @@ class Drill:
     y: float = _f("Centre (slot: first end), mm.")
     diameter: float = _f("Finished hole diameter (slot: width), mm; 0 when the source writes a placeholder.", minimum=0)
     plated: bool = _f("Plated through hole.")
+    plating: Literal["file", "name", "tool"] | None = _f(
+        "Where `plated` comes from: the drill file's X2 FileFunction ('file'), its name (PTH/NPTH, Plated/NonPlated,"
+        " Eagle .drd/.hol: 'name'), its tool's attribute or section ('tool'); null when the drill file does not say"
+        " (`plated` is then assumed, for drawing only).",
+        default=None,
+    )
     x2: float | None = _f("Slot: second end.", default=None)
     y2: float | None = _f("Slot: second end.", default=None)
     tool: str | None = _f("Excellon tool, e.g. 'T3'.", default=None)

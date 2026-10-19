@@ -34,6 +34,7 @@ the right, which is also the reading when the file does not say. A number with a
 taken as written, and so is every number in a file that declares decimal coordinates
 (KiCad's `FORMAT={-:-/ absolute / metric / decimal}`) or writes its coordinates with points.
 Altium marks plating per section (`;TYPE=PLATED`, `;TYPE=NON_PLATED`) instead of per tool.
+A via drill (`ViaDrill`, `CastellatedDrill`) is plated whatever else the comment says.
 
 Pure: no settings, no filesystem.
 
@@ -56,6 +57,8 @@ _APER_FUNCTION = re.compile(r"TA\.AperFunction,([^,\s]+)", re.I)
 #: The drill's purpose, wherever it sits among the attribute's fields (blind/buried vias add
 #: layer numbers before it).
 _DRILL_FUNCTION = re.compile(r",(\w*Drill)\b", re.I)
+#: Drill functions that are plated by what they are.
+_PLATED_FUNCTIONS = ("viadrill", "castellateddrill")
 #: A number as a drill file writes one: digits with at most one point, and at least one digit.
 #: `[\d.]+` also matched `.`, `1..2` and `-.`, which float() refuses -- and a ValueError here
 #: was an exception on every page that draws the board's holes.
@@ -88,6 +91,9 @@ class Hole:
     function: str = ""
     #: The Excellon tool that drilled it, as the file numbers it (`T3`). Added in boarddd.
     tool: str = ""
+    #: 'tool' when the file says per tool whether it is plated (an attribute comment, Altium's
+    #: `;TYPE=` section), '' when it does not and `plated` is assumed. Added in boarddd.
+    plating: str = ""
 
 
 #: Altium: `;FILE_FORMAT=2:5`. KiCad: `; FORMAT={3:3/ absolute / metric / suppress trailing zeros}`.
@@ -182,6 +188,7 @@ def parse(text: str, *, keep_empty: bool = False) -> list[Hole]:
 
     diameters: dict[int, float] = {}
     plating: dict[int, bool] = {}
+    said: set[int] = set()  # tools whose plating the file states
     pending_plated: bool | None = None
     #: Altium's `;TYPE=PLATED` / `;TYPE=NON_PLATED`: the plating of every tool after it.
     section_plated: bool | None = None
@@ -215,6 +222,7 @@ def parse(text: str, *, keep_empty: bool = False) -> list[Hole]:
                 y2=y2,
                 function=functions.get(current, ""),
                 tool=f"T{current}",
+                plating="tool" if current in said else "",
             )
         )
 
@@ -230,9 +238,16 @@ def parse(text: str, *, keep_empty: bool = False) -> list[Hole]:
                 continue
             found = _APER_FUNCTION.search(line)
             if found:
-                pending_plated = found.group(1).strip().lower() != "nonplated"
+                first = found.group(1).strip().lower()
                 purpose = _DRILL_FUNCTION.search(line)
                 pending_function = purpose.group(1) if purpose else ""
+                pending_plated = (
+                    True
+                    if first == "plated" or pending_function.lower() in _PLATED_FUNCTIONS
+                    else False
+                    if first == "nonplated"
+                    else None
+                )
             continue
 
         if line == "%":
@@ -260,11 +275,13 @@ def parse(text: str, *, keep_empty: bool = False) -> list[Hole]:
         if definition and not in_body:
             tool = int(definition.group(1))
             diameters[tool] = float(definition.group(2)) * scale
-            # A tool with no attribute comment is plated: PTH is overwhelmingly the common
-            # case, and drawing a via as a mounting hole is the more misleading mistake.
-            plating[tool] = (
-                pending_plated if pending_plated is not None else section_plated if section_plated is not None else True
-            )
+            # A tool with no attribute comment is drawn plated: PTH is overwhelmingly the common
+            # case, and drawing a via as a mounting hole is the more misleading mistake. `plating`
+            # says it was not stated, so nothing that connects copper relies on it.
+            stated = pending_plated if pending_plated is not None else section_plated
+            plating[tool] = True if stated is None else stated
+            if stated is not None:
+                said.add(tool)
             pending_plated = None
             functions[tool], pending_function = pending_function, ""
             continue

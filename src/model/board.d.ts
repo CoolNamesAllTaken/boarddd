@@ -228,6 +228,8 @@ export interface Drill {
   diameter: number;
   /** Plated through hole. */
   plated: boolean;
+  /** Where `plated` comes from: the drill file's X2 FileFunction ('file'), its name (PTH/NPTH, Plated/NonPlated, Eagle .drd/.hol: 'name'), its tool's attribute or section ('tool'); null when the drill file does not say (`plated` is then assumed, for drawing only). */
+  plating?: "file" | "name" | "tool" | null;
   /** Slot: second end. */
   x2?: number | null;
   /** Slot: second end. */

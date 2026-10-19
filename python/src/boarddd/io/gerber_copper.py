@@ -616,6 +616,31 @@ def parse_copper_layer(
     return out
 
 
+def drill_holes(text: str) -> list:
+    """The holes of a drill file written as Gerber (X2 drill, ``%TF.FileFunction,Plated...``): a flash is a hole, a
+    draw a slot, the aperture's diameter the hole's. As ``io.excellon.Hole``; plating is the file's (its
+    FileFunction or name), except a via drill's, which is plated."""
+    from .excellon import _PLATED_FUNCTIONS, Hole
+
+    holes = []
+    for dark, kind, ap, at in parse_copper_layer(text, "drill", paint=True).paint or []:
+        if not dark or kind not in ("flash", "draw"):
+            continue
+        d = ap.diameter if ap.diameter is not None else min(ap.size)
+        function = ap.function.split(",")[0]
+        via = function.lower() in _PLATED_FUNCTIONS
+        if kind == "flash":
+            holes.append(
+                Hole(x=at[0], y=at[1], diameter=d, plated=True, function=function, plating="tool" if via else "")
+            )
+        else:
+            (x, y), (x2, y2) = at[0], at[-1]
+            holes.append(
+                Hole(x=x, y=y, diameter=d, plated=True, x2=x2, y2=y2, function=function, plating="tool" if via else "")
+            )
+    return holes
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 # a package
 

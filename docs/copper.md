@@ -163,18 +163,29 @@ copper@1 document with every track, pad, via and zone on a net found from the co
   islands; copper closer than `TOLERANCE` (2 µm) is one piece.
 - **Plated holes join layers.** A plated drill joins the islands it touches on each layer of its span (a drill file
   with an X2 `Plated,a,b,Blind/Buried` function: copper layers a to b; else all). Non-plated holes join nothing.
+- **Plating comes from the files, never from a hole's size or the mask** (`hole_plating`). In order: the drill file's
+  X2 FileFunction (`;TF.FileFunction,Plated` / `NonPlated`, KiCad's `; #@! TF.FileFunction,Plated,1,4,PTH`, a Gerber
+  X2 drill file's `%TF.FileFunction`), its name (`-PTH`/`-NPTH`, Altium's `-Plated`/`-NonPlated`, gEDA's
+  `.plated-drill`/`.unplated-drill`, Eagle's `.hol` and a `.drd` beside one), its tool's attribute (KiCad's
+  `TA.AperFunction,Plated|NonPlated,…`; a `ViaDrill` is plated) or Altium's `;TYPE=PLATED` / `;TYPE=NON_PLATED`
+  section (`Drill.plating`: `file`, `name`, `tool`); else, when every copper layer is Gerber X2, the pads: a hole in a
+  `ViaPad` or a component pad is plated, one in a `WasherPad`, a `FiducialPad` or no pad is not (`x2`). When a board
+  of two or more copper layers has a hole none of these settles (one Excellon file with no plating info, plain
+  copper), `connect_files` raises `PlatingUnknown` with `PLATING_MESSAGE` ("Upload drill files that say which holes
+  are plated (PTH and NPTH), or Gerber X2."); `PLATING_FORMATS` lists what works. `Connectivity.plating` counts how
+  each hole was settled.
 - **Nets** are the joined islands. A net is named by the X2 `%TO.N` of its copper when the files have one (the most
   common, `merged` lists them all when the copper joins several: a short, a net tie, a bridged solder jumper),
   otherwise `N1`, `N2`… by pad count (most first; ties by area, then position), so the same files give the same names.
   `NetInfo.anchor` is a point on the net (a pad centre) for an app that keeps a customer's own name across revisions.
-- **Vias.** Without X2 a via is a flash like a pad. A plated hole is a via when the mask files leave it covered
-  (tented), or, without mask files, when it is at most `VIA_MAX_DRILL` (0.45 mm). A round flash about that size on
-  it is its ring, not a pad; a pad around a via (via-in-pad) stays a pad.
+- **Vias.** A plated hole is a via when its drill file says so (`ViaDrill`) or the X2 copper flashes a `ViaPad` on
+  it; other plated holes are pads' holes. A round flash about a via's size on it is its ring, not a pad; a pad around
+  a via (via-in-pad) stays a pad.
 - **Zones** are the etched islands that hold region copper: a pour with its clearances, thermals and the tracks
   merged into it.
 
-Measured on KiCad's demos exported with `kicad-cli pcb export gerbers --no-x2 --no-netlist` (no job file, drill X2
-comments removed), against the KiCad file's own nets, every pad on every layer:
+Measured on KiCad's demos exported with `kicad-cli pcb export gerbers --no-x2 --no-netlist` (no job file; drill
+files as `kicad-cli pcb export drill` writes them, or royalblue's PTH/NPTH pair with their comments removed), against the KiCad file's own nets, every pad on every layer:
 
 | board | layers | tracks | KiCad nets | as KiCad | the rest | time |
 |---|---|---|---|---|---|---|
@@ -191,7 +202,8 @@ comments removed), against the KiCad file's own nets, every pad on every layer:
 Every difference is copper that KiCad itself reports (`kicad-cli pcb drc --refill-zones`: shorts, unconnected) or a
 footprint whose own copper joins two nets: the copper is what the fab etches, so these are right. Timings are one
 core (Python 3.12, shapely 2.2): parsing ~25 %, painting ~50 %; budget about 1 s per 1000 tracks.
-`python/tests/test_connectivity.py` holds synthetic cases (a via, NPTH, clear-polarity antipads, a negative plane
+`python/tests/test_connectivity.py` holds synthetic cases (a via, NPTH, plating from each source above and the files
+that are refused, clear-polarity antipads, a negative plane
 with and without thermal spokes, tolerance, X2 names and a short, a fractured pour hole, a blind drill span) and
 royalblue's stripped Gerbers. `fixtures/connectivity/cm5-plain.json.gz` is CM5's (`make_cm5_plain.py`).
 

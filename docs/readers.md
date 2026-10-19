@@ -25,7 +25,7 @@ open("board.json", "w").write(board.to_json())
 | `io.gerber` | the board profile KiCad plots onto other layers (`plots_profile`, `without_profile`) | `pcb/gerber.py` |
 | `io.pads` | flashes/regions as pad boxes; the pad pattern around a placement | `pcb/pads.py` |
 | `io.gerber_copper` | Gerber X2 copper layers (+ drills) → `boarddd/copper@1`: tracks, arcs, vias, regions, pads, nets from `%TO.N` ([copper.md](copper.md)) | boarddd (new, I5) |
-| `io.excellon` | holes and slots (G85 and rout mode), implied decimals, plating; `distinct` | `pcb/excellon.py` (+ `Hole.tool`, `parse(keep_empty=)`) |
+| `io.excellon` | holes and slots (G85 and rout mode), implied decimals, plating; `distinct` | `pcb/excellon.py` (+ `Hole.tool`, `Hole.plating`, `parse(keep_empty=)`) |
 | `io.outline` | Edge.Cuts strokes stitched into loops; `pick_board` by the gbrjob size; `cutouts` | `pcb/outline.py` |
 | `io.gbrjob` | board size, project name, panel naming; `read_stackup`: GeneralSpecs + MaterialStackup (Er/Df strings, KiCad's `(1/2)` sublayers, `ImpedanceControlled`, conductivity) | `pcb/jobfile.py`; `read_stackup` new (I1) |
 | `io.pos` | pick-and-place in any tool's layout (header search, units, fixed-width) | `pcb/posfile.py` |

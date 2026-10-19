@@ -392,6 +392,20 @@
           "description": "Plated through hole.",
           "type": "boolean"
         },
+        "plating": {
+          "description": "Where `plated` comes from: the drill file's X2 FileFunction ('file'), its name (PTH/NPTH, Plated/NonPlated, Eagle .drd/.hol: 'name'), its tool's attribute or section ('tool'); null when the drill file does not say (`plated` is then assumed, for drawing only).",
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "file",
+            "name",
+            "tool",
+            null
+          ],
+          "default": null
+        },
         "x2": {
           "description": "Slot: second end.",
           "type": [
