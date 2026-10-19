@@ -185,6 +185,12 @@ s.report;                     // {method: 'name'|'position'|'mixed', matched, am
 
 // STEP through occt-import-js (LGPL-2.1, not bundled: pass its URLs; it runs in a Worker)
 const part = await loadSTEP('part.step', { occt: { js: '.../occt-import-js.js', wasm: '.../occt-import-js.wasm' } });
+
+// a board GLB from `python -m boarddd.step.glb` (no CAD kernel in the browser): a group per
+// instance named as the STEP names it, in the STEP frame (mm, z up), like stepToObject(..., {center: false})
+const draco = new DRACOLoader().setDecoderPath({ js: '.../draco_wasm_wrapper.js', wasm: '.../draco_decoder.wasm' });
+const { object, nodes } = await loadBoardGLB('coarse.glb', { dracoLoader: draco });
+await upgradeBoardGLB(object, 'full.glb', { dracoLoader: draco });   // the same meshes, finer
 ```
 
 - Matching: names first (`R5`, `R5_1`, `R5 (2)`; never `R11` → `R1`), then positions: the export origin
