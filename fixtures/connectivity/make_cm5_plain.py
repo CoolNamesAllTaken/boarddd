@@ -1,5 +1,6 @@
-"""CM5 MINIMA (fixtures/cm5_minima) exported to plain Gerbers (no X2, no netlist attributes, no job file, drills
-without their X2 comments) and read back with boarddd.connectivity: the nets from the copper alone.
+"""CM5 MINIMA (fixtures/cm5_minima) exported to plain Gerbers (no X2, no netlist attributes, no job file; the drill
+files as kicad-cli writes them, PTH and NPTH apart, which say which holes are plated and which are vias) and read back
+with boarddd.connectivity: the nets from the copper alone.
 
     python fixtures/connectivity/make_cm5_plain.py [--kicad-cli PATH]   # rewrites cm5-plain.json.gz
 
@@ -65,10 +66,7 @@ def main() -> None:
         for p in sorted(out.iterdir()):
             if p.suffix == ".gbrjob":
                 continue
-            data = p.read_bytes()
-            if p.suffix == ".drl":
-                data = re.sub(rb"(?m)^;\s*#@![^\n]*\n", b"", data)
-            files[p.name] = data
+            files[p.name] = p.read_bytes()
         doc, conn = connect_files(files, name="CM5_MINIMA_3")
         ref_board = read_kicad_pcb(pcb)
         ref = read_kicad_copper(pcb)

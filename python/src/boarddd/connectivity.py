@@ -11,8 +11,12 @@ several, which a net tie does), otherwise ``N1``, ``N2``... by pad count (larges
 same files give the same names). ``Connectivity.nets`` says which; ``anchor`` is a point on each net's copper (a
 pad's centre when it has one) for an app that keeps the customer's own name for a net across revisions.
 
-Vias: without X2 a via is a flash like any pad. A plated hole is taken for a via when the files have solder mask
-and no mask opening is over it (a tented via), or, without mask files, when it is no larger than ``VIA_MAX_DRILL``.
+Plating comes from the files only (``hole_plating``): the drill file's X2 FileFunction or its name (PTH/NPTH,
+Plated/NonPlated, Eagle's .drd beside a .hol), its tools' attributes (KiCad) or sections (Altium ``;TYPE=PLATED``), a
+Gerber X2 drill file's, else the X2 copper's pads (a hole in a ViaPad or a component pad is plated, one in a WasherPad
+or in no pad is not). When a board of two or more copper layers has a hole none of these settles, ``connect_files``
+raises ``PlatingUnknown`` (``PLATING_MESSAGE``) rather than join layers on a guess. A via is a plated hole its drill
+file calls one (``ViaDrill``) or that X2 flashes a ViaPad on; other plated holes are pads' holes.
 
 ``connect_files`` returns the copper@1 document (``boarddd.io.gerber_copper``'s, with every track, pad, via and zone
 on its net; zones on layers with clear or negative copper are the etched islands) and a ``Connectivity`` summary.
@@ -33,12 +37,34 @@ from .io import gerber_copper as gc
 from .io import package
 from .io.pads import _evaluate
 
-__all__ = ["connect_files", "Connectivity", "NetInfo", "TOLERANCE", "VIA_MAX_DRILL", "compare_nets"]
+__all__ = [
+    "connect_files",
+    "hole_plating",
+    "Connectivity",
+    "NetInfo",
+    "Plating",
+    "PlatingUnknown",
+    "PLATING_MESSAGE",
+    "PLATING_FORMATS",
+    "TOLERANCE",
+    "compare_nets",
+]
 
 #: Copper closer than this (mm) is one piece: what rounding in the files leaves between touching shapes.
 TOLERANCE = 0.002
-#: Without solder mask files, a plated hole up to this size (mm) is a via.
-VIA_MAX_DRILL = 0.45
+#: Said when the files do not say which holes are plated.
+PLATING_MESSAGE = "Upload drill files that say which holes are plated (PTH and NPTH), or Gerber X2."
+#: What does say it, for the people uploading.
+PLATING_FORMATS = (
+    "Separate plated and non-plated drill files: PTH and NPTH (KiCad), -Plated and -NonPlated (Altium), "
+    ".drd and .hol (Eagle)",
+    "A drill file whose header says Plated or NonPlated (TF.FileFunction, as KiCad writes)",
+    "One drill file that marks each tool plated or not (KiCad's attribute comments, Altium's ;TYPE=PLATED)",
+    "Gerber X2 drill files",
+    "Gerber X2 copper layers: their pads say which holes are plated",
+)
+#: X2 pad functions that are not round a plated hole.
+_UNPLATED_PADS = frozenset({"washerpad", "fiducialpad"})
 #: Points per quarter circle for round shapes (shapely's quad_segs).
 QUAD = 4
 
@@ -57,6 +83,42 @@ class NetInfo:
 
 
 @dataclass
+class Plating:
+    """Which holes are plated, from the files alone: one entry per ``board.drills``."""
+
+    #: True, False, or None when nothing in the files says.
+    plated: list[bool | None]
+    #: How each was settled: 'file', 'name', 'tool' (the drill files, as ``Drill.plating``), 'x2' (the copper's pads).
+    how: list[str | None]
+    copper_layers: int
+
+    @property
+    def unknown(self) -> int:
+        return sum(p is None for p in self.plated)
+
+    @property
+    def known(self) -> bool:
+        """Enough to join layers: every hole settled, or one copper layer (nothing to join)."""
+        return self.copper_layers < 2 or not self.unknown
+
+    def to_json(self) -> dict:
+        return {
+            "known": self.known,
+            "holes": len(self.plated),
+            "unknown": self.unknown,
+            "how": dict(sorted(Counter(h for h in self.how if h).items())),
+        }
+
+
+class PlatingUnknown(ValueError):
+    """The files do not say which holes are plated (``PLATING_MESSAGE``); ``plating`` says how many."""
+
+    def __init__(self, plating: Plating):
+        super().__init__(PLATING_MESSAGE)
+        self.plating = plating
+
+
+@dataclass
 class Connectivity:
     nets: list[NetInfo]
     #: 'x2' when every net came named from the files, 'geometry' when none did, 'mixed'.
@@ -67,6 +129,8 @@ class Connectivity:
     warnings: list[str]
     #: Seconds per phase: parse, paint, join, assign.
     timings: dict[str, float]
+    #: How the holes' plating was settled (``Plating.to_json``).
+    plating: dict = field(default_factory=dict)
 
     def to_json(self) -> dict:
         return {
@@ -74,6 +138,7 @@ class Connectivity:
             "islands": self.islands,
             "holes": self.holes,
             "vias": self.vias,
+            "plating": self.plating,
             "warnings": self.warnings,
             "timings": {k: round(v, 3) for k, v in self.timings.items()},
             "nets": [
@@ -353,20 +418,64 @@ class _Union:
             self.parent[max(ra, rb)] = min(ra, rb)
 
 
-def _mask_openings(files: Mapping[str, bytes], board: m.Board):
-    """The solder mask openings of both faces as one geometry, or None without mask files."""
-    sh = _shapely()
-    masks = [la for la in board.layers if la.role == "mask" and la.files]
-    if not masks:
-        return None
-    shapes = _Shapes()
-    geoms = []
-    for la in masks:
-        lc = gc.parse_copper_layer(files[la.files[0]].decode("utf-8", "replace"), la.id, paint=True)
-        g, _, _ = _paint(lc, shapes, None)
-        if not g.is_empty:
-            geoms.append(g)
-    return sh.union_all(geoms) if geoms else None
+def _in_ring(x: float, y: float, ring) -> bool:
+    inside = False
+    n = len(ring)
+    for i in range(n):
+        (x0, y0), (x1, y1) = ring[i], ring[(i + 1) % n]
+        if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
+            inside = not inside
+    return inside
+
+
+def hole_plating(
+    files: Mapping[str, bytes], board: m.Board | None = None, *, parsed: Mapping[str, gc.LayerCopper] | None = None
+) -> Plating:
+    """Which of ``board.drills`` are plated, from the drill files, else (Gerber X2 copper) from the pads round them.
+    ``parsed``: the copper layers already parsed ({layer id: LayerCopper}). Pure Python (no shapely)."""
+    board = board or package.read_files(files)
+    copper = [la for la in board.layers if la.role == "copper"]
+    plated: list[bool | None] = [d.plated if d.plating else None for d in board.drills]
+    how: list[str | None] = [d.plating for d in board.drills]
+    open_ = [i for i, p in enumerate(plated) if p is None]
+    x2 = bool(copper) and all(b"%TA.AperFunction" in files.get(la.files[0], b"") for la in copper if la.files)
+    if open_ and x2:
+        cell = 2.0
+        grid: dict = defaultdict(list)  # (i, j) -> [(polygons | None, x, y, radius)]
+
+        def put(xs, ys, item):
+            for i in range(math.floor(min(xs) / cell), math.floor(max(xs) / cell) + 1):
+                for j in range(math.floor(min(ys) / cell), math.floor(max(ys) / cell) + 1):
+                    grid[(i, j)].append(item)
+
+        for la in copper:
+            lc = (parsed or {}).get(la.id) or gc.parse_copper_layer(
+                files[la.files[0]].decode("utf-8", "replace"), la.id
+            )
+            for at, dia, _net in lc.via_rings:
+                put([at[0] - dia / 2, at[0] + dia / 2], [at[1] - dia / 2, at[1] + dia / 2], (None, at, dia / 2))
+            for p in lc.pads:
+                if not p.function or p.function.split(",")[0].lower() in _UNPLATED_PADS:
+                    continue
+                pts = [q for ring in p.polygons or [] for q in ring]
+                if pts:
+                    put([q[0] for q in pts], [q[1] for q in pts], (p.polygons, p.at, 0.0))
+
+        def on_pad(x: float, y: float) -> bool:
+            for polys, at, rad in grid.get((math.floor(x / cell), math.floor(y / cell)), []):
+                if polys is None:
+                    if math.dist((x, y), at) <= rad + TOLERANCE:
+                        return True
+                elif any(len(ring) >= 3 and _in_ring(x, y, ring) for ring in polys):
+                    return True
+            return False
+
+        for i in open_:
+            d = board.drills[i]
+            pts = [(d.x, d.y)] if d.x2 is None else [((d.x + d.x2) / 2, (d.y + d.y2) / 2), (d.x, d.y), (d.x2, d.y2)]
+            plated[i] = any(on_pad(x, y) for x, y in pts)
+            how[i] = "x2"
+    return Plating(plated=plated, how=how, copper_layers=len(copper))
 
 
 def connect_files(
@@ -377,7 +486,8 @@ def connect_files(
     progress: Callable[[str, float], None] | None = None,
 ) -> tuple[cu.Copper, Connectivity]:
     """The copper of a fab package ({relpath: bytes}) with every object on its net, nets from the copper itself.
-    ``progress(phase, fraction)`` is called as it goes (phases: parse, paint, join, assign)."""
+    ``progress(phase, fraction)`` is called as it goes (phases: parse, paint, join, assign). Raises
+    ``PlatingUnknown`` when the files do not say which holes are plated (``hole_plating``)."""
     sh = _shapely()
     import numpy as np
 
@@ -392,6 +502,9 @@ def connect_files(
     for lid in layers:
         if by_id[lid].polarity == "negative":
             parsed[lid].negative = True
+    plating = hole_plating(files, board, parsed=parsed)
+    if not plating.known:
+        raise PlatingUnknown(plating)
     say("parse", 1.0)
     timings["parse"] = time.perf_counter() - t0
 
@@ -441,10 +554,9 @@ def connect_files(
         if ra != rb:
             uf[max(ra, rb)] = min(ra, rb)
 
-    holes = [d for d in board.drills if d.plated]
+    holes = [d for d, p in zip(board.drills, plating.plated, strict=True) if p]
     if not board.drills and len(layers) > 1:
         warnings.append("no drill files: layers are not joined (every layer's copper is its own nets)")
-    mask = _mask_openings(files, board)
     hole_geo = [
         sh.LineString([(d.x, d.y), (d.x2, d.y2)]).buffer(d.diameter / 2 + TOLERANCE, quad_segs=QUAD)
         if d.x2 is not None
@@ -459,19 +571,11 @@ def connect_files(
             continue
         for a, b in pairs(lid, [hole_geo[i] for i in want]):
             hits[want[a]].append(base[lid] + b)
-    if mask is not None and holes:
-        tented = ~sh.intersects(mask, sh.points([(d.x, d.y) for d in holes]))
-    else:
-        tented = [False] * len(holes)
     via_holes = []
     for i, d in enumerate(holes):
         for a, b in zip(hits[i], hits[i][1:], strict=False):
             join(a, b)
-        if (
-            d.x2 is None
-            and d.function in (None, "via")
-            and (d.function == "via" or tented[i] or (mask is None and d.diameter <= VIA_MAX_DRILL))
-        ):
+        if d.x2 is None and d.function == "via":
             via_holes.append((d, spans[i], hits[i]))
     timings["join"] = time.perf_counter() - t2
 
@@ -646,6 +750,7 @@ def connect_files(
         vias=len(doc.vias),
         warnings=warnings,
         timings=timings,
+        plating=plating.to_json(),
     )
 
 

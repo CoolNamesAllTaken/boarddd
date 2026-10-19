@@ -294,6 +294,7 @@ def _layers(files: Mapping[str, bytes], found: dict, job: dict, warnings: list[s
 
     layers: list[m.Layer] = []
     seen: set[str] = set()
+    drill_files = [rel for rel in found if found[rel].kind == FabFile.DRILL]
     for rel in sorted(found):
         kind = found[rel]
         role = _LAYER_ROLE.get(kind.kind)
@@ -312,7 +313,7 @@ def _layers(files: Mapping[str, bytes], found: dict, job: dict, warnings: list[s
         if role == "drill":
             match = _DRILL_FILE_FUNCTION.search(head)
             function = match.group(1).strip() if match else None
-            plated = _plated(function, rel)
+            plated, _how = _plating(function, rel, drill_files)
             side = "none"
         else:
             match = _TF_POLARITY.search(head)
@@ -335,7 +336,7 @@ def _layers(files: Mapping[str, bytes], found: dict, job: dict, warnings: list[s
                 side=side if side in ("top", "bottom", "inner") else "none",
                 order=order,
                 files=[rel],
-                format="excellon" if role == "drill" else "gerber",
+                format="excellon" if role == "drill" and not _is_gerber(head) else "gerber",
                 polarity=polarity,
                 function=function,
                 plated=plated,
@@ -346,18 +347,30 @@ def _layers(files: Mapping[str, bytes], found: dict, job: dict, warnings: list[s
     return sorted(layers, key=lambda la: (la.order, la.side != "top", la.id))
 
 
-def _plated(function: str | None, rel: str) -> bool | None:
+def _plating(function: str | None, rel: str, drill_files: Iterable[str] = ()) -> tuple[bool | None, str | None]:
+    """(plated, how) of a whole drill file: its X2 FileFunction ('file'), else its name ('name'); (None, None) when
+    neither says (a combined file: its tools may)."""
     words = (function or "").replace(" ", "").lower().split(",")
     if words[0] == "plated":
-        return True
+        return True, "file"
     if words[0] == "nonplated":
-        return False
+        return False, "file"
     name = rel.rsplit("/", 1)[-1].lower()
     if re.search(r"(^|[-_. ])(npth|non[-_]?plated|unplated)([-_. ]|$)", name):
-        return False
+        return False, "name"
     if re.search(r"(^|[-_. ])(pth|plated)([-_. ]|$)", name):
-        return True
-    return None
+        return True, "name"
+    # Eagle's CAM job: drills (.drd) and holes (.hol) apart; a .drd alone holds both
+    if name.endswith(".hol"):
+        return False, "name"
+    if name.endswith(".drd") and any(f.lower().endswith(".hol") for f in drill_files):
+        return True, "name"
+    return None, None
+
+
+def _is_gerber(head: str) -> bool:
+    """A drill file written as Gerber (X2 drill: %TF.FileFunction,Plated...), not Excellon."""
+    return "%FS" in head or "%MO" in head
 
 
 def _stackup(job: dict, layers: list[m.Layer]) -> m.Stackup:
@@ -419,11 +432,17 @@ def _outline(files, layers, size, warnings) -> m.Outline | None:
 def _drills(files, layers, warnings) -> list[m.Drill]:
     # A hole listed again by a later file (a combined drill file next to a PTH/NPTH pair) is kept
     # once, as excellon.distinct does; two hits in one file (stacked pads) are both kept.
+    from .gerber_copper import drill_holes
+
     holes: list[tuple[excellon.Hole, m.Layer]] = []
     seen: set = set()
     again = 0
-    for layer in (la for la in layers if la.role == "drill"):
-        mine = excellon.parse(_text(files[layer.files[0]]), keep_empty=True)
+    drill_layers = [la for la in layers if la.role == "drill"]
+    drill_files = [la.files[0] for la in drill_layers]
+    how = {la.id: _plating(la.function, la.files[0], drill_files)[1] for la in drill_layers}
+    for layer in drill_layers:
+        text = _text(files[layer.files[0]])
+        mine = drill_holes(text) if layer.format == "gerber" else excellon.parse(text, keep_empty=True)
         keys = [_hole_key(h) for h in mine]
         for hole, key in zip(mine, keys, strict=True):
             if key in seen:
@@ -441,6 +460,7 @@ def _drills(files, layers, warnings) -> list[m.Drill]:
                 y=r(hole.y),
                 diameter=r(hole.diameter),
                 plated=hole.plated if layer.plated is None else layer.plated,
+                plating=how[layer.id] if layer.plated is not None else (hole.plating or None),
                 x2=r(hole.x2) if hole.x2 is not None else None,
                 y2=r(hole.y2) if hole.y2 is not None else None,
                 tool=hole.tool or None,

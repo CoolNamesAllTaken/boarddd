@@ -104,7 +104,7 @@ Each app keeps its own data (statuses, diffs, URLs, BOM links, fit results) next
 | `layers[]` (`id`, `role`, `side`, `order`, `files`) | `pcb.layers[]` (`id`, `kind`, `side`, `base/head.gerber`), stack order implicit |
 | `layers[].function` / `polarity` | — |
 | `drills[]` (`x`, `y`, `diameter`, `plated`, `x2`, `y2`, `filled`) | — (only the `.drl` paths) |
-| `drills[].tool` / `function` | — |
+| `drills[].tool` / `function` / `plating` | — |
 | `footprints{}.pads[]` | — |
 | `footprints{}.graphics[]` | — |
 | `components[].ref`, `value`, `footprint` | `pcba3d.components[].ref`, `value`, `footprint` |
