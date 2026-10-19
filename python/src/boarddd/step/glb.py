@@ -551,9 +551,7 @@ def _write(instances: list, products: dict, lod: str, meta: dict, compression: s
                     },
                     "indices": bare(5125, "SCALAR", int(len(indices))),
                     "material": material_of[color],
-                    "extensions": {
-                        "KHR_draco_mesh_compression": {"bufferView": view, "attributes": dict(DRACO_IDS)}
-                    },
+                    "extensions": {"KHR_draco_mesh_compression": {"bufferView": view, "attributes": dict(DRACO_IDS)}},
                 }
             else:
                 q = np.round((positions - offset) / scale).astype(np.int16)
