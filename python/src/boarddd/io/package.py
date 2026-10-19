@@ -288,7 +288,9 @@ def _layers(files: Mapping[str, bytes], found: dict, job: dict, warnings: list[s
     }
     numbers = [c.copper_layer for c in found.values() if c.kind == FabFile.GERBER_COPPER and c.copper_layer]
     count = specs.get("LayerNumber") if isinstance(specs.get("LayerNumber"), int) else None
-    count = count or (max(numbers) if numbers else None)
+    files_copper = sum(c.kind == FabFile.GERBER_COPPER for c in found.values())
+    # without a job file: a bottom layer with no number is below every numbered one
+    count = count or (max(max(numbers), files_copper) if numbers else None)
 
     layers: list[m.Layer] = []
     seen: set[str] = set()
