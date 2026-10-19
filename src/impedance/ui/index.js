@@ -4,6 +4,7 @@
 //   copperHitIndex / attachPicker / createHighlight / copperContent   the stage pieces on their own
 //   createAnalyzer                                 analyzeNet in a Worker (main thread on file://)
 //   netGroup                                       nets as a group: tracks like a pick (≋), net-name patterns
+//   layerView                                      the board layer by layer (stackup stepper); pick a net, control it
 //   boardPointFromPick                             a boarddd/scene pick on the board solid → board mm
 export { impedancePanel, verdict, fmtHz, STRUCTURES, DISCONTINUITIES } from './panel.js';
 export { crossSection, sectionLayout, sectionGeometry } from './crosssection.js';
@@ -11,4 +12,5 @@ export { copperHitIndex, pairOf, pairOrder, trackPath, arcPoints } from './pick.
 export { attachPicker, createHighlight, copperContent, routeSlice, routePoint, boardPointFromPick, LAYER_COLORS } from './stage.js';
 export { createAnalyzer } from './analyzer.js';
 export { netGroup, shortName } from './group.js';
+export { layerView, layerStops, mainSection } from './layers.js';
 export { IMPEDANCE_UI_CSS } from './style.js';

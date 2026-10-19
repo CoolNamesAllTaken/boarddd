@@ -57,6 +57,11 @@ export interface Similar {
 export function similarTracks(copper: Copper, seed: { layer: string; width?: number | null; nets: string[] }, options?: { board?: Pick<Board, 'nets'> | null }): Similar;
 /** Edge-to-edge gap between two nets' parallel tracks on a layer (the gap most of the coupled length has). */
 export function pairGap(copper: Copper, a: string, b: string, options: { layer: string; width?: number | null }): { gap: number; length: number } | null;
+/**
+ * The net running beside `net` as a pair partner would (parallel at one gap for at least `share`, default 0.5, of its
+ * routed length on `layer`, default its main layer): for boards whose nets have no names to pair them by.
+ */
+export function parallelPartner(copper: Copper, net: string, options?: { layer?: string | null; share?: number; exclude?: string[] }): { net: string; gap: number; length: number; share: number; layer: string } | null;
 /** mm: max(1 µm, 0.5 % of w). */
 export function widthTolerance(w: number): number;
 /** mm: max(2 µm, 2 % of g). */

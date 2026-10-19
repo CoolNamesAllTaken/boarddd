@@ -20,6 +20,7 @@ import { contentRect, renderContent } from './content.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const CLICK_SLOP_PX = 4;
+const LONG_PRESS_MS = 550; // a touch held still this long is a context press (as boarddd/scene)
 
 export const STAGE_CSS = `
 .bd2-stage{position:relative;display:flex;gap:2px;width:100%;height:100%;overflow:hidden}
@@ -413,6 +414,18 @@ export function createStage(container, options = {}) {
     const pointers = new Map();
     let pinch = 0;
     let moved = 0;
+    // context: a right click, or a touch held still for LONG_PRESS_MS (one gesture can raise both: mobile Chrome
+    // sends contextmenu for a long-press too, so a second within a moment is dropped)
+    let longPress = null;
+    let contextAt = -Infinity;
+    let pressedLong = false;
+    const fireContext = (e) => {
+      const now = performance.now();
+      if (now - contextAt < 700) return;
+      contextAt = now;
+      emit('context', at(e));
+    };
+    const cancelLongPress = () => { if (longPress) { clearTimeout(longPress.timer); longPress = null; } };
     const local = (e) => {
       const r = p.getBoundingClientRect();
       return [e.clientX - r.left, e.clientY - r.top];
@@ -432,14 +445,32 @@ export function createStage(container, options = {}) {
     p.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 && e.pointerType === 'mouse') return;
       if (e.target.closest?.('[data-bd2-handle]')) return;
-      p.setPointerCapture?.(e.pointerId);
+      try { p.setPointerCapture?.(e.pointerId); } catch { /* a pointer the browser does not know (synthetic events) */ }
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       moved = 0;
+      pressedLong = false;
+      cancelLongPress();
+      if (pointers.size === 1 && e.pointerType !== 'mouse' && listeners.get('context')?.size) {
+        const { clientX, clientY } = e;
+        longPress = { id: e.pointerId, timer: setTimeout(() => {
+          longPress = null;
+          if (moved >= CLICK_SLOP_PX || !pointers.has(e.pointerId)) return;
+          pressedLong = true;
+          fireContext({ clientX, clientY });
+        }, LONG_PRESS_MS) };
+      }
       p.classList.add('bd2-grabbing');
+    });
+    p.addEventListener('contextmenu', (e) => {
+      if (!listeners.get('context')?.size) return; // the browser's own menu
+      e.preventDefault();
+      if (pressedLong) return;
+      fireContext(e);
     });
     p.addEventListener('pointermove', (e) => {
       const prev = pointers.get(e.pointerId);
       if (!prev) { emit('move', at(e)); return; }
+      if (longPress && (pointers.size > 1 || Math.hypot(e.clientX - prev.x, e.clientY - prev.y) + moved >= CLICK_SLOP_PX)) cancelLongPress();
       if (pointers.size === 1) {
         const dx = e.clientX - prev.x;
         const dy = e.clientY - prev.y;
@@ -460,7 +491,8 @@ export function createStage(container, options = {}) {
       pinch = d;
     });
     const up = (e) => {
-      const click = pointers.has(e.pointerId) && pointers.size === 1 && moved < CLICK_SLOP_PX && e.type === 'pointerup';
+      cancelLongPress();
+      const click = pointers.has(e.pointerId) && pointers.size === 1 && moved < CLICK_SLOP_PX && e.type === 'pointerup' && !pressedLong;
       pointers.delete(e.pointerId);
       if (pointers.size < 2) pinch = 0;
       if (!pointers.size) p.classList.remove('bd2-grabbing');
@@ -548,7 +580,11 @@ export function createStage(container, options = {}) {
         remove() { overlays.delete(o); for (const p of panes) { p.groups.get(o)?.remove(); p.groups.delete(o); } },
       };
     },
-    /** Events: view, click, move, leave, measure, render, error. Returns an unsubscribe function. */
+    /**
+     * Events: view, click, move, leave, measure, render, error, and context (a right click or a touch long-press,
+     * with the same payload as click; the browser's menu is kept while nobody listens). Returns an unsubscribe
+     * function.
+     */
     on(name, fn) {
       if (!listeners.has(name)) listeners.set(name, new Set());
       listeners.get(name).add(fn);

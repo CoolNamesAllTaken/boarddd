@@ -92,6 +92,7 @@ export function routePoint(route, s, tracks = null) {
  */
 export function createHighlight(stage, copper, { dim = 0.55 } = {}) {
   let sel = { nets: [], track: null };
+  let focusLayer = null; // with a layer: copper of the nets on other layers is drawn as such (fainter)
   let sec = null;
   let mark = null;
   let rings = [];
@@ -107,14 +108,21 @@ export function createHighlight(stage, copper, { dim = 0.55 } = {}) {
       ctx.svg('rect', { x: b.minX - 50, y: b.minY - 50, width: b.maxX - b.minX + 100, height: b.maxY - b.minY + 100, class: 'bdi-dim', 'fill-opacity': dim }, g);
       const nets = new Set(sel.nets);
       const tracks = sel.track != null ? [copper.tracks[sel.track]] : (copper.tracks ?? []).filter((t) => nets.has(t.net));
-      for (const t of tracks) {
+      const other = (on) => (focusLayer && !on ? ' bdi-hl-other' : '');
+      // other layers' copper first, so the layer in focus is drawn over it
+      const byFocus = (items, on) => (focusLayer ? [...items.filter((x) => !on(x)), ...items.filter(on)] : items);
+      if (sel.track == null) {
+        for (const z of byFocus((copper.zones ?? []).filter((z) => nets.has(z.net)), (z) => z.layer === focusLayer)) {
+          for (const f of z.fill) ctx.svg('path', { d: [f.outline, ...f.holes].map(ringPath).join(''), class: `bdi-hl-zone${other(z.layer === focusLayer)}`, 'fill-rule': 'evenodd', 'data-layer': z.layer }, g);
+        }
+      }
+      for (const t of byFocus(tracks, (t) => t.layer === focusLayer)) {
         const pts = trackPath(t);
-        ctx.svg('polyline', { points: pts.map((p) => p.join(',')).join(' '), 'stroke-width': t.width, class: 'bdi-hl-track', 'data-layer': t.layer }, g);
+        ctx.svg('polyline', { points: pts.map((p) => p.join(',')).join(' '), 'stroke-width': t.width, class: `bdi-hl-track${other(t.layer === focusLayer)}`, 'data-layer': t.layer }, g);
       }
       if (sel.track == null) {
-        for (const p of copper.pads ?? []) if (nets.has(p.net)) for (const r of p.polygons ?? []) ctx.svg('path', { d: ringPath(r), class: 'bdi-hl-pad' }, g);
+        for (const p of copper.pads ?? []) if (nets.has(p.net)) for (const r of p.polygons ?? []) ctx.svg('path', { d: ringPath(r), class: `bdi-hl-pad${other(p.layers.includes(focusLayer))}` }, g);
         for (const v of copper.vias ?? []) if (nets.has(v.net)) ctx.svg('circle', { cx: v.at[0], cy: v.at[1], r: v.diameter / 2, class: 'bdi-hl-via' }, g);
-        for (const z of copper.zones ?? []) if (nets.has(z.net)) for (const f of z.fill) ctx.svg('path', { d: [f.outline, ...f.holes].map(ringPath).join(''), class: 'bdi-hl-zone', 'fill-rule': 'evenodd' }, g);
       }
       const px = ctx.mmPerPx();
       if (sec) {
@@ -133,6 +141,8 @@ export function createHighlight(stage, copper, { dim = 0.55 } = {}) {
   return {
     get selection() { return { ...sel }; },
     set({ nets = [], track = null } = {}) { sel = { nets, track }; sec = null; mark = null; rings = []; overlay.invalidate(); },
+    /** The layer on show: the nets' copper on other layers is drawn fainter (null: every layer alike). */
+    focus(layer) { if (layer !== focusLayer) { focusLayer = layer ?? null; overlay.invalidate(); } },
     section(s) { sec = s; overlay.invalidate(); },
     marker(p) { mark = p; overlay.invalidate(); },
     rings(points) { rings = points ?? []; overlay.invalidate(); },

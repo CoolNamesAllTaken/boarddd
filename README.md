@@ -282,8 +282,15 @@ panel.on('result', (doc) => doc.summary.z_weighted);                    // the b
   in the list; untick one to drop it. ✓ emits `'group'` (`{ source, kind, layer, width, gap, patterns, nets, pairs }`).
 - **3D:** `boardPointFromPick(viewer.pick(x, y))` gives the board mm of a pick on the board solid;
   `panel.selectAt(x, y)` selects there.
+- **Layer view:** `layerView(el, { board, copper, route: {} })`: one copper layer at a time (the layers above
+  ghosted), ▲ ▼ / ↑ ↓ through the stackup with its dielectrics. Click a trace: its segment. Right click or long-press:
+  its net on every layer and a form to control it (pair from the names or from the copper, `⇄ pair with…`, structure,
+  target, live tier-1 Z and the width for the target; `evaluate` for the app's field-solver figure). ✓ emits
+  `'control'` with the draft. Works on plain Gerbers: the nets come from `boarddd.connectivity` (Python, below).
+  `examples/layers.html` has CM5 MINIMA from plain Gerbers.
 - **Gerber-only uploads:** `copperFromGerbers(files)` (boarddd/copper) gives the copper. `stackupFromJob(gbrjob)`
-  (boarddd/model) gives the stackup.
+  (boarddd/model) gives the stackup. Without X2 net attributes, the server finds the nets from the copper:
+  `boarddd.connectivity.connect_files(files)` (extra `connect`, shapely; docs/copper.md "Connectivity").
 - **Theming:** CSS variables `--bdi-*` on `.bdi-panel` / `.bd2-stage` (light and dark defaults); `IMPEDANCE_UI_CSS`
   for a CSP without inline styles (`injectCss: false`).
 - **Example:** `examples/impedance.html` has royalblue54L from its Gerber X2 export (the USB pair) and CM5 MINIMA (the

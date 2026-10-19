@@ -57,3 +57,21 @@ test('rules', () => {
   assert.equal(nets.similarTracks(lanes, { layer: 'F.Cu', nets: ['WIDE'] }).nets.length, 1);
   assert.equal(nets.similarTracks(lanes, { layer: 'F.Cu', nets: ['SOLO'] }).nets.find((n) => n.net === 'GND').plane, true);
 });
+
+test('parallelPartner: a pair found from the copper alone (plain Gerbers, auto names)', () => {
+  const plain = JSON.parse(gunzipSync(readFileSync(fixture('connectivity/cm5-plain.json.gz'))));
+  // CM5's TRD0 pair in the KiCad file; in the plain Gerbers' copper it is two N-names: find them by place
+  const named = (net) => CM5.copper.tracks.filter((t) => t.net === net && t.layer === 'B.Cu').sort((a, b) => Math.hypot(b.end[0] - b.start[0], b.end[1] - b.start[1]) - Math.hypot(a.end[0] - a.start[0], a.end[1] - a.start[1]))[0];
+  const at = (t) => plain.copper.tracks.find((u) => u.layer === t.layer && Math.hypot(u.start[0] - t.start[0], u.start[1] - t.start[1]) < 1e-3 && Math.hypot(u.end[0] - t.end[0], u.end[1] - t.end[1]) < 1e-3).net;
+  const p = at(named('/CM5/ETH_PI.TRD0_P')), n = at(named('/CM5/ETH_PI.TRD0_N'));
+  assert.match(p, /^N\d+$/);
+  const found = nets.parallelPartner(plain.copper, p);
+  assert.equal(found.net, n);
+  assert.equal(found.layer, 'B.Cu');
+  assert.ok(found.share > 0.7, `share ${found.share}`);
+  assert.equal(found.gap, nets.pairGap(CM5.copper, '/CM5/ETH_PI.TRD0_P', '/CM5/ETH_PI.TRD0_N', { layer: 'B.Cu' }).gap);
+  // the synthetic pair: each finds the other; a net with nothing beside it finds none
+  assert.equal(nets.parallelPartner(PAIR.copper, 'USB_P').net, 'USB_N');
+  assert.equal(nets.parallelPartner(PAIR.copper, 'USB_N', { share: 0.99 }), null); // the breakout is not coupled
+  assert.equal(nets.parallelPartner(PAIR.copper, 'USB_P', { exclude: ['USB_N'] }), null);
+});

@@ -82,6 +82,9 @@ class _Aperture:
     diameter: float | None  # circles: the stroke width
     size: tuple[float, float]  # bounding box, mm
     function: str  # 'Conductor', 'SMDPad,CuDef'... ('' when the file has none)
+    params: list[float] = field(default_factory=list)  # as written, file units
+    macro: list[str] | None = None  # the macro's body, for macro apertures
+    scale: float = 1.0  # file units -> mm
 
 
 @dataclass
@@ -93,6 +96,10 @@ class LayerCopper:
     pads: list[cu.CopperPad] = field(default_factory=list)
     zones: list[cu.Zone] = field(default_factory=list)
     via_rings: list[tuple[tuple[float, float], float, str]] = field(default_factory=list)  # (at, diameter, net)
+    #: Every object in drawing order, clear ones too (``parse_copper_layer(paint=True)``, for boarddd.connectivity):
+    #: (dark, 'draw', aperture, points) | (dark, 'flash', aperture, (x, y)) | (dark, 'region', loops, None).
+    paint: list[tuple] | None = None
+    negative: bool = False  # %IPNEG (the image is the board minus what is drawn)
     skipped: Counter = field(default_factory=Counter)  # what was not copper with a net, by reason
     generator: str | None = None
 
@@ -295,7 +302,7 @@ def _aperture(
         if pts
         else (0.0, 0.0)
     )
-    return _Aperture(t, loops, diameter, size, function)
+    return _Aperture(t, loops, diameter, size, function, list(params), macros.get(t), scale)
 
 
 _WORD = re.compile(r"^((?:G\d+)*)((?:[XYIJ][+-]?\d+)*)(?:D(\d+))?$")
@@ -350,9 +357,14 @@ def _single_quadrant_center(start, end, i: float, j: float, clockwise: bool):
     return best[1] if best else (start[0] + i, start[1] + j)
 
 
-def parse_copper_layer(text: str, layer: str, *, segments: int = SEGMENTS) -> LayerCopper:
-    """One copper Gerber's tracks, pads, regions and via rings, board frame (Gerber's own), mm."""
-    out = LayerCopper(layer=layer)
+def parse_copper_layer(
+    text: str, layer: str, *, segments: int = SEGMENTS, paint: bool = False, zones: bool = True
+) -> LayerCopper:
+    """One copper Gerber's tracks, pads, regions and via rings, board frame (Gerber's own), mm. ``paint``: also
+    record every object in drawing order with its polarity (``LayerCopper.paint``); ``zones=False`` leaves the
+    regions to the caller (no zones made)."""
+    out = LayerCopper(layer=layer, paint=[] if paint else None)
+    ops = out.paint
     scale_units = 1.0
     xdec = ydec = 6
     trailing = False
@@ -401,8 +413,12 @@ def parse_copper_layer(text: str, layer: str, *, segments: int = SEGMENTS) -> La
         n = attrs.get("N", [""])[0] if attrs.get("N") else ""
         if not loops:
             return
+        if ops is not None:
+            ops.append((dark, "region", loops, None))
         if not dark:
             out.skipped["clear-polarity objects"] += 1
+        elif f in ("conductor", "") and not zones:
+            pass
         elif f in ("conductor", ""):
             fill = [p for lp in loops for p in cu.unfracture([_rp(q) for q in lp])]
             if fill:
@@ -478,6 +494,8 @@ def parse_copper_layer(text: str, layer: str, *, segments: int = SEGMENTS) -> La
             elif head == "TF":
                 if cmd.startswith("TF.GenerationSoftware,"):
                     out.generator = " ".join(_split_fields(cmd.split(",", 1)[1]))
+            elif head == "IP":
+                out.negative = cmd[2:5] == "NEG"
             elif head == "LP":
                 dark = cmd[2:3] != "C"
             elif head == "SR" and cmd not in ("SR", "SRX1Y1I0J0"):
@@ -539,6 +557,15 @@ def parse_copper_layer(text: str, layer: str, *, segments: int = SEGMENTS) -> La
             continue
         func = current.function
         f = func.split(",")[0].lower()
+        if ops is not None:
+            if d == 1:
+                pts = [start, end]
+                if interp != 1:
+                    c = (x0 + i, y0 + j) if multi else _single_quadrant_center(start, end, abs(i), abs(j), interp == 2)
+                    pts = [start, *_arc_points(start, end, c, interp == 2, segments)]
+                ops.append((dark, "draw", current, pts))
+            elif d == 3:
+                ops.append((dark, "flash", current, end))
         if not dark:
             out.skipped["clear-polarity objects"] += 1
             continue
@@ -600,10 +627,16 @@ def read_gerber_copper(source: str | Path, *, name: str | None = None, check_fil
 
 
 def read_gerber_copper_files(
-    files: Mapping[str, bytes], *, name: str | None = None, check_fills: bool = True, board: m.Board | None = None
+    files: Mapping[str, bytes],
+    *,
+    name: str | None = None,
+    check_fills: bool = True,
+    board: m.Board | None = None,
+    parsed: dict | None = None,
 ) -> cu.Copper:
     """``read_gerber_copper`` on files in memory ({relpath: bytes}). ``board``: the package's board@1 when already
-    read (``io.package.read_files``), for its layer ids, drills and outline."""
+    read (``io.package.read_files``), for its layer ids, drills and outline. ``parsed``: a dict to fill with each
+    layer's ``LayerCopper`` parsed with ``paint=True, zones=False`` (boarddd.connectivity makes the zones)."""
     board = board or package.read_files(files, name=name)
     copper = sorted((la for la in board.layers if la.role == "copper"), key=lambda la: la.order)
     warnings: list[str] = []
@@ -623,7 +656,13 @@ def read_gerber_copper_files(
     no_net = 0
     for la in copper:
         text = files[la.files[0]].decode("utf-8", "replace")
-        lc = parse_copper_layer(text, la.id)
+        lc = (
+            parse_copper_layer(text, la.id)
+            if parsed is None
+            else parse_copper_layer(text, la.id, paint=True, zones=False)
+        )
+        if parsed is not None:
+            parsed[la.id] = lc
         doc.tracks += lc.tracks
         doc.pads += lc.pads
         doc.zones += lc.zones

@@ -651,6 +651,21 @@ and show symbols and numbers, with the words in tooltips. The README has the API
   track's layer and width; a pair: its gap too), the pattern box runs `matchNets` as it is typed
   ([nets.md](nets.md)). Members are ticked chips, all highlighted on the stage; a plane net starts unticked. ✓
   emits `'group'`; the host makes the targets.
+- **Layer view.** `layerView(el, { board, copper })` shows one copper layer at a time on its own stage (one
+  `copperContent` per layer: stepping changes opacities, nothing re-renders), the layers above ghosted (16 %), the
+  ones below hidden; `layerStops` puts the stackup's dielectrics between (sublayers merged, εr and thickness in the
+  stop). ▲ ▼, a click on a stop, or ↑ ↓ on the focused view step through it. A click on a trace selects its segment
+  (width, length); a right click or a touch long-press (view2d's `context` event) picks its net: the highlight shows
+  it on every layer (on the others fainter: `Highlight.focus`), and the control form opens:
+  - the pair: `pairOf` (names), else `parallelPartner` (the net beside it at one gap for half its route or more:
+    plain Gerbers have no names to pair by), offered as `⇄ N13 ✓`; or `⇄ pair with…` and a click on the partner;
+  - the structure: auto from the route's main section (`mainSection`, with `route` the impedance panel runs
+    `analyzeNet` under the form), or set; the target and tolerance;
+  - Z at the routed width and the width for the target, tier 1 on `board.stackup` as they are typed (a coplanar
+    pair, which tier 1 has no model for, as the layer's microstrip or stripline, said in the tooltip); an app's
+    `evaluate(draft)` adds its tier-2 figure;
+  - ✓ emits `'control'` with the draft (nets, kind, layer, structure, target, width, gap, anchors); the host makes
+    the target. `rename` adds ✎ for nets named N1, N2… (`netInfo[net].auto`).
 - **3D.** `boardPointFromPick(hit)` maps a `boarddd/scene` pick on the board solid back to board mm through the
   mesh's own transform (its geometry is board mm). `panel.selectAt(x, y)` selects there.
 

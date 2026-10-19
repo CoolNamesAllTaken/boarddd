@@ -89,3 +89,22 @@ test('analyzeNet reports progress: the route, then each section solved', () => {
   assert.ok(seen.indexOf(route.at(-1)) < seen.indexOf(solve[0]));
   assert.deepEqual(solve.at(-1), { phase: 'solve', done: 3, total: 3 });
 });
+
+test('layerStops: copper top to bottom with the dielectrics between (sublayers merged); none without a stackup', () => {
+  const { board, copper } = load('impedance/route/inner.json');
+  const stops = ui.layerStops(copper, board.stackup);
+  assert.deepEqual(stops.map((s) => s.kind === 'copper' ? s.layer : 'd'), copper.layers.flatMap((l, i) => (i ? ['d', l] : [l])));
+  const d = stops.find((s) => s.kind === 'dielectric');
+  assert.ok(d.thickness > 0 && d.epsilon_r > 1);
+  assert.deepEqual(ui.layerStops(copper, null).map((s) => s.kind), stops.map((s) => s.kind));
+});
+
+test('mainSection: the structure most of the route is', () => {
+  const { board, copper } = load('impedance/route/inner.json');
+  const net = copper.nets.find((n) => n && n !== 'GND');
+  const doc = analyzeNet(board, copper, net);
+  const s = ui.mainSection(doc);
+  const longest = Math.max(...doc.sections.filter((x) => x.z).map((x) => x.length));
+  assert.ok(s.length >= longest - 1e-9 || doc.sections.filter((x) => x.structure === s.structure).reduce((t, x) => t + x.length, 0) >= longest - 1e-9);
+  assert.equal(ui.mainSection(null), null);
+});
