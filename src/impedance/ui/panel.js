@@ -435,7 +435,9 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
     const partner = pairOf(d.net, { board, names: copper.nets ?? [] });
     return partner ? { nets: pairOrder(d.net, partner) } : {};
   }
-  if (stage) stage.on('view', () => hl?.invalidate());
+  // rings and markers are screen-sized: redraw on a zoom only (an invalidate asks for a frame, which emits 'view')
+  let drawnAt = null;
+  if (stage) stage.on('view', ({ view: v }) => { if (v.s !== drawnAt) { drawnAt = v.s; hl?.invalidate(); } });
   return api;
 }
 

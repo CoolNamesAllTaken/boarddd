@@ -802,7 +802,9 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     else if (e.key === 'Escape') api.clear();
     else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); api.removeLast(); }
   });
-  stage.on('view', () => hl.invalidate());
+  // rings and markers are screen-sized: redraw on a zoom only (an invalidate asks for a frame, which emits 'view')
+  let drawnAt = null;
+  stage.on('view', ({ view: v }) => { if (v.s !== drawnAt) { drawnAt = v.s; hl.invalidate(); } });
   show();
   changed();
 

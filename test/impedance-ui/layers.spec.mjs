@@ -328,3 +328,16 @@ test('the view an app kept: region and layer on create', async ({ page }) => {
   expect(kept.now.region.cx).toBeCloseTo(kept.state.region.cx, 6);
   expect(kept.now.region.w).toBeCloseTo(kept.state.region.w, 6);
 });
+
+test('a still view draws no frames (no redraw loop between the highlight and the view event)', async ({ page }) => {
+  await openRoute(page, 'split');
+  await page.evaluate(() => window.demo.view.add('SIG'));
+  await page.evaluate(() => window.demo.view.stage.ready());
+  const frames = await page.evaluate(async () => {
+    const { stage } = window.demo.view;
+    const a = stage.stats().frames;
+    await new Promise((r) => setTimeout(r, 500));
+    return stage.stats().frames - a;
+  });
+  expect(frames).toBeLessThan(3);
+});
