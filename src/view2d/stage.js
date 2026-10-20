@@ -64,7 +64,7 @@ export function measureText(m) {
 export function createStage(container, options = {}) {
   const opt = {
     padding: 0.02, paddingPx: 0, interactive: true, pixelSnap: false, settleMs: 180, maxEdge: 4096, maxPixels: 16e6, minScale: MIN_SCALE, maxScale: MAX_SCALE,
-    background: null, measureLabel: true, injectCss: true, ...options,
+    background: null, measureLabel: true, injectCss: true, clickMaxMs: null, dblclickFit: true, ...options,
   };
   let bounds = opt.bounds || null;
   let flip = !!opt.flip;
@@ -414,6 +414,7 @@ export function createStage(container, options = {}) {
     const pointers = new Map();
     let pinch = 0;
     let moved = 0;
+    let downAt = 0; // a press held longer than opt.clickMaxMs is a pan, not a click
     // context: a right click, or a touch held still for LONG_PRESS_MS (one gesture can raise both: mobile Chrome
     // sends contextmenu for a long-press too, so a second within a moment is dropped)
     let longPress = null;
@@ -448,6 +449,7 @@ export function createStage(container, options = {}) {
       try { p.setPointerCapture?.(e.pointerId); } catch { /* a pointer the browser does not know (synthetic events) */ }
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       moved = 0;
+      downAt = performance.now();
       pressedLong = false;
       cancelLongPress();
       if (pointers.size === 1 && e.pointerType !== 'mouse' && listeners.get('context')?.size) {
@@ -492,19 +494,21 @@ export function createStage(container, options = {}) {
     });
     const up = (e) => {
       cancelLongPress();
-      const click = pointers.has(e.pointerId) && pointers.size === 1 && moved < CLICK_SLOP_PX && e.type === 'pointerup' && !pressedLong;
+      const duration = performance.now() - downAt;
+      const click = pointers.has(e.pointerId) && pointers.size === 1 && moved < CLICK_SLOP_PX && e.type === 'pointerup' && !pressedLong
+        && !(opt.clickMaxMs != null && duration > opt.clickMaxMs);
       pointers.delete(e.pointerId);
       if (pointers.size < 2) pinch = 0;
       if (!pointers.size) p.classList.remove('bd2-grabbing');
       if (!click) return;
-      const hit = at(e);
+      const hit = { ...at(e), duration };
       if (tool === 'measure') setMeasure(measure.length >= 2 ? [hit] : [...measure, hit]);
       emit('click', hit);
     };
     p.addEventListener('pointerup', up);
     p.addEventListener('pointercancel', up);
     p.addEventListener('pointerleave', () => emit('leave', { pane: pane.index }));
-    p.addEventListener('dblclick', () => { if (tool === 'pan') { fitNow(); settle(); } });
+    p.addEventListener('dblclick', () => { if (tool === 'pan' && opt.dblclickFit) { fitNow(); settle(); } });
   }
 
   const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => {

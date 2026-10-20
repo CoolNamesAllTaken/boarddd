@@ -96,6 +96,7 @@ export function createHighlight(stage, copper, { dim = 0.55 } = {}) {
   let sec = null;
   let mark = null;
   let rings = [];
+  let tint = []; // reference planes: [{ layer, net }] (net '' or null: every zone on the layer)
   const routes = new Map();
   const routeOf = (net) => { if (!routes.has(net)) routes.set(net, netRoute(copper, net)); return routes.get(net); };
   const overlay = stage.addOverlay({
@@ -103,9 +104,16 @@ export function createHighlight(stage, copper, { dim = 0.55 } = {}) {
     className: 'bdi-hl',
     draw(g, ctx) {
       g.replaceChildren();
-      if (!sel.nets.length && sel.track == null) return;
+      if (!sel.nets.length && sel.track == null && !rings.length) return;
       const b = stage.bounds ?? { minX: -1e3, maxX: 1e3, minY: -1e3, maxY: 1e3 };
-      ctx.svg('rect', { x: b.minX - 50, y: b.minY - 50, width: b.maxX - b.minX + 100, height: b.maxY - b.minY + 100, class: 'bdi-dim', 'fill-opacity': dim }, g);
+      if (sel.nets.length || sel.track != null) ctx.svg('rect', { x: b.minX - 50, y: b.minY - 50, width: b.maxX - b.minX + 100, height: b.maxY - b.minY + 100, class: 'bdi-dim', 'fill-opacity': dim }, g);
+      // reference planes under the selection, tinted (drawn first: the selection stays on top)
+      for (const r of tint) {
+        for (const z of copper.zones ?? []) {
+          if (z.layer !== r.layer || (r.net && z.net !== r.net)) continue;
+          for (const f of z.fill) ctx.svg('path', { d: [f.outline, ...f.holes].map(ringPath).join(''), class: 'bdi-hl-plane', 'fill-rule': 'evenodd', 'data-layer': z.layer }, g);
+        }
+      }
       const nets = new Set(sel.nets);
       const tracks = sel.track != null ? [copper.tracks[sel.track]] : (copper.tracks ?? []).filter((t) => nets.has(t.net));
       const other = (on) => (focusLayer && !on ? ' bdi-hl-other' : '');
@@ -140,12 +148,14 @@ export function createHighlight(stage, copper, { dim = 0.55 } = {}) {
   });
   return {
     get selection() { return { ...sel }; },
-    set({ nets = [], track = null } = {}) { sel = { nets, track }; sec = null; mark = null; rings = []; overlay.invalidate(); },
+    set({ nets = [], track = null } = {}) { sel = { nets, track }; sec = null; mark = null; rings = []; tint = []; overlay.invalidate(); },
     /** The layer on show: the nets' copper on other layers is drawn fainter (null: every layer alike). */
     focus(layer) { if (layer !== focusLayer) { focusLayer = layer ?? null; overlay.invalidate(); } },
     section(s) { sec = s; overlay.invalidate(); },
     marker(p) { mark = p; overlay.invalidate(); },
     rings(points) { rings = points ?? []; overlay.invalidate(); },
+    /** Tint reference planes: [{ layer, net? }] (the zones of that net on that layer; [] none). */
+    planes(list) { tint = list ?? []; overlay.invalidate(); },
     routeOf,
     /** Redraw (e.g. after a zoom, so screen-sized rings stay the same size). */
     invalidate() { overlay.invalidate(); },

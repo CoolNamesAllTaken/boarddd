@@ -10,5 +10,5 @@ const view = layerView(document.getElementById('view'), {
   board: data.board, copper: data.copper, netInfo, route: { worker: new URL('../src/impedance/ui/route-worker.js', import.meta.url) },
   rename: async (net, name) => { out.textContent = `renamed ${net} → ${name}`; },
 });
-view.on('control', (d) => { out.textContent = `control: ${JSON.stringify(d, null, 1)}`; });
+view.on('control', (d) => { out.textContent = `control: ${JSON.stringify(d.items.map((i) => ({ nets: i.nets, layer: i.layer, width: i.width, target: i.target })), null, 1)}`; });
 window.demo = { view, data };

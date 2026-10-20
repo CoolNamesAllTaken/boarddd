@@ -1,7 +1,7 @@
 // boarddd/impedance/ui: click-a-trace impedance components for a boarddd/view2d stage; see docs/impedance.md "UI".
 import type { Board } from '../../model/board.js';
 import type { Copper, Track } from '../../copper/copper.js';
-import type { HitIndex, Stage, DrawContent } from '../../view2d/index.js';
+import type { HitIndex, Stage, DrawContent, Region } from '../../view2d/index.js';
 import type { ImpedanceAnalysis, Section, Discontinuity, Target } from '../result.js';
 import type { RouteOptions, RouteStep } from '../index.js';
 
@@ -176,8 +176,12 @@ export function layerStops(copper: Copper, stackup?: Board['stackup'] | null): L
 /** The section most of a net's route is (layer, structure, width / gap), from an analysis. */
 export function mainSection(doc: ImpedanceAnalysis | null): Section | null;
 
-/** What the layer view's control form says: a structure to control. */
-export interface ControlDraft {
+/** A net or pair's reference plane as the route analysis found it (or the stackup's nearest copper). */
+export interface Reference { side: 'top' | 'bottom'; layer: string; net: string; h: number; skipped?: string[] }
+/** Where a route's reference breaks: no plane, a split it crosses, a change (at a via or along a layer). */
+export interface ReferenceBreak { type: 'no_ref' | 'plane_gap' | 'via' | 'ref_change'; at: [number, number]; layer: string; plane?: string | null; text: string; count: number }
+/** One structure to control: a net or a pair, as the layer view's form says it. */
+export interface ControlItem {
   nets: string[];
   kind: 'single' | 'differential';
   layer: string;
@@ -190,48 +194,106 @@ export interface ControlDraft {
   coplanar_gap: number | null;
   /** A point on each net's copper, for an app that keeps nets by place across revisions. */
   anchors: Array<{ net: string; layer: string; x: number; y: number }>;
+  /** The reference planes the figures use; `chosen`: picked by the user, not found. */
+  reference: { top: { layer: string; net: string; h: number } | null; bottom: { layer: string; net: string; h: number } | null; chosen: boolean };
   /** Tier 1 on the board's stackup: Z at the routed width, and the width for the target. */
   tier1?: { z: number; model: string; width_for_target: number };
 }
+/** What the layer view's form says for the whole selection: one item per net or pair (a single item's fields also at the top). */
+export type ControlDraft = Partial<ControlItem> & {
+  nets: string[];
+  pairs: string[][];
+  structure: ControlItem['structure'];
+  target: number;
+  target_differential: number;
+  tolerance_pct: number;
+  items: ControlItem[];
+};
 export interface LayerView {
   readonly root: HTMLDivElement;
   readonly stage: Stage;
   readonly stops: LayerStop[];
   readonly index: number;
   readonly stop: LayerStop & { index: number };
-  readonly selection: { nets: string[]; layers: string[] } | null;
+  readonly selection: { nets: string[]; pairs: string[][]; layers: string[] } | null;
   readonly draft: ControlDraft | null;
   readonly panel: ImpedancePanel | null;
+  /** What an app keeps across reloads (pass back as options). */
+  readonly state: { region: Region | null; layer: string | null };
   /** A stop by index, or a copper layer by id. */
   show(stop: number | string): void;
   step(by: number): void;
-  /** Pick nets as a right click would. */
-  pick(nets: string[], options?: { guessPair?: boolean }): void;
-  /** Pick what is under a board point (mm) on the layer on show. */
+  /** Select exactly these nets (two: a pair unless pair: false). */
+  pick(nets: string[], options?: { pair?: boolean }): void;
+  add(net: string): void;
+  remove(net: string): void;
+  toggle(net: string): void;
+  removeLast(): void;
+  /** Toggle what is under a board point (mm) on the layer on show, as a click there. */
   pickAt(x: number, y: number): CopperHit | null;
+  pair(a: string, b: string): void;
+  unpair(net: string): void;
+  reference(nets: string[]): { refs: Reference[]; coplanar_gap: number | null; breaks: ReferenceBreak[]; from: 'route' | 'stackup'; state: string | null; section?: Section | null } | null;
+  /** A reference layer for a selected net or pair ('' or null: as found). */
+  setReference(nets: string[], layer: string | null): void;
+  tint(nets: string[] | null): void;
+  /** The explicit camera moves: the selection, the board. */
+  zoomToSelection(): void;
+  fit(): void;
   clear(): void;
-  setTarget(v: { target?: number; tolerance?: number }): void;
+  setTarget(v: { target?: number; differential?: number; tolerance?: number }): void;
   on(name: 'layer' | 'segment' | 'net' | 'draft' | 'control' | 'rename' | 'error', fn: (v: any) => void): () => void;
   destroy(): void;
 }
 /**
- * The board one copper layer at a time (the layers above ghosted), a stepper through the stackup (↑/↓), click a
- * trace for its segment, right click / long-press for its net on every layer and a form to control it.
+ * The board one copper layer at a time (the layers above ghosted), a stepper through the stackup (↑/↓); a click on
+ * a trace toggles its net in the selection (a drag or a long press pans), and a form controls the selection.
+ * Selecting never moves the view.
  */
 export function layerView(el: HTMLElement, options: {
   board: Board;
   copper: Copper;
-  /** createAnalyzer options: the net's Z along its route under the form; false (default): none. */
+  /** createAnalyzer options: each net's reference planes along its route, the last one's Z under the form; false (default): none. */
   route?: false | { worker?: boolean | string | URL };
   /** Nets named here (auto) can be renamed; pads per net. */
   netInfo?: Record<string, { auto?: boolean; pads?: number }>;
   rename?: ((net: string, name: string) => Promise<unknown>) | null;
-  /** The app's tier-2 figure for a draft. */
-  evaluate?: ((draft: ControlDraft) => Promise<{ z: number | null; width?: number | null; gap?: number | null; why?: string; note?: string } | null>) | null;
+  /** The app's tier-2 figure for one geometry. */
+  evaluate?: ((item: ControlItem) => Promise<{ z: number | null; width?: number | null; gap?: number | null; why?: string; note?: string } | null>) | null;
   editable?: boolean;
   defaults?: { target?: { single?: number; differential?: number }; tolerance?: number; pair?: boolean };
+  /** The view and stop to start on (LayerView.state). */
+  region?: Region | null;
+  layer?: string | null;
   injectCss?: boolean;
 }): LayerView;
+
+/** A net for a net box. */
+export interface NetEntry { name: string; pads?: number; layers?: string[]; auto?: boolean; hint?: string }
+/** The nets of a copper@1 document for a net box (pads, layers; auto from netInfo). */
+export function netEntries(copper: Copper, netInfo?: Record<string, { auto?: boolean; pads?: number }>): NetEntry[];
+/** The layer and width a net is mostly routed at (by track length). */
+export function routedOn(copper: Copper, net: string): { layer: string; width: number } | null;
+/** The reference planes the stackup alone gives a trace on `layer` (nearest copper, or `pick` on its side). */
+export function stackupRefs(stackup: Board['stackup'] | null, layer: string, pick?: string | null): Reference[];
+/** 'over In1.Cu (GND) · 0.21 mm', both planes of a stripline, the coplanar ground's gap. */
+export function referenceText(refs: Reference[], coplanarGap?: number | null): string;
+/** Where an analysis's reference breaks along the route. */
+export function referenceBreaks(doc: ImpedanceAnalysis): ReferenceBreak[];
+/** How well a net name matches a lower-case query: 0 best, null none. */
+export function netScore(name: string, query: string): number | null;
+/** Nets matching a query, best first (`first`: names to put on top when they match). */
+export function fuzzyNets<T extends string | { name: string }>(entries: T[], query: string, options?: { limit?: number; first?: string[] }): T[];
+/** A type-ahead net box: ↑ ↓ Enter (adds, stays open), Esc. */
+export function netPicker(el: HTMLElement, options: {
+  source: Array<string | NetEntry> | ((query: string) => Promise<Array<string | NetEntry>>);
+  onPick: (net: string) => void;
+  first?: () => string[];
+  exclude?: () => string[];
+  placeholder?: string;
+  label?: string;
+  keepOpen?: boolean;
+}): { root: HTMLDivElement; input: HTMLInputElement; focus(): void; set(text: string): void; refresh(): Promise<void>; destroy(): void };
 
 /** The components' CSS (variables --bdi-*), injected by impedancePanel unless injectCss: false. */
 export const IMPEDANCE_UI_CSS: string;

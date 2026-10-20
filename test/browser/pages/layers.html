@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>boarddd layer view test</title>
+<style>html,body{margin:0;font:13px system-ui,sans-serif}body{padding:8px}#view .bdi-lv-stage{min-height:300px}</style>
+<div id="view"></div>
+<script src="/test/browser/pages/importmap.js"></script>
+<script type="module">
+// layerView on a synthetic route board (fixtures/impedance/route/<f>.json): ?f=split|cpwg|inner|pair
+import { layerView } from 'boarddd/impedance/ui/index.js';
+const f = new URLSearchParams(location.search).get('f') || 'split';
+const { board, copper } = await (await fetch(`/fixtures/impedance/route/${f}.json`)).json();
+const view = layerView(document.getElementById('view'), { board, copper, route: { worker: '/src/impedance/ui/route-worker.js' } });
+const controls = [];
+view.on('control', (d) => controls.push(d));
+window.demo = { view, board, copper, controls };
+</script>

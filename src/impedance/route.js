@@ -426,6 +426,7 @@ function overridden(env, ov, stack, layer) {
     if (typeof name === 'string' && name !== e.refs[side]?.layer) {
       const li = stack.order.get(layer), j = stack.order.get(name);
       if (j == null) throw new RangeError(`override: no copper layer ${name}`);
+      if ((side === 'top') !== (j < li)) continue; // not on that side of this station's layer (a net on several layers): as found
       e.refs[side] = { side, layer: name, net: '', h: R6(stack.between(li, j)), extent: [null, null], skipped: [] };
       e.layout.planes[side] = null;
     }
