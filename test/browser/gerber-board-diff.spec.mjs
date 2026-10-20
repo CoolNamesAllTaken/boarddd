@@ -255,6 +255,32 @@ test("realistic board: holes and the area outside the outline are transparent", 
   expect(result.onBackground.notch).toEqual([0, 0, 255, 255]);
 });
 
+test("realistic board: a drawing sheet plotted on the outline does not hide the mask or silk", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { board, renderer, rect, at } = window.t;
+    // KiBot's default Edge.Cuts: a sheet border (two frames) with plain apertures, and the
+    // 30 x 20 board inside it with a Profile one, drawn twice.
+    const line = ([x1, y1], [x2, y2]) => `X${x1 * 1e6}Y${y1 * 1e6}D02*\nX${x2 * 1e6}Y${y2 * 1e6}D01*\n`;
+    const box = (x0, y0, x1, y1) => line([x0, y0], [x1, y0]) + line([x1, y0], [x1, y1]) + line([x1, y1], [x0, y1]) + line([x0, y1], [x0, y0]);
+    const edge = "%FSLAX46Y46*%\n%MOMM*%\n%LPD*%\nG01*\n%ADD10C,0.1*%\n%TA.AperFunction,Profile*%\n%ADD11C,0.05*%\n%TD*%\n" +
+      "D10*\n" + box(-100, -100, 200, 120) + box(-90, -90, 190, 110) + "D11*\n" + box(0, 0, 30, 20) + box(0, 0, 30, 20) + "M02*\n";
+    const silk = `%FSLAX46Y46*%\n%MOMM*%\n%ADD10C,1*%\nD10*\nX${3e6}Y${15e6}D02*\nX${25e6}Y${15e6}D01*\nM02*\n`;
+    const palette = { mask: "#00ff00", maskAlpha: 1, finish: "#ffff00", substrate: "#ff00ff", silk: "#ffffff" };
+    const bounds = { minX: 0, maxX: 30, minY: 0, maxY: 20 };
+    const pick = async (options) => {
+      await board.renderFaceRaster(renderer, { outline: edge, copper: rect(10, 10, 4, 4), mask: rect(10, 10, 5, 5), silk },
+        { bounds, width: 600, height: 400, palette, flatten: false, ...options });
+      return { mask: at(3, 3), silk: at(10, 15), finish: at(11.8, 10) };
+    };
+    return { rings: await pick({}), asGiven: await pick({ outlineRings: false }) };
+  });
+  expect(result.rings.mask).toEqual([0, 255, 0, 255]);
+  expect(result.rings.silk).toEqual([255, 255, 255, 255]);
+  expect(result.rings.finish).toEqual([255, 255, 0, 255]);
+  // The file as given: the frames are what the mask is inverted against.
+  expect(result.asGiven.mask).not.toEqual([0, 255, 0, 255]);
+});
+
 test("empty layers: header-only files are skipped, a mask without openings covers the board", async ({ page }) => {
   const result = await page.evaluate(async () => {
     const { board, diff, renderer, rect, outline, at } = window.t;

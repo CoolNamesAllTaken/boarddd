@@ -28,6 +28,8 @@ export declare function plotsProfile(text: string): boolean;
 /** Whether a Gerber draws anything (a D01/D03 operation or a region). */
 export declare function hasGeometry(text: string): boolean;
 export declare function withoutProfile(text: string): string;
+/** Only the `.AperFunction,Profile` strokes of an outline Gerber (the text unchanged when it marks none). */
+export declare function profileOnly(text: string): string;
 export declare function layerRole(name?: string, content?: string): LayerRole;
 
 export type BoardFile<S = unknown> = { name: string; source?: S; content?: string };

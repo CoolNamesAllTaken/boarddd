@@ -29,8 +29,9 @@
 import { calculateFitView, sourceToText } from "../../third_party/wasm-gerber-renderer/core/shared.js";
 import { boardPalette, toHexColor } from "./palette.js";
 import { flattenOnto } from "./raster.js";
-import { hasGeometry, withoutProfile } from "./layers.js";
+import { hasGeometry, profileOnly, withoutProfile } from "./layers.js";
 import { parseExcellon } from "./drills.js";
+import { boardOutline, gerberExtents, outlineContours, pickBoard, ringsToGerber } from "./outline.js";
 
 /** The layer roles of one face, in the order they are drawn. */
 export const FACE_ROLES = Object.freeze(["copper", "mask", "silk", "paste"]);
@@ -48,6 +49,42 @@ async function layerText(entry, strip) {
   const text = await sourceToText(source);
   return { source: strip ? withoutProfile(text) : text, name };
 }
+
+/**
+ * The outline without what is not the board. An Edge.Cuts plot can carry the
+ * drawing sheet, whose frames would otherwise be what the mask is inverted
+ * against and the silk clipped to: KiCad marks the board's strokes
+ * `.AperFunction,Profile`, so only those are kept (slots too, at their own
+ * width). The board's rings are drawn instead when something still reaches past
+ * the board (a sheet without that attribute, the board picked by `boardSize`) or
+ * the board is drawn twice (KiBot does): two coincident loops cancel under the
+ * renderer's even-odd fill, leaving no board for the mask. The file as given
+ * with `outlineRings: false`, or when nothing closes.
+ */
+async function outlineText(entry, { outlineRings = true, boardSize = null } = {}) {
+  if (!entry) return null;
+  const text = await layerText(entry, false);
+  if (!hasGeometry(text.source)) return null;
+  if (outlineRings === false) return text;
+  const source = profileOnly(text.source);
+  const contours = outlineContours(source);
+  const board = pickBoard(contours, boardSize ?? {});
+  const extents = board && gerberExtents(source);
+  if (!board || !extents) return { source, name: text.name };
+  const { bounds } = board;
+  const past = Math.max(bounds.minX - extents.minX, extents.maxX - bounds.maxX, bounds.minY - extents.minY, extents.maxY - bounds.maxY);
+  const twice = contours.some((other) => other !== board && other.area >= SAME_AREA * board.area && other.area <= board.area / SAME_AREA &&
+    ["minX", "maxX", "minY", "maxY"].every((side) => Math.abs(other.bounds[side] - bounds[side]) <= SAME_MM));
+  if (past <= OUTSIDE_MM && !twice) return { source, name: text.name };
+  const shape = boardOutline(source, boardSize ?? {});
+  return { source: ringsToGerber([shape.outer, ...shape.holes]), name: text.name };
+}
+
+/** Drawn this far past the board's loop (mm), an outline carries more than the board: a stroke's half-width is less. */
+const OUTSIDE_MM = 1;
+/** A loop with the board's box within this (mm) and its area within `SAME_AREA` is the board drawn again. */
+const SAME_MM = 0.01;
+const SAME_AREA = 0.98;
 
 /**
  * Pick the face to draw out of a `groupBoardLayers()`-style board description
@@ -99,6 +136,11 @@ function isSource(value) {
  *     `holes` (true: render drills; with no background they are see-through)
  *   - `stripProfile` (true): drop board-outline strokes KiCad plots onto
  *     copper/mask/silk/paste layers (Gerber X2 `.AperFunction,Profile`)
+ *   - `outlineRings` (true): render against the outline's board alone (its
+ *     Profile strokes, or its rings) rather than the file as given, which may
+ *     carry a drawing sheet
+ *   - `boardSize`: `{ width, height }` in mm (a .gbrjob's), to pick the board
+ *     among the outline's loops (see `pickBoard()`)
  * @returns the public layer IDs added, by role (`null` where nothing was drawn)
  */
 export async function addBoardLayers(renderer, board, options = {}) {
@@ -128,7 +170,7 @@ export async function addBoardLayers(renderer, board, options = {}) {
     const text = await layerText(entry, stripIt);
     return hasGeometry(text.source) ? text : null;
   };
-  const outline = await load(face.outline, false);
+  const outline = await outlineText(face.outline, options);
   const copper = await load(face.copper, strip);
   const maskText = face.mask ? await layerText(face.mask, strip) : null;
   const mask = maskText && hasGeometry(maskText.source) ? maskText : null;
@@ -269,7 +311,8 @@ export async function addBoardLayers(renderer, board, options = {}) {
  * @returns `{ frame: renderer.lastFrame, ids }`
  */
 export async function renderBoard(renderer, board, options = {}) {
-  const { side = "top", mirror = true, palette, substrate, finish, clipSilk, paste, holes, stripProfile, ...frameOptions } = options;
+  const { side = "top", mirror = true, palette, substrate, finish, clipSilk, paste, holes, stripProfile, outlineRings, boardSize,
+    ...frameOptions } = options;
   let ids = null;
   await renderer.withFrame(
     {
@@ -288,6 +331,8 @@ export async function renderBoard(renderer, board, options = {}) {
         paste,
         holes,
         stripProfile,
+        outlineRings,
+        boardSize,
       });
     },
   );
@@ -346,7 +391,7 @@ export async function renderFaceRaster(renderer, board, options = {}) {
   const view = calculateFitView(bounds, size.width, size.height, 0);
   const palette = rest.palette && rest.palette.mask?.color ? rest.palette : boardPalette(rest.palette ?? {});
   await renderBoard(renderer, board, {
-    ...pick(rest, ["substrate", "finish", "clipSilk", "paste", "holes", "stripProfile"]),
+    ...pick(rest, ["substrate", "finish", "clipSilk", "paste", "holes", "stripProfile", "outlineRings", "boardSize"]),
     palette,
     side,
     mirror: false,

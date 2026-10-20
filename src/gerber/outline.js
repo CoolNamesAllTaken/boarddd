@@ -9,10 +9,14 @@
  * strokes are stitched back into closed loops by matching endpoints, arcs are
  * flattened, and loops are ranked by area. The largest is usually the board and
  * the loops inside it are cutouts, but a plotted sheet border is larger than
- * the board, so `pickBoard()` takes the board size when it is known.
+ * the board, so `pickBoard()` takes the board size when it is known. A file
+ * whose board strokes carry the X2 `.AperFunction,Profile` attribute (KiCad's)
+ * is read by those strokes alone, which leaves the sheet out.
  *
  * Pure string processing; no DOM, no WebGL. Coordinates in millimeters.
  */
+
+import { profileOnly } from "./layers.js";
 
 /** Endpoints closer than this (mm) are the same point. */
 export const OUTLINE_TOLERANCE_MM = 0.002;
@@ -204,11 +208,12 @@ export function signedArea(points) {
 /**
  * Every closed loop drawn in an outline Gerber, largest first:
  * `[{ points: [[x, y], ...], area, bounds: {minX, maxX, minY, maxY} }]`.
- * Points are in mm, the closing point not repeated, in drawing order.
+ * Points are in mm, the closing point not repeated, in drawing order. Only the
+ * Profile strokes count when the file marks any (`profileOnly`).
  */
 export function outlineContours(text, { tolerance = OUTLINE_TOLERANCE_MM } = {}) {
   const found = [];
-  for (const loop of stitch(strokesOf(text), tolerance)) {
+  for (const loop of stitch(strokesOf(profileOnly(String(text))), tolerance)) {
     const points = loop.slice(0, -1);
     if (points.length < 3) continue;
     let minX = Infinity;

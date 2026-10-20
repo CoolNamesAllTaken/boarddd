@@ -54,7 +54,7 @@ const renderer = await createGerberRenderer(canvas);   // loads the committed wa
 | | |
 |---|---|
 | `createGerberRenderer`, `GerberRenderer`, `renderGerberToCanvas`, `renderGerberToPng`, `calculateFitView`, `projectToCanvas`, `unprojectFromCanvas`, `viewExtent` | the upstream core ([wasm-gerber-viewer](https://github.com/dsafdsaf132/wasm-gerber-viewer), vendored) |
-| `board.js`: `renderBoard`, `renderFaceRaster`, `faceRasterSize`, `addBoardLayers`, `selectFace` | a realistic face: laminate, copper, mask, finish, silk, see-through holes |
+| `board.js`: `renderBoard`, `renderFaceRaster`, `faceRasterSize`, `addBoardLayers`, `selectFace` | a realistic face: laminate, copper, mask, finish, silk, see-through holes; an outline with a drawing sheet or a doubled board is drawn as the board alone (`outlineRings`) |
 | `diff.js`: `renderLayerDiff`, `analyzeLayerDiff`, `analyzeBoardDiff`, `measureLayers`, `geometryText`, ... | removed red, added green, unchanged dim, in one shared frame |
 | `drills.js`: `parseExcellon`, `diffHoles`, `holesToGerber`, `holesToExcellon`, `holeMask`, `cutHoles`, `dropEmptyTools`, `withoutEmptyTools`, ... | holes as data; KiCad's zero-diameter tools dropped before the wasm sees them |
 | `layers.js`: `layerRole`, `groupBoardLayers`, `withoutProfile`, `hasGeometry`, `plotsProfile` | which layer a file is; outline strokes plotted on other layers |

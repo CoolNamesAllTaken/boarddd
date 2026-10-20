@@ -11,6 +11,7 @@ import {
   ringsToGerber,
   signedArea,
 } from "../../src/gerber/outline.js";
+import { profileOnly } from "../../src/gerber/layers.js";
 
 const mm = (value) => String(Math.round(value * 1e6));
 const header = "%FSLAX46Y46*%\n%MOMM*%\n%ADD10C,0.1*%\nD10*\nG01*\n";
@@ -67,6 +68,23 @@ test("pickBoard prefers the loop matching a stated board size over a sheet borde
   assert.deepEqual(picked.bounds, { minX: 0, maxX: 20, minY: 0, maxY: 15 });
   assert.equal(picked.holes.length, 0);
   assert.deepEqual(gerberExtents(text), { minX: -100, maxX: 200, minY: -100, maxY: 100 });
+});
+
+test("a KiCad plot with the drawing sheet is read by its Profile strokes alone", () => {
+  // As KiBot plots Edge.Cuts by default: the sheet's border and title block with plain
+  // apertures, the board with `.AperFunction,Profile` ones. No board size to go by.
+  const sheet = segment([0, 0], [420, 0]) + segment([420, 0], [420, -297]) + segment([420, -297], [0, -297]) + segment([0, -297], [0, 0]) +
+    segment([10, -10], [410, -10]) + segment([410, -10], [410, -287]) + segment([410, -287], [10, -287]) + segment([10, -287], [10, -10]);
+  const board = segment([100, -100], [130, -100]) + segment([130, -100], [130, -116]) + segment([130, -116], [100, -116]) + segment([100, -116], [100, -100]);
+  const text = "%FSLAX46Y46*%\n%MOMM*%\n%ADD10C,0.1*%\n%TA.AperFunction,Profile*%\n%ADD11C,0.05*%\n%TD*%\n" +
+    "D10*\nG01*\n" + sheet + "G36*\nX0Y0D02*\nX1000000Y0D01*\nX0Y1000000D01*\nG37*\n" + "D11*\n" + board + "D10*\n" + segment([5, -5], [6, -6]) + "M02*\n";
+  const outline = boardOutline(text);
+  assert.deepEqual(outline.bounds, { minX: 100, maxX: 130, minY: -116, maxY: -100 });
+  assert.equal(outline.holes.length, 0);
+  assert.equal(outlineContours(text).length, 1);
+  assert.equal(profileOnly(text).includes("X420000000"), false, "the sheet's draws and moves are dropped");
+  assert.deepEqual(gerberExtents(profileOnly(text)), { minX: 100, maxX: 130, minY: -116, maxY: -100 });
+  assert.equal(profileOnly(header + board), header + board, "no Profile aperture: unchanged");
 });
 
 test("reads the KiCad demo Edge_Cuts export", () => {

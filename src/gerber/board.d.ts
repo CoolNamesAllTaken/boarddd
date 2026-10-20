@@ -36,6 +36,10 @@ export type BoardLayerOptions = {
   holes?: boolean;
   /** Drop `.AperFunction,Profile` strokes from face layers (default true). */
   stripProfile?: boolean;
+  /** Render against the outline's board alone (Profile strokes, else its rings), not a drawing sheet plotted with it (default true). */
+  outlineRings?: boolean;
+  /** The board's size in mm (a .gbrjob's), to pick it among the outline's loops. */
+  boardSize?: { width: number; height: number } | null;
 };
 
 export type BoardLayerIds = {
