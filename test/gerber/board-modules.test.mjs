@@ -42,6 +42,7 @@ import {
   summarizeDiffPixels,
 } from "../../src/gerber/diff.js";
 import { addBoardLayers, faceRasterSize, selectFace } from "../../src/gerber/board.js";
+import { boardOutline, gerberExtents, outlineContours } from "../../src/gerber/outline.js";
 
 const demo = new URL("../fixtures/pic_programmer/", import.meta.url);
 const demoFile = (revision, name) =>
@@ -395,7 +396,7 @@ function recordingRenderer() {
   return {
     calls,
     async renderLayer(layer, options = {}) {
-      calls.push(["layer", layer.name ?? null, options]);
+      calls.push(["layer", layer.name ?? null, options, layer]);
       return next++;
     },
     async renderInvertedLayer(layer, options = {}) {
@@ -477,6 +478,38 @@ test("addBoardLayers stacks substrate, copper, mask, finish, silk and see-throug
   const bare = recordingRenderer();
   await addBoardLayers(bare, { copper: DRAWS }, { substrate: false, holes: false });
   assert.equal(bare.calls.length, 1);
+});
+
+test("addBoardLayers renders against the board's rings, not a drawing sheet on the outline", async () => {
+  const stroke = ([x1, y1], [x2, y2]) => `X${x1 * 1e6}Y${y1 * 1e6}D02*\nX${x2 * 1e6}Y${y2 * 1e6}D01*\n`;
+  const box = (x0, y0, x1, y1) => stroke([x0, y0], [x1, y0]) + stroke([x1, y0], [x1, y1]) + stroke([x1, y1], [x0, y1]) + stroke([x0, y1], [x0, y0]);
+  const edge = "%FSLAX46Y46*%\n%MOMM*%\n%ADD10C,0.1*%\n%TA.AperFunction,Profile*%\n%ADD11C,0.05*%\n%TD*%\nD10*\nG01*\n" +
+    box(0, 0, 420, 297) + box(10, 10, 410, 287) + "D11*\n" + box(100, 100, 130, 116) + "M02*\n";
+  const sources = (renderer) => renderer.calls.filter(([kind]) => kind === "layer").map(([, , , layer]) => layer);
+  const renderer = recordingRenderer();
+  await addBoardLayers(renderer, { outline: { source: edge, name: "edge.gbr" }, top: { copper: DRAWS, mask: DRAWS, silk: DRAWS } });
+  const outline = sources(renderer)[0];
+  assert.equal(outline.name, "edge.gbr");
+  assert.deepEqual(boardOutline(outline.source).bounds, { minX: 100, maxX: 130, minY: 100, maxY: 116 });
+  assert.equal(gerberExtents(outline.source).maxX, 130, "the sheet is gone");
+
+  // No Profile attribute to go by: the board's size picks it and its rings are drawn.
+  const plain = "%FSLAX46Y46*%\n%MOMM*%\n%ADD10C,0.1*%\nD10*\nG01*\n" + box(0, 0, 420, 297) + box(100, 100, 130, 116) + "M02*\n";
+  const sized = recordingRenderer();
+  await addBoardLayers(sized, { outline: plain, top: { copper: DRAWS } }, { boardSize: { width: 30, height: 16 } });
+  assert.deepEqual(gerberExtents(sources(sized)[0].source), { minX: 100, maxX: 130, minY: 100, maxY: 116 });
+  const unsized = recordingRenderer();
+  await addBoardLayers(unsized, { outline: plain, top: { copper: DRAWS } });
+  assert.equal(sources(unsized)[0].source, plain, "the largest loop is the board: the file as given");
+
+  // The board drawn twice (KiBot): its rings, once.
+  const twice = recordingRenderer();
+  await addBoardLayers(twice, { outline: "%FSLAX46Y46*%\n%MOMM*%\n%ADD10C,0.1*%\nD10*\nG01*\n" + box(0, 0, 30, 16) + box(0, 0, 30, 16) + "M02*\n", top: { copper: DRAWS } });
+  assert.equal(outlineContours(sources(twice)[0].source).length, 1);
+
+  const asGiven = recordingRenderer();
+  await addBoardLayers(asGiven, { outline: { source: edge, name: "edge.gbr" }, top: { copper: DRAWS } }, { outlineRings: false });
+  assert.equal(sources(asGiven)[0].source, edge);
 });
 
 test("faceRasterSize honors density, minimum and texture ceilings", () => {

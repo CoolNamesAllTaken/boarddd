@@ -99,6 +99,43 @@ export function withoutProfile(text) {
   return kept.join("");
 }
 
+/**
+ * Only the board profile strokes of an outline Gerber: what an Edge.Cuts plot
+ * with the drawing sheet on it (KiBot's default) is without the sheet.
+ * Aperture definitions and selections are kept; operations with any other
+ * aperture (their moves too, so the extents are the board's) and regions are
+ * dropped. Text without a Profile aperture is
+ * returned unchanged (the identical string): nothing says which strokes are the
+ * board.
+ */
+export function profileOnly(text) {
+  if (typeof text !== "string" || !text.includes("AperFunction")) return text;
+  const lines = text.split(/(?<=\n)/);
+  const profile = profileApertures(lines);
+  if (profile.size === 0) return text;
+
+  const kept = [];
+  let drawing = false;
+  let region = false;
+  for (const line of lines) {
+    const stripped = line.trim();
+    const selected = APERTURE_SELECT.exec(stripped);
+    if (selected) {
+      drawing = profile.has(selected[1]);
+      kept.push(line);
+      continue;
+    }
+    if (/^G36\*/.test(stripped)) region = true;
+    if (region) {
+      if (/^G37\*/.test(stripped)) region = false;
+      continue;
+    }
+    if (!drawing && /D0?[123]\*$/.test(stripped)) continue;
+    kept.push(line);
+  }
+  return kept.join("");
+}
+
 /** The layer envelope `loadOdbJob()` hands out for an ODB++ layer (the wasm reads it like Gerber text). */
 const ODB_ENVELOPE = /^%ODB\+\+LAYER%/;
 /** An ODB++ pad, line, arc, surface, text or barcode record (upstream job-loader's check). */
