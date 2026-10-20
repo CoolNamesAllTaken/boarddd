@@ -198,6 +198,15 @@ def test_overrides_and_tier1():
         analyze_net(data["board"], data["copper"], "GND")
 
 
+def test_a_reference_override_on_the_wrong_side_is_left_as_found():
+    split = case("split.json")
+    over = run(split, "SIG", overrides={"net": {"ref_bottom": "In2.Cu"}})
+    assert {r["layer"] for s in over["sections"] for r in s["refs"]} == {"In2.Cu"}
+    # F.Cu has nothing above it: a top reference below the trace is not applied
+    above = run(split, "SIG", overrides={"net": {"ref_top": "In2.Cu"}})
+    assert [[r["side"] for r in s["refs"]] for s in above["sections"]] == [["bottom"]] * len(above["sections"])
+
+
 def test_cache_is_shared_between_calls():
     data = case("pair.json")
     cache: dict = {}
@@ -311,6 +320,12 @@ PARITY = [
     ("inner.json", "DATA", {}, {}),
     ("pair.json", ["USB_P", "USB_N"], {}, {}),
     ("split.json", "SIG", {"solver": "closedform"}, {"solver": "closedform"}),
+    (
+        "split.json",
+        "SIG",
+        {"overrides": {"net": {"ref_bottom": "In2.Cu"}}},
+        {"overrides": {"net": {"refBottom": "In2.Cu"}}},
+    ),
     ("royalblue-usb.json.gz", USB, {}, {}),
 ]
 

@@ -223,7 +223,8 @@ export type OverlayContext = {
 };
 export type StageEvents = {
   view: { view: View; region: Region | null; flip: boolean };
-  click: PointerHit;
+  /** duration: ms from press to release. */
+  click: PointerHit & { duration: number };
   /** A right click, or a touch held still (long-press). */
   context: PointerHit;
   move: PointerHit;
@@ -270,6 +271,10 @@ export type StageOptions = {
   minRender?: number;
   /** Distance label on the measure line (default true). */
   measureLabel?: boolean;
+  /** A press held longer than this (ms) is a pan, not a click (default null: no limit). */
+  clickMaxMs?: number | null;
+  /** Double click fits the bounds (default true). */
+  dblclickFit?: boolean;
   /** Add a <style> with STAGE_CSS (default true). false under a CSP without 'unsafe-inline' styles: ship STAGE_CSS in a stylesheet. */
   injectCss?: boolean;
 };

@@ -108,3 +108,36 @@ test('mainSection: the structure most of the route is', () => {
   assert.ok(s.length >= longest - 1e-9 || doc.sections.filter((x) => x.structure === s.structure).reduce((t, x) => t + x.length, 0) >= longest - 1e-9);
   assert.equal(ui.mainSection(null), null);
 });
+
+test('fuzzyNets: a name part first, then anywhere, then the letters in order; a partner on top', () => {
+  const names = ['/1090_RF_IN', 'XRFOO', 'GND', '/USB_D+', '/USB_D-', 'N12', 'N120', 'REF_CLK'];
+  assert.deepEqual(ui.fuzzyNets(names, 'rf').slice(0, 2), ['/1090_RF_IN', 'XRFOO']);
+  assert.equal(ui.fuzzyNets(names, 'n12')[0], 'N12');
+  assert.deepEqual(ui.fuzzyNets(names, 'usbd').sort(), ['/USB_D+', '/USB_D-']);
+  assert.deepEqual(ui.fuzzyNets(names, 'zz'), []);
+  assert.equal(ui.fuzzyNets(names, '', { first: ['/USB_D-'] })[0], '/USB_D-');
+  assert.equal(ui.netScore('/1090_RF_IN', 'rf'), 1);
+  assert.equal(ui.netScore('REF_CLK', 'rf'), 5); // r, a gap, f: the letters in order
+});
+
+test('reference planes: the split board crosses a 2 mm gap in In1.Cu (In2.Cu under it); words, stackup fallback', () => {
+  const { board, copper } = load('impedance/route/split.json');
+  const doc = analyzeNet(board, copper, 'SIG', { solver: 'closedform', step: 0.5 });
+  const breaks = ui.referenceBreaks(doc);
+  assert.deepEqual(breaks.map((b) => b.type), ['plane_gap', 'ref_change', 'ref_change']);
+  assert.equal(breaks[0].plane, 'In1.Cu');
+  assert.equal(breaks[0].text, 'crosses a split in In1.Cu at 14.0, 2.0');
+  assert.equal(breaks[1].text, 'reference changes: In1.Cu (GND) → In2.Cu (+3V3) at 14.0, 2.0');
+  assert.equal(breaks[2].text, 'reference changes: In2.Cu (+3V3) → In1.Cu (GND) at 16.0, 2.0');
+  assert.equal(ui.referenceText([{ side: 'bottom', layer: 'In1.Cu', net: 'GND', h: 0.2 }]), 'over In1.Cu (GND) · 0.2 mm');
+  assert.equal(ui.referenceText([{ side: 'top', layer: 'F.Cu', net: '', h: 0.2 }, { side: 'bottom', layer: 'In2.Cu', net: 'GND', h: 1 }], 0.15),
+    'between F.Cu · 0.2 mm and In2.Cu (GND) · 1 mm · ground beside it, g 0.15 mm');
+  assert.deepEqual(ui.stackupRefs(board.stackup, 'F.Cu').map((r) => [r.side, r.layer, r.h]), [['bottom', 'In1.Cu', 0.2]]);
+  assert.deepEqual(ui.stackupRefs(board.stackup, 'F.Cu', 'In2.Cu').map((r) => [r.layer, r.h]), [['In2.Cu', 1.235]]);
+  assert.deepEqual(ui.routedOn(copper, 'SIG'), { layer: 'F.Cu', width: 0.35 });
+  const e = ui.netEntries(copper).find((n) => n.name === 'SIG');
+  assert.deepEqual(e.layers, ['F.Cu']);
+  // an override to a layer on the other side of some of a net's stations is left as found there
+  const ov = analyzeNet(board, copper, 'SIG', { solver: 'closedform', step: 0.5, overrides: { net: { refTop: 'In2.Cu' } } });
+  assert.ok(ov.sections.every((s) => s.refs.every((r) => r.side === 'bottom')));
+});

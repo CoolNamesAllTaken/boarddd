@@ -613,6 +613,8 @@ def _overridden(env: dict, ov: dict | None, stack: _Stack, layer: str) -> dict:
             li, j = stack.order.get(layer), stack.order.get(name)
             if j is None:
                 raise ValueError(f"override: no copper layer {name}")
+            if (side == "top") != (j < li):
+                continue  # not on that side of this station's layer (a net on several layers): as found
             e["refs"][side] = {
                 "side": side,
                 "layer": name,

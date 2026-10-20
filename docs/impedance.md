@@ -654,18 +654,36 @@ and show symbols and numbers, with the words in tooltips. The README has the API
 - **Layer view.** `layerView(el, { board, copper })` shows one copper layer at a time on its own stage (one
   `copperContent` per layer: stepping changes opacities, nothing re-renders), the layers above ghosted (16 %), the
   ones below hidden; `layerStops` puts the stackup's dielectrics between (sublayers merged, εr and thickness in the
-  stop). ▲ ▼, a click on a stop, or ↑ ↓ on the focused view step through it. A click on a trace selects its segment
-  (width, length); a right click or a touch long-press (view2d's `context` event) picks its net: the highlight shows
-  it on every layer (on the others fainter: `Highlight.focus`), and the control form opens:
-  - the pair: `pairOf` (names), else `parallelPartner` (the net beside it at one gap for half its route or more:
-    plain Gerbers have no names to pair by), offered as `⇄ N13 ✓`; or `⇄ pair with…` and a click on the partner;
-  - the structure: auto from the route's main section (`mainSection`, with `route` the impedance panel runs
-    `analyzeNet` under the form), or set; the target and tolerance;
-  - Z at the routed width and the width for the target, tier 1 on `board.stackup` as they are typed (a coplanar
-    pair, which tier 1 has no model for, as the layer's microstrip or stripline, said in the tooltip); an app's
-    `evaluate(draft)` adds its tier-2 figure;
-  - ✓ emits `'control'` with the draft (nets, kind, layer, structure, target, width, gap, anchors); the host makes
-    the target. `rename` adds ✎ for nets named N1, N2… (`netInfo[net].auto`).
+  stop). ▲ ▼, a click on a stop, or ↑ ↓ on the focused view step through it.
+  - **Selecting.** A click on a trace (view2d's `click` with `clickMaxMs: 300`: under 4 px of movement and 300 ms)
+    toggles its net in the selection; a drag or a long press only pans, on touch too. Right click is the browser's.
+    Every selected net is highlighted on every layer (fainter off the layer on show), with a count chip and Clear
+    on the stage; Esc clears, Delete drops the last added. `+ net by name` (`netPicker` over `netEntries`: fuzzy,
+    pads and layers per net, ↑ ↓ Enter, Enter again for the next) adds to the same selection.
+  - **The camera.** Selecting, deselecting, stepping layers and the panel never move the view: the side column
+    always takes its room (a pick never resizes the stage) and double click does not fit (`dblclickFit: false`).
+    Only a drag, the wheel, a pinch, the target button (`zoomToSelection`) and ⤢ (`fit`) do; a reference break's `show` pans only
+    when the spot is off screen. `state` ({ region, layer }) passed back as options keeps the view across reloads.
+  - **Pairs.** Two selected nets pair by themselves when one is the other's partner (`pairOf` by name, else
+    `parallelPartner`: the net beside it at one gap for half its route or more); ✂ splits them (and they stay
+    split), `⇄ +N13` adds a single net's partner, `⇄…` types one (the partner first), `⇄ A B` pairs the last two.
+  - **Reference planes, per net or pair.** With `route`, each unit's route is analysed (`analyzeNet`, tier 1, in
+    the worker); its main section gives a small `crossSection` (the planes highlighted) and the words
+    (`referenceText`: 'over In1.Cu (GND) · 0.2 mm', both planes of a stripline, the coplanar ground's gap); the plane button or a
+    hover on the drawing tints the planes' copper on the board. `referenceBreaks` lists where the reference breaks
+    along the route: no plane, a split it crosses (`plane_gap`, the plane skipped), a reference change at a via or
+    along the layer, each with `show` (its layer on show, the planes tinted, the spot ringed). The reference
+    dropdown overrides it (`overrides: { net: { refTop | refBottom } }`, applied only to the stations on that side of
+    the chosen layer); the form's tier 1 uses the reference as `ref_top` / `ref_bottom`. Without `route`: the
+    stackup's nearest copper (`stackupRefs`).
+  - **The form,** one for the whole selection: the structure (auto from each route's main section, or set), the
+    single-ended and the differential target (each shown when the selection has one), the tolerance. Z and the
+    width for the target are tier 1 per distinct geometry (kind, layer, width, gap, structure, planes), with the
+    range and the worst when there are several; an app's `evaluate(item)` adds its tier-2 figure per geometry
+    (at most 6).
+  - **Save** emits `'control'` with the draft: `items`, one per net or pair (nets, kind, layer, structure, target,
+    tolerance, width, gap, coplanar gap, anchors, `reference` {top, bottom, chosen}, tier1); the host makes the
+    targets. `rename` adds ✎ for nets named N1, N2… (`netInfo[net].auto`).
 - **3D.** `boardPointFromPick(hit)` maps a `boarddd/scene` pick on the board solid back to board mm through the
   mesh's own transform (its geometry is board mm). `panel.selectAt(x, y)` selects there.
 
