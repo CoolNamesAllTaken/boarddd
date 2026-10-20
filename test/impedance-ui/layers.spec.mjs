@@ -100,6 +100,8 @@ test('a click toggles a net; a second net adds to the selection; Delete, Esc; th
   await expect(page.locator('.bdi-lv-count')).toHaveText('1 net');
   const [first] = await nets(page);
   expect(first).toMatch(/^N\d+$/);
+  expect(await page.evaluate(([x, y]) => window.demo.view.netAt(x, y), [p.x, p.y])).toBe(first); // no toggle
+  await expect(page.locator('.bdi-lv-count')).toHaveText('1 net');
   expect(await page.locator('.bdi-hl-track').count()).toBeGreaterThan(2);
   expect(await camera(page)).toEqual(before);
   await page.mouse.click(...atN);
@@ -129,7 +131,7 @@ test('a click toggles a net; a second net adds to the selection; Delete, Esc; th
   expect(await nets(page)).toEqual([]);
   await expect(page.locator('.bdi-lv-count')).toBeHidden();
   expect(await camera(page)).toEqual(before);
-  // ⌖ is the explicit way to the selection; ⤢ the board
+  // the target button is the explicit way to the selection; ⤢ the board
   await page.mouse.click(...at);
   await page.locator('.bdi-lv-zoomsel').click();
   expect((await view(page)).s).not.toBe(before.view.s);

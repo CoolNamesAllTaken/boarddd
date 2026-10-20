@@ -229,6 +229,8 @@ export interface LayerView {
   remove(net: string): void;
   toggle(net: string): void;
   removeLast(): void;
+  /** The net under a board point (mm) on the layer on show, without toggling it. */
+  netAt(x: number, y: number): string | null;
   /** Toggle what is under a board point (mm) on the layer on show, as a click there. */
   pickAt(x: number, y: number): CopperHit | null;
   pair(a: string, b: string): void;

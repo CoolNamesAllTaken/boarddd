@@ -88,7 +88,7 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-hl .bdi-hl-other { opacity: 0.35; } .bdi-hl .bdi-hl-zone.bdi-hl-other { opacity: 0.18; }
 .bdi-lv { display: flex; flex-wrap: wrap; gap: 8px; font: var(--bdi-font); color: var(--bdi-fg); outline: none; }
 .bdi-lv:focus-visible { outline: 2px solid var(--bdi-accent); outline-offset: 2px; }
-.bdi-lv-main { display: flex; align-items: flex-start; gap: 6px; flex: 3 1 320px; min-width: 0; }
+.bdi-lv-main { display: flex; align-items: flex-start; gap: 6px; flex: 3 1 440px; min-width: 0; }
 .bdi-lv-steps { display: flex; flex-direction: column; align-items: stretch; gap: 3px; width: 64px; flex: none; }
 .bdi-lv-step { font: inherit; min-height: 36px; background: var(--bdi-chip); color: inherit; border: 1px solid var(--bdi-line); border-radius: 6px; cursor: pointer; }
 .bdi-lv-step:disabled { opacity: 0.35; cursor: default; }
@@ -124,6 +124,7 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-lv-xs-wait { display: block; text-align: center; line-height: 64px; color: var(--bdi-muted); }
 .bdi-lv-reftext { flex: 1 1 140px; min-width: 0; }
 .bdi-lv-reftext[data-from=stackup] { color: var(--bdi-muted); }
+.bdi-icon { display: block; margin: auto; }
 .bdi-lv-tint[aria-pressed=true] { background: var(--bdi-hl); color: #000; }
 .bdi-lv-warn { color: var(--bdi-warn); display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .bdi-ctl-geo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }

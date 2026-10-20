@@ -99,6 +99,16 @@ const btn = (cls, parent, text, title) => {
   b.setAttribute('aria-label', title);
   return b;
 };
+// icons as inline SVG: ◫ and ⌖ are missing from many system fonts
+const ICONS = {
+  target: '<path d="M8 1v4M8 11v4M1 8h4M11 8h4"/><circle cx="8" cy="8" r="4.5"/>',
+  plane: '<path d="M2 10.5l6 3 6-3M2 7.5l6 3 6-3-6-3z"/>',
+};
+const icon = (b, name) => {
+  b.textContent = '';
+  b.insertAdjacentHTML('beforeend', `<svg class="bdi-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`);
+  return b;
+};
 const pairKey = (a, b) => [a, b].sort().join('\n');
 const minOf = (xs) => { const v = (xs ?? []).filter((x) => x != null); return v.length ? Math.min(...v) : null; };
 const xy = (p) => `${p[0].toFixed(1)}, ${p[1].toFixed(1)}`;
@@ -242,7 +252,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
   const tools = el('div', 'bdi-lv-tools', stageEl);
   const countEl = el('span', 'bdi-lv-count', tools);
   const clearBtn = btn('bdi-gbtn bdi-lv-clear', tools, 'Clear', 'Clear the selection (Esc)');
-  const zoomSelBtn = btn('bdi-gbtn bdi-lv-zoomsel', tools, '⌖', 'Zoom to the selection');
+  const zoomSelBtn = icon(btn('bdi-gbtn bdi-lv-zoomsel', tools, '', 'Zoom to the selection'), 'target');
   const fitBtn = btn('bdi-gbtn bdi-lv-fit', tools, '⤢', 'The whole board');
   // the side always takes its room, so a pick never resizes the stage (a resize would move the view)
   const side = el('div', 'bdi-lv-side', root);
@@ -541,7 +551,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     const ref = el('div', 'bdi-lv-ref', box);
     const xs = el('div', 'bdi-lv-xs', ref);
     el('span', 'bdi-lv-reftext', ref);
-    const tint = btn('bdi-gbtn bdi-lv-tint', ref, '◫', 'Tint its reference plane on the board');
+    const tint = icon(btn('bdi-gbtn bdi-lv-tint', ref, '', 'Tint its reference plane on the board'), 'plane');
     tint.setAttribute('aria-pressed', String(tintKey === key));
     tint.addEventListener('click', () => {
       tintKey = tintKey === key ? null : key;
@@ -836,6 +846,8 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     remove(net) { remove(net); changed(); },
     toggle(net) { if (sel.includes(net)) remove(net); else add(net); changed(); },
     removeLast() { if (sel.length) { remove(sel[sel.length - 1]); changed(); } },
+    /** The net under a board point on the layer on show (what a click there would toggle), or null. */
+    netAt(x, y) { return pickAt(x, y)?.net || null; },
     /** Toggle what is under a board point on the layer on show, as a click there. */
     pickAt(x, y) { const d = pickAt(x, y); if (d?.net) { if (sel.includes(d.net)) remove(d.net); else add(d.net, d); changed(); } return d; },
     /** Pair two selected nets, or take a pair apart. */

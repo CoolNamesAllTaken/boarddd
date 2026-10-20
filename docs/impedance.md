@@ -662,14 +662,14 @@ and show symbols and numbers, with the words in tooltips. The README has the API
     pads and layers per net, ↑ ↓ Enter, Enter again for the next) adds to the same selection.
   - **The camera.** Selecting, deselecting, stepping layers and the panel never move the view: the side column
     always takes its room (a pick never resizes the stage) and double click does not fit (`dblclickFit: false`).
-    Only a drag, the wheel, a pinch, ⌖ (`zoomToSelection`) and ⤢ (`fit`) do; a reference break's `show` pans only
+    Only a drag, the wheel, a pinch, the target button (`zoomToSelection`) and ⤢ (`fit`) do; a reference break's `show` pans only
     when the spot is off screen. `state` ({ region, layer }) passed back as options keeps the view across reloads.
   - **Pairs.** Two selected nets pair by themselves when one is the other's partner (`pairOf` by name, else
     `parallelPartner`: the net beside it at one gap for half its route or more); ✂ splits them (and they stay
     split), `⇄ +N13` adds a single net's partner, `⇄…` types one (the partner first), `⇄ A B` pairs the last two.
   - **Reference planes, per net or pair.** With `route`, each unit's route is analysed (`analyzeNet`, tier 1, in
     the worker); its main section gives a small `crossSection` (the planes highlighted) and the words
-    (`referenceText`: 'over In1.Cu (GND) · 0.2 mm', both planes of a stripline, the coplanar ground's gap); ◫ or a
+    (`referenceText`: 'over In1.Cu (GND) · 0.2 mm', both planes of a stripline, the coplanar ground's gap); the plane button or a
     hover on the drawing tints the planes' copper on the board. `referenceBreaks` lists where the reference breaks
     along the route: no plane, a split it crosses (`plane_gap`, the plane skipped), a reference change at a via or
     along the layer, each with `show` (its layer on show, the planes tinted, the spot ringed). The reference
