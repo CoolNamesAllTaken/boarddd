@@ -295,6 +295,9 @@ panel.on('result', (doc) => doc.summary.z_weighted);                    // the b
   its net on every layer and a form to control it (pair from the names or from the copper, `⇄ pair with…`, structure,
   target, live tier-1 Z and the width for the target; `evaluate` for the app's field-solver figure). ✓ emits
   `'control'` with the draft. Works on plain Gerbers: the nets come from `boarddd.connectivity` (Python, below).
+  With `route`, Z along the whole selection's route sits under the board (`routeProfile`): the nets in path order
+  through the parts between them (a series resistor, AC caps), vias and parts marked; hovering a selected trace
+  draws the cross-section's cut on the board and moves the plot's cursor, hovering the plot puts a dot on the board.
   `examples/layers.html` has CM5 MINIMA from plain Gerbers.
 - **Gerber-only uploads:** `copperFromGerbers(files)` (boarddd/copper) gives the copper. `stackupFromJob(gbrjob)`
   (boarddd/model) gives the stackup. Without X2 net attributes, the server finds the nets from the copper:

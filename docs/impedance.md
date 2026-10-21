@@ -684,6 +684,24 @@ and show symbols and numbers, with the words in tooltips. The README has the API
   - **Save** emits `'control'` with the draft: `items`, one per net or pair (nets, kind, layer, structure, target,
     tolerance, width, gap, coplanar gap, anchors, `reference` {top, bottom, chosen}, tier1); the host makes the
     targets. `rename` adds ✎ for nets named N1, N2… (`netInfo[net].auto`).
+  - **Z along the route,** with `route`: one plot of the whole selection under the board (`routeProfile`, in
+    `.bdi-lv-profile`, at least 220 px tall; below 760 px wide one column: board, plot, side). `routePath` (path.js) orders the units
+    (nets and pairs) through the parts between them: a part bridges two units when it has pads on both and every
+    other net of it is picked or a supply (ground, power names, solid planes), so a series resistor, AC caps or a
+    common-mode choke join lines and an MCU with other nets does not. The path starts at the first picked unit at
+    an end; each unit's route (`netRoute`) is turned to continue from the part, its `analyzeNet` sections (tier 2,
+    the first net's for a pair) placed at their distance along the path. x is mm along the path, y Z0 or Zdiff per
+    unit with its target band; parts and ends are labeled at the top, vias (◎ F→B, in the path's direction),
+    reference changes (⇅) and plane gaps (⊘) marked, the layer under the trace a strip along the axis. Lines that
+    do not touch follow each other after a ⋯ break.
+  - **Hover sync.** A selected trace under the pointer (`pathFromBoard`: the track's own route position; a pair's
+    second net maps to the first net's nearest point) draws the cross-section's cut across it on the board
+    (`Highlight.cross`: across the trace, its partner and gap, or its coplanar ground) and puts the plot's cursor
+    there with a tooltip (Z and verdict, net, layer, structure, width, gap, reference plane). Hovering the plot
+    (`pathAt`) does the reverse: a dot, the cut and the section's stretch on the board. Touch: a tap on a selected
+    trace shows its place (✕ drops a net); a tap on the plot moves the cursor. The plot is a slider: ← → (Shift:
+    10 %), Home, End, Esc. Each unit is analysed once (cached per nets and reference override); a new target only
+    redraws the bands and verdicts.
 - **3D.** `boardPointFromPick(hit)` maps a `boarddd/scene` pick on the board solid back to board mm through the
   mesh's own transform (its geometry is board mm). `panel.selectAt(x, y)` selects there.
 

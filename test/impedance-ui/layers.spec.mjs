@@ -347,23 +347,117 @@ test('a still view draws no frames (no redraw loop between the highlight and the
 test('Z along the route draws without a net-class target, and takes the form\'s target (band, verdict colors)', async ({ page }) => {
   const errors = await openRoute(page, 'cpwg');
   await page.evaluate(() => window.demo.view.add('RF'));
-  const route = page.locator('.bdi-lv-route');
-  await expect(route).toBeVisible();
-  await route.locator('summary').click();
-  await expect(route.locator('.bdi-panel')).toHaveAttribute('data-state', 'ready', { timeout: 60_000 });
-  const segs = route.locator('.bdi-profile .bdi-seg');
+  const prof = page.locator('.bdi-lv-profile');
+  await expect(prof).toBeVisible();
+  await expect(prof.locator('.bdi-rp')).toHaveAttribute('data-state', 'ready', { timeout: 60_000 });
+  const segs = prof.locator('.bdi-seg');
   await expect(segs).not.toHaveCount(0);
   // every segment is stroked: a class with no target used to draw `stroke: none`
   const strokes = await segs.evaluateAll((ls) => ls.map((l) => getComputedStyle(l).stroke));
   expect(strokes.every((s) => s && s !== 'none')).toBe(true);
   // held to the form's target: the band and the target line, segments coloured by verdict
-  await expect(route.locator('.bdi-profile .bdi-band')).toHaveCount(1);
-  await expect(route.locator('.bdi-verdict')).toHaveText(/50 ±10 %/);
+  await expect(prof.locator('.bdi-band')).toHaveCount(1);
   expect(await segs.evaluateAll((ls) => ls.every((l) => /bdi-(ok|warn|bad)/.test(l.getAttribute('class'))))).toBe(true);
-  // a new target in the form moves the band
+  const band = () => prof.locator('.bdi-band').evaluate((r) => +r.getAttribute('y'));
+  const y50 = await band();
+  // a new target in the form moves the band (no new analysis)
   await page.locator('.bdi-ctl-target').fill('75');
   await page.locator('.bdi-ctl-target').dispatchEvent('input');
-  await expect(route.locator('.bdi-verdict')).toHaveText(/75 ±10 %/, { timeout: 30_000 });
+  await expect.poll(band, { timeout: 10_000 }).not.toBe(y50);
   await shot(page, 'route-profile');
+  expect(errors).toEqual([]);
+});
+
+/** The screen point of a board point on the layer view's stage. */
+const onStage = (page, [x, y]) => page.evaluate(([x, y]) => {
+  const { stage } = window.demo.view;
+  const [px, py] = stage.toScreen(x, y);
+  const r = stage.panes[0].el.getBoundingClientRect();
+  return [r.left + px, r.top + py];
+}, [x, y]);
+
+test('Z along the whole route: two nets through R1 and their vias as one path under the board; hover syncs both ways', async ({ page }) => {
+  const errors = await openRoute(page, 'chain');
+  await page.evaluate(() => { window.demo.view.add('SIG_B'); window.demo.view.add('SIG_A'); });
+  const prof = page.locator('.bdi-lv-profile');
+  await expect(prof.locator('.bdi-rp')).toHaveAttribute('data-state', 'ready', { timeout: 60_000 });
+  // under the board, as wide as it
+  const [stageBox, profBox] = [await page.locator('.bdi-lv-main').boundingBox(), await prof.boundingBox()];
+  expect(profBox.y).toBeGreaterThanOrEqual(stageBox.y + stageBox.height - 1);
+  expect(profBox.y - (stageBox.y + stageBox.height)).toBeLessThan(20);
+  expect(Math.abs(profBox.width - stageBox.width)).toBeLessThan(2);
+  expect((await prof.locator('.bdi-rp-chart').boundingBox()).height).toBeGreaterThanOrEqual(220);
+  // the whole path: both nets, the part between them, the vias, the ends
+  const path = await page.evaluate(() => { const p = window.demo.view.profile.path; return { length: p.length, nets: p.units.map((u) => u.nets[0]), marks: p.marks.map((m) => [m.type, m.label]) }; });
+  expect(path.nets).toEqual(['SIG_B', 'SIG_A']); // the first picked is where it starts
+  expect(path.length).toBeCloseTo(38.4, 6);
+  for (const label of ['J1', 'R1', 'U1']) await expect(prof.locator('.bdi-rp-mlabel', { hasText: label })).toHaveCount(1);
+  await expect(prof.locator('.bdi-rp-mark.is-via')).toHaveCount(2);
+  await expect(prof.locator('.bdi-rp-sum')).toContainText('38.4 mm');
+  const units = await prof.locator('.bdi-rp-net').allTextContents();
+  expect(units).toEqual(['SIG_B', 'SIG_A']);
+  // hover SIG_B's F.Cu run at x = 18: the cut across it on the board, the plot's cursor 22 mm along (J1 → 16 → 4 → 2)
+  await page.evaluate(() => window.demo.view.stage.zoomTo({ minX: 0, maxX: 24, minY: 0, maxY: 10 }));
+  await page.evaluate(() => window.demo.view.stage.ready());
+  await page.mouse.move(...(await onStage(page, [18, 4])));
+  await expect(page.locator('.bdi-hl .bdi-cross')).toHaveCount(1);
+  const cut = await page.locator('.bdi-hl .bdi-cross').getAttribute('d');
+  const [x0, y0, x1, y1] = cut.match(/^M([-\d.e]+),([-\d.e]+)L([-\d.e]+),([-\d.e]+)/).slice(1).map(Number);
+  expect(x0).toBeCloseTo(18, 3); expect(x1).toBeCloseTo(18, 3);  // across the trace (it runs along x)
+  expect(Math.abs(y1 - y0)).toBeGreaterThan(0.5);
+  const now = await prof.locator('.bdi-rp-chart').getAttribute('aria-valuenow');
+  expect(Number(now)).toBeCloseTo(22, 1);
+  await expect(prof.locator('.bdi-rp-cursor')).toHaveAttribute('visibility', 'visible');
+  await expect(prof.locator('.bdi-rp-tip')).toContainText('Ω');
+  await expect(prof.locator('.bdi-rp-tip')).toContainText('F.Cu');
+  await expect(prof.locator('.bdi-rp-tip')).toContainText('w 0.3 mm');
+  await expect(prof.locator('.bdi-rp-tip')).toContainText('over In1.Cu (GND)');
+  // the cursor follows the pointer: the run back to J1, 6 mm from it
+  await page.mouse.move(...(await onStage(page, [10, 8])));
+  expect(Number(await prof.locator('.bdi-rp-chart').getAttribute('aria-valuenow'))).toBeCloseTo(6, 1);
+  await shot(page, 'route-hover-board');
+  // off the traces: the cut and cursor go
+  await page.mouse.move(...(await onStage(page, [2, 1])));
+  await expect(page.locator('.bdi-hl .bdi-cross')).toHaveCount(0);
+  await expect(prof.locator('.bdi-rp-tip')).toBeHidden();
+  // the plot the other way: hovering 13 mm along puts the dot on SIG_A's B.Cu run near R1 (path SIG_B then SIG_A)
+  const box = await prof.locator('.bdi-hit').boundingBox();
+  const at = (s) => [box.x + (box.width * s) / path.length, box.y + box.height / 2];
+  await page.mouse.move(...at(26.4 + 2));
+  await expect(page.locator('.bdi-hl .bdi-marker')).toHaveCount(1);
+  const dot = await page.locator('.bdi-hl .bdi-marker').evaluate((c) => [+c.getAttribute('cx'), +c.getAttribute('cy')]);
+  expect(dot[0]).toBeCloseTo(10, 0); expect(dot[1]).toBeCloseTo(4, 3);
+  await expect(page.locator('.bdi-hl .bdi-cross')).toHaveCount(1);
+  await expect(prof.locator('.bdi-rp-tip')).toContainText('B.Cu');
+  await expect(prof.locator('.bdi-rp-tip')).toContainText('under In2.Cu (+3V3)');
+  await shot(page, 'route-hover-plot');
+  // the keyboard: ← → move the cursor (and the dot)
+  await prof.locator('.bdi-rp-chart').focus();
+  const before = Number(await prof.locator('.bdi-rp-chart').getAttribute('aria-valuenow'));
+  await page.keyboard.press('ArrowRight');
+  expect(Number(await prof.locator('.bdi-rp-chart').getAttribute('aria-valuenow'))).toBeCloseTo(before + 0.384, 2);
+  await page.keyboard.press('Home');
+  expect(Number(await prof.locator('.bdi-rp-chart').getAttribute('aria-valuenow'))).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test('a pair through AC caps is one path; a tap on a selected trace shows its place instead of dropping it', async ({ page }) => {
+  const errors = await openRoute(page, 'chain');
+  await page.evaluate(() => { const v = window.demo.view; for (const n of ['TX_P', 'TX_N', 'TX_CP', 'TX_CN']) v.add(n); v.pair('TX_P', 'TX_N'); v.pair('TX_CP', 'TX_CN'); });
+  const prof = page.locator('.bdi-lv-profile');
+  await expect(prof.locator('.bdi-rp')).toHaveAttribute('data-state', 'ready', { timeout: 60_000 });
+  expect(await page.evaluate(() => window.demo.view.profile.path.units.map((u) => [u.nets.join(' '), u.key]))).toEqual([['TX_P TX_N', 'Zdiff'], ['TX_CP TX_CN', 'Zdiff']]);
+  await expect(prof.locator('.bdi-rp-mlabel.is-part')).toHaveText(/^C1 C2C1, C2: the route goes through them/); // the label, then its tooltip
+  await expect(prof.locator('.bdi-rp-net')).toHaveText(['⇄ TX_P TX_N', '⇄ TX_CP TX_CN']);
+  await page.evaluate(() => window.demo.view.stage.zoomTo({ minX: 12, maxX: 18, minY: -6, maxY: -2 }));
+  await page.evaluate(() => window.demo.view.stage.ready());
+  const p = await onStage(page, [15, -4.2]); // TX_CN
+  await touch(page, 'pointerdown', p);
+  await touch(page, 'pointerup', p);
+  await expect(page.locator('.bdi-hl .bdi-cross')).toHaveCount(1);
+  expect(Number(await prof.locator('.bdi-rp-chart').getAttribute('aria-valuenow'))).toBeCloseTo(13.5, 1);
+  await expect(prof.locator('.bdi-rp-tip')).toContainText(/gap 0\.15\d* mm/);
+  expect(await nets(page)).toHaveLength(4); // still selected
+  await shot(page, 'route-pair');
   expect(errors).toEqual([]);
 });

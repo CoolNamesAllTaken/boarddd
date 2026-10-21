@@ -5,6 +5,7 @@
 //   createAnalyzer                                 analyzeNet in a Worker (main thread on file://)
 //   netGroup                                       nets as a group: tracks like a pick (≋), net-name patterns
 //   layerView                                      the board layer by layer (stackup stepper); click nets, control them
+//   routeProfile / routePath / pathAt / pathFromBoard   Z along a selection's whole route, board ↔ path positions
 //   netPicker / fuzzyNets                          a type-ahead over a board's nets
 //   boardPointFromPick                             a boarddd/scene pick on the board solid → board mm
 export { impedancePanel, verdict, fmtHz, STRUCTURES, DISCONTINUITIES } from './panel.js';
@@ -15,4 +16,6 @@ export { createAnalyzer } from './analyzer.js';
 export { netGroup, shortName } from './group.js';
 export { layerView, layerStops, mainSection, netEntries, routedOn, stackupRefs, referenceText, referenceBreaks } from './layers.js';
 export { netPicker, fuzzyNets, netScore } from './netpick.js';
+export { routeProfile, niceTicks } from './profile.js';
+export { routePath, pathAt, pathFromBoard, bridges, chainOrder, supplyNets, routeAt, sectionAt } from './path.js';
 export { IMPEDANCE_UI_CSS } from './style.js';

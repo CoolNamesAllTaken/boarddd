@@ -1,19 +1,19 @@
 // boarddd/impedance/ui: the components' CSS. Every colour and size is a variable a host overrides on .bdi-panel,
 // .bd2-stage or any ancestor (e.g. :root); light by default, dark under prefers-color-scheme or [data-theme=dark].
 export const IMPEDANCE_UI_CSS = `
-:where(.bdi-panel, .bd2-stage, .bdi-lv) {
+:where(.bdi-panel, .bd2-stage, .bdi-lv, .bdi-rp) {
   --bdi-bg: #fcfcfb; --bdi-fg: #0b0b0b; --bdi-muted: #6b6a66; --bdi-line: #e4e3df; --bdi-chip: #efeee9;
   --bdi-ok: #1a8f5a; --bdi-warn: #c98500; --bdi-bad: #d0402b; --bdi-accent: #2a78d6; --bdi-band: rgba(26, 143, 90, 0.10);
   --bdi-cu: #c8803a; --bdi-plane: #9a6630; --bdi-diel: #e9ddb8; --bdi-mask: #6da86f; --bdi-dim: #000;
-  --bdi-hl: #ffd23f; --bdi-hl-section: #2a78d6; --bdi-marker: #ffffff; --bdi-font: 12px/1.3 system-ui, sans-serif;
+  --bdi-hl: #ffd23f; --bdi-hl-section: #2a78d6; --bdi-marker: #ffffff; --bdi-cross: #e0329f; --bdi-font: 12px/1.3 system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
-  :where(.bdi-panel, .bd2-stage, .bdi-lv):where(:not([data-theme=light] *)) {
+  :where(.bdi-panel, .bd2-stage, .bdi-lv, .bdi-rp):where(:not([data-theme=light] *)) {
     --bdi-bg: #1a1a19; --bdi-fg: #f2f1ec; --bdi-muted: #a3a29a; --bdi-line: #34342f; --bdi-chip: #2a2a27;
     --bdi-band: rgba(46, 178, 112, 0.14); --bdi-diel: #5b5133; --bdi-mask: #3f7a42;
   }
 }
-:where([data-theme=dark]) :where(.bdi-panel, .bd2-stage, .bdi-lv) {
+:where([data-theme=dark]) :where(.bdi-panel, .bd2-stage, .bdi-lv, .bdi-rp) {
   --bdi-bg: #1a1a19; --bdi-fg: #f2f1ec; --bdi-muted: #a3a29a; --bdi-line: #34342f; --bdi-chip: #2a2a27;
   --bdi-band: rgba(46, 178, 112, 0.14); --bdi-diel: #5b5133; --bdi-mask: #3f7a42;
 }
@@ -66,6 +66,7 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-hl .bdi-hl-track { fill: none; stroke: var(--bdi-hl); stroke-linecap: round; stroke-linejoin: round; }
 .bdi-hl .bdi-hl-pad, .bdi-hl .bdi-hl-via { fill: var(--bdi-hl); } .bdi-hl .bdi-hl-zone { fill: var(--bdi-hl); opacity: 0.5; }
 .bdi-hl .bdi-hl-section { fill: none; stroke: var(--bdi-hl-section); stroke-linecap: round; opacity: 0.85; }
+.bdi-hl .bdi-cross { fill: none; stroke: var(--bdi-cross); stroke-linecap: round; } .bdi-hl .bdi-cross-halo { fill: none; stroke: #000; opacity: 0.65; stroke-linecap: round; }
 .bdi-hl .bdi-marker { fill: none; stroke: var(--bdi-marker); } .bdi-hl .bdi-marker-halo { fill: none; stroke: #000; opacity: 0.6; } .bdi-hl .bdi-ring { fill: none; stroke: var(--bdi-bad); }
 .bdi-group { display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid var(--bdi-line); padding-bottom: 6px; }
 .bdi-group-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
@@ -86,9 +87,31 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-msym { color: var(--bdi-muted); }
 .bdi-hl .bdi-hl-plane { fill: var(--bdi-accent); opacity: 0.3; }
 .bdi-hl .bdi-hl-other { opacity: 0.35; } .bdi-hl .bdi-hl-zone.bdi-hl-other { opacity: 0.18; }
-.bdi-lv { display: flex; flex-wrap: wrap; gap: 8px; font: var(--bdi-font); color: var(--bdi-fg); outline: none; }
+.bdi-lv { display: grid; grid-template-columns: minmax(0, 3fr) minmax(240px, 1fr); grid-template-rows: auto 1fr;
+  grid-template-areas: "main side" "prof side"; align-items: start; gap: 8px; font: var(--bdi-font); color: var(--bdi-fg); outline: none; }
+.bdi-lv-main { grid-area: main; } .bdi-lv-side { grid-area: side; } .bdi-lv-profile { grid-area: prof; min-width: 0; }
+.bdi-lv-profile[hidden] { display: none; }
+.bdi-rp { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border: 1px solid var(--bdi-line); border-radius: 6px; background: var(--bdi-bg); }
+.bdi-rp-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.bdi-rp-sum { font-variant-numeric: tabular-nums; } .bdi-rp-prog { color: var(--bdi-muted); }
+.bdi-rp-chart { height: clamp(220px, 30vh, 340px); outline: none; border-radius: 4px; touch-action: pan-y; }
+.bdi-rp-chart:focus-visible { outline: 2px solid var(--bdi-accent); outline-offset: 1px; }
+.bdi-rp-grid { stroke: var(--bdi-line); stroke-width: 1; } .bdi-rp-tick { stroke: var(--bdi-muted); stroke-width: 1; }
+.bdi-rp-ax { fill: var(--bdi-muted); font: var(--bdi-font); font-size: 10px; font-variant-numeric: tabular-nums; }
+.bdi-rp-net { fill: var(--bdi-muted); font: var(--bdi-font); font-size: 10px; }
+.bdi-rp-step { fill: none; stroke: var(--bdi-muted); stroke-width: 1; opacity: 0.6; }
+.bdi-rp-mark { stroke: var(--bdi-muted); stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.7; }
+.bdi-rp-mark:is(.is-part, .is-end) { stroke: var(--bdi-fg); stroke-dasharray: none; opacity: 0.55; stroke-width: 2; }
+.bdi-rp-mark:is(.is-plane_gap, .is-no_ref) { stroke: var(--bdi-bad); }
+.bdi-rp-mlabel { fill: var(--bdi-muted); font: var(--bdi-font); font-size: 11px; cursor: help; }
+.bdi-rp-mlabel:is(.is-part, .is-end) { fill: var(--bdi-fg); font-weight: 600; } .bdi-rp-mlabel:is(.is-plane_gap, .is-no_ref) { fill: var(--bdi-bad); }
+.bdi-rp-layer { opacity: 0.85; } .bdi-rp-dot { fill: var(--bdi-cross); stroke: #000; stroke-width: 1; }
+.bdi-rp-cursor { stroke: var(--bdi-cross); stroke-width: 1.5; }
+.bdi-rp-tip { position: absolute; z-index: 5; pointer-events: none; max-width: 240px; background: var(--bdi-bg); color: var(--bdi-fg); font: var(--bdi-font); padding: 3px 7px; border-radius: 4px; border: 1px solid var(--bdi-line); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.bdi-rp-tip[hidden] { display: none; } .bdi-rp-tz { font-weight: 600; font-variant-numeric: tabular-nums; } .bdi-rp-tl { color: var(--bdi-muted); }
+@media (max-width: 760px) { .bdi-lv { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "main" "prof" "side"; } }
 .bdi-lv:focus-visible { outline: 2px solid var(--bdi-accent); outline-offset: 2px; }
-.bdi-lv-main { display: flex; align-items: flex-start; gap: 6px; flex: 3 1 440px; min-width: 0; }
+.bdi-lv-main { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
 .bdi-lv-steps { display: flex; flex-direction: column; align-items: stretch; gap: 3px; width: 64px; flex: none; }
 .bdi-lv-step { font: inherit; min-height: 36px; background: var(--bdi-chip); color: inherit; border: 1px solid var(--bdi-line); border-radius: 6px; cursor: pointer; }
 .bdi-lv-step:disabled { opacity: 0.35; cursor: default; }
@@ -102,7 +125,7 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-lv-stage > .bd2-stage { position: absolute; inset: 0; }
 .bdi-lv-caption { position: absolute; z-index: 4; left: 6px; top: 6px; padding: 1px 6px; border-radius: 4px; background: rgba(0,0,0,0.55); color: #fff; pointer-events: none; }
 .bdi-lv[data-pairing=on] .bdi-lv-stage { outline: 2px dashed var(--bdi-accent); outline-offset: -2px; cursor: crosshair; }
-.bdi-lv-side { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.bdi-lv-side { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .bdi-lv-tools { position: absolute; z-index: 4; right: 6px; top: 6px; display: flex; gap: 4px; align-items: center; }
 .bdi-lv-tools .bdi-gbtn { min-width: 32px; height: 32px; background: rgba(0,0,0,0.55); color: #fff; border: 0; }
 .bdi-lv-count { padding: 2px 8px; border-radius: 4px; background: var(--bdi-hl); color: #000; font-weight: 600; }
@@ -129,7 +152,7 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-lv-warn { color: var(--bdi-warn); display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .bdi-ctl-geo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
 .bdi-ctl-range { font-weight: 600; } .bdi-ctl-range[data-v=ok] { color: var(--bdi-ok); } .bdi-ctl-range[data-v=warn] { color: var(--bdi-warn); } .bdi-ctl-range[data-v=bad] { color: var(--bdi-bad); }
-.bdi-ctl[hidden], .bdi-lv-route[hidden] { display: none; }
+.bdi-ctl[hidden] { display: none; }
 .bdi-ctl { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--bdi-line); border-radius: 6px; background: var(--bdi-bg); }
 .bdi-ctl-head, .bdi-ctl-row, .bdi-ctl-out { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
 .bdi-ctl-layer { font: inherit; border: 0; cursor: pointer; } .bdi-ctl-layer.is-on { outline: 1px solid var(--bdi-accent); }
@@ -140,7 +163,6 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-ctl-out .bdi-z { font-size: 18px; }
 .bdi-ctl-t2 { color: var(--bdi-muted); font-variant-numeric: tabular-nums; min-height: 1.3em; } .bdi-ctl-t2z { color: var(--bdi-fg); font-weight: 600; }
 .bdi-ctl-ok { min-height: 32px; font-weight: 600; }
-.bdi-lv-route > summary { cursor: pointer; color: var(--bdi-muted); }
 @media (max-width: 560px) {
   .bdi-lv-steps { width: 48px; } .bdi-lv-stage { min-height: 200px; }
   .bdi-lv-stop.is-copper { min-height: 30px; line-height: 30px; } .bdi-lv-stop.is-dielectric { min-height: 12px; line-height: 12px; font-size: 9px; }
