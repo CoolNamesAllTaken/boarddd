@@ -84,7 +84,7 @@ export interface Section {
 
 /** The cross-section as found on the board (mm); gaps are edge to edge, quantised as solved. */
 export interface SectionGeometry {
-  /** Track width. */
+  /** Conductor width: the track's, or across the same-net pad, teardrop or zone it runs onto (`copper`). */
   width: number;
   /** Copper thickness (stackup). */
   thickness: number;
@@ -98,6 +98,22 @@ export interface SectionGeometry {
   h_top?: number | null;
   /** Dielectric height to the reference plane below. */
   h_bottom?: number | null;
+  /** The track's own width where `copper` widens the conductor; null: none. */
+  track_width?: number | null;
+  /** The same-net copper that widens the conductor here; null: the track alone. */
+  copper?: SectionCopper | null;
+}
+
+/** Same-net copper the track runs onto (a pad, teardrop or zone): the conductor is the two together, cut across. */
+export interface SectionCopper {
+  /** What widens the conductor (the widest, a pad first). */
+  kind: "pad" | "teardrop" | "zone";
+  /** A pad's component reference. */
+  ref?: string | null;
+  /** A pad's number. */
+  number?: string | null;
+  /** The conductor's centre from the track's centre line, to the left along the route, mm. */
+  offset: number;
 }
 
 /** The impedance of a section's cross-section. */

@@ -185,6 +185,10 @@ export function pathAt(path: RoutePathDoc, s: number): PathPoint | null;
 /** A point on one of the selection's traces → its path position (a pair's second net: the first net's nearest point). */
 export function pathFromBoard(path: RoutePathDoc, copper: Copper, net: string, p: Vec2, track?: number | null): { s: number; unit: PathUnit; local: number; p?: Vec2; d?: Vec2; width?: number } | null;
 export function niceTicks(lo: number, hi: number, n?: number): number[];
+/** 'pad J3.1', 'teardrop' or 'zone': the same-net copper that is a section's conductor (geometry.copper), or ''. */
+export function copperText(section: { geometry?: { copper?: { kind: string; ref?: string | null; number?: string | null } | null } } | null): string;
+/** The path's stretches whose conductor is a pad, teardrop or zone (the plot shades them; pads are labelled). */
+export function copperSpans(path: RoutePathDoc | null): { s0: number; s1: number; unit: number; kind: 'pad' | 'teardrop' | 'zone'; text: string; label: string; width: number; track: number | null }[];
 export interface RouteProfile {
   readonly root: HTMLDivElement;
   readonly analyzer: Analyzer;

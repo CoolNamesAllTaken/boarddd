@@ -145,7 +145,7 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
     if (!selection.nets.length) return null;
     if (hit?.kind === 'track' && hit.width) return { layer: hit.layer, width: hit.width, nets: selection.nets };
     const s = doc ? [...doc.sections].filter((x) => x.net === selection.nets[0]).sort((a, b) => b.length - a.length)[0] : null;
-    return s ? { layer: s.layer, width: s.geometry?.width ?? null, nets: selection.nets } : null;
+    return s ? { layer: s.layer, width: s.geometry?.track_width ?? s.geometry?.width ?? null, nets: selection.nets } : null;
   }
   let lastHit = null;
 

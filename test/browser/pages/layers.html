@@ -6,7 +6,7 @@
 <div id="view"></div>
 <script src="/test/browser/pages/importmap.js"></script>
 <script type="module">
-// layerView on a synthetic route board (fixtures/impedance/route/<f>.json): ?f=split|cpwg|inner|pair|chain
+// layerView on a synthetic route board (fixtures/impedance/route/<f>.json): ?f=split|cpwg|inner|pair|chain|launch
 import { layerView } from 'boarddd/impedance/ui/index.js';
 const f = new URLSearchParams(location.search).get('f') || 'split';
 const { board, copper } = await (await fetch(`/fixtures/impedance/route/${f}.json`)).json();

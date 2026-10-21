@@ -58,6 +58,37 @@ test('cpwg gap, offset stripline, embedded microstrip', () => {
   assert.ok(rel(strip.z.Z0, tier1(inner.board.stackup, 'In1.Cu', { width: 0.15 }).Z0) < 0.02);
 });
 
+test('a trace onto a wider pad, through a test pad, a teardrop: the conductor is its copper cut across the route', () => {
+  const data = load('launch.json');
+  const st = data.board.stackup;
+  const d = run(data, 'RF');
+  const at = (s) => d.sections.find((x) => x.s0 <= s && s < x.s1);
+  const [j1, line, tp2, tear, tp1] = [at(0.5), at(3), at(6.5), at(13.6), at(14.2)];
+  // J1.1: 1.5 mm wide, 0.3 mm to the pour, In1.Cu cut out under it (In2.Cu is the reference)
+  assert.deepEqual(j1.geometry.copper, { kind: 'pad', ref: 'J1', number: '1', offset: 0 });
+  assert.deepEqual([j1.geometry.width, j1.geometry.track_width], [1.5, 0.3]);
+  assert.ok(j1.geometry.coplanar_gap.every((g) => rel(g, 0.3) < 0.05), String(j1.geometry.coplanar_gap));
+  assert.deepEqual(j1.refs.map((r) => r.layer), ['In2.Cu']);
+  const padZ = tier1(st, 'F.Cu', { width: 1.5, structure: 'coplanar_grounded', coplanarGap: j1.geometry.coplanar_gap[0], refBottom: 'In2.Cu' }).Z0;
+  assert.ok(rel(j1.z.Z0, padZ) < 0.03, `${j1.z.Z0} vs ${padZ}`);
+  // the track's own width there would read ~30 ohm higher
+  assert.ok(tier1(st, 'F.Cu', { width: 0.3, structure: 'coplanar_grounded', coplanarGap: 0.3, refBottom: 'In2.Cu' }).Z0 > j1.z.Z0 + 25);
+  assert.deepEqual([line.geometry.width, line.geometry.track_width, line.geometry.copper], [0.3, null, null]);
+  assert.deepEqual([tp2.s0, tp2.s1, tp2.geometry.width, tp2.geometry.copper.ref], [6, 7, 1, 'TP2']);
+  assert.ok(tp2.geometry.coplanar_gap.every((g) => rel(g, 0.25) < 0.05));
+  assert.ok(tp2.z.Z0 < line.z.Z0 - 15);
+  assert.equal(tear.geometry.copper.kind, 'teardrop');
+  assert.ok(tear.geometry.width > 0.3 && tear.geometry.width < 1);
+  assert.deepEqual([tp1.geometry.width, tp1.geometry.copper.ref], [1, 'TP1']);
+  assert.ok(d.discontinuities.some((x) => x.type === 'width_change' && x.s === 1.5 && x.detail === '1.5 → 0.3 mm'));
+  // a pad off the track's centre line: the conductor's centre moves, the gaps are from its own edges
+  const off = structuredClone(data);
+  for (const p of off.copper.pads) if (p.ref === 'J1') p.polygons = p.polygons.map((r) => r.map(([x, y]) => [x, y + 0.2]));
+  const g = run(off, 'RF').sections[0].geometry;
+  assert.deepEqual([g.width, g.copper.offset], [1.5, 0.2]);
+  assert.ok(rel(g.coplanar_gap[0], 0.5) < 0.05 && rel(g.coplanar_gap[1], 0.1) < 0.05, String(g.coplanar_gap));
+});
+
 test('a pair breaking out: coupled in the middle, two single lines at the ends', () => {
   const data = load('pair.json');
   const d = run(data, ['USB_P', 'USB_N']);

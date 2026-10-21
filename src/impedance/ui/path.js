@@ -230,7 +230,10 @@ export function pathFromBoard(path, copper, net, p, track = null) {
     const cands = own ? route.filter((e) => e.index === track) : route;
     let best = null;
     for (const e of cands) { const q = nearestOn(e, p); if (!best || q.dist < best.q.dist) best = { e, q }; }
-    if (best) { local = best.e.s0 + (best.e.forward ? best.q.f : best.e.path.len - best.q.f); on = { p: best.q.p, d: best.q.d, width: best.e.track.width }; }
+    if (best) {
+      local = best.e.s0 + (best.e.forward ? best.q.f : best.e.path.len - best.q.f);
+      on = { p: best.q.p, d: best.e.forward ? best.q.d : [-best.q.d[0], -best.q.d[1]], width: best.e.track.width };
+    }
   } else {
     let best = null;
     for (const e of route) { const q = nearestOn(e, p); if (!best || q.dist < best.q.dist) best = { e, q }; }

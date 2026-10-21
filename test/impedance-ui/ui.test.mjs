@@ -109,6 +109,19 @@ test('mainSection: the structure most of the route is', () => {
   assert.equal(ui.mainSection(null), null);
 });
 
+test('a trace onto pads: mainSection is the line itself; copperSpans names the pad and teardrop stretches', () => {
+  const { board, copper } = load('impedance/route/launch.json');
+  const doc = analyzeNet(board, copper, 'RF');
+  const main = ui.mainSection(doc);
+  assert.deepEqual([main.geometry.width, main.geometry.copper, main.refs[0].layer, main.s0], [0.3, null, 'In1.Cu', 7.25]);
+  const path = ui.routePath(copper, [['RF']], [doc]);
+  const spans = ui.copperSpans(path);
+  assert.deepEqual(spans.map((x) => [x.kind, x.label, x.s0, x.s1, x.width]),
+    [['pad', 'J1.1', 0, 1.5, 1.5], ['pad', 'TP2.1', 6, 7, 1], ['teardrop', '', 13, 14, 0.912], ['pad', 'TP1.1', 14, 14.5, 1]]);
+  assert.equal(ui.copperText(doc.sections[0]), 'pad J1.1');
+  assert.equal(ui.copperText(main), '');
+});
+
 test('fuzzyNets: a name part first, then anywhere, then the letters in order; a partner on top', () => {
   const names = ['/1090_RF_IN', 'XRFOO', 'GND', '/USB_D+', '/USB_D-', 'N12', 'N120', 'REF_CLK'];
   assert.deepEqual(ui.fuzzyNets(names, 'rf').slice(0, 2), ['/1090_RF_IN', 'XRFOO']);

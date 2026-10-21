@@ -67,10 +67,14 @@ export function layerStops(copper, stackup = null) {
 export function mainSection(doc) {
   if (!doc) return null;
   const by = new Map();
-  for (const s of doc.sections.filter((x) => x.net === doc.nets[0] && x.z)) {
+  // the line's own stretches: a pad or teardrop it runs onto is not its geometry (unless that is all there is)
+  const all = doc.sections.filter((x) => x.net === doc.nets[0] && x.z);
+  const line = all.filter((x) => !x.geometry?.copper);
+  for (const s of line.length ? line : all) {
     const key = `${s.layer}|${s.structure}|${s.geometry?.width}|${s.geometry?.gap ?? ''}`;
     const was = by.get(key) ?? { length: 0, s };
     was.length += s.length;
+    if (s.length > was.s.length) was.s = s;   // its longest stretch speaks for it (not a short one by a pad)
     by.set(key, was);
   }
   return [...by.values()].sort((a, b) => b.length - a.length)[0]?.s ?? null;
@@ -620,13 +624,20 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     const cg = (g.coplanar_gap ?? []).filter((x) => x != null);
     return 1.5 * w + (cg.length ? Math.min(...cg) : 0);
   };
+  /** The cut through p (direction d, the route's way): centred on the conductor (a pad off the track's line moves it). */
+  const cutAt = (p, d, sec, w0) => {
+    const o = sec?.geometry?.copper?.offset ?? 0;
+    return { p: o ? [p[0] - d[1] * o, p[1] + d[0] * o] : p, d, half: halfCut(sec, w0) };
+  };
   let fromBoard = false; // the cut on the board is the pointer's (not the plot's)
   /** A selected trace under the board pointer: the cut there, the plot's cursor at its place along the route. */
   function boardCursor(d, x, y) {
-    const hit = profile && d?.kind === 'track' && sel.includes(d.net) ? profile.showBoard(d.net, [x, y], d.track) : null;
+    // a track, or a pad or teardrop of the net (which win the pick where the track runs onto them)
+    const on = d && ['track', 'pad', 'zone'].includes(d.kind) && sel.includes(d.net);
+    const hit = profile && on ? profile.showBoard(d.net, [x, y], d.kind === 'track' ? d.track : null) : null;
     if (hit) {
       fromBoard = true;
-      hl.cross({ p: hit.p, d: hit.d, half: halfCut(hit.at.section, hit.width) });
+      hl.cross(cutAt(hit.p, hit.d, hit.at.section, hit.width));
       hl.section(hit.at.section);
     } else if (fromBoard) {
       fromBoard = false;
@@ -639,7 +650,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
   profile?.on('hover', (h) => {
     fromBoard = false;
     hl.marker(h?.at.p ?? null);
-    hl.cross(h?.at.p ? { p: h.at.p, d: h.at.d, half: halfCut(h.at.section, h.at.width) } : null);
+    hl.cross(h?.at.p ? cutAt(h.at.p, h.at.d, h.at.section, h.at.width) : null);
     hl.section(h?.at.section ?? null);
   });
   stage.on('move', (e) => {

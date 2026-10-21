@@ -491,12 +491,52 @@ export default {
       ],
       "additionalProperties": false
     },
+    "SectionCopper": {
+      "type": "object",
+      "description": "Same-net copper the track runs onto (a pad, teardrop or zone): the conductor is the two together, cut across.",
+      "properties": {
+        "kind": {
+          "description": "What widens the conductor (the widest, a pad first).",
+          "type": "string",
+          "enum": [
+            "pad",
+            "teardrop",
+            "zone"
+          ]
+        },
+        "ref": {
+          "description": "A pad's component reference.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "number": {
+          "description": "A pad's number.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "offset": {
+          "description": "The conductor's centre from the track's centre line, to the left along the route, mm.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "kind",
+        "offset"
+      ],
+      "additionalProperties": false
+    },
     "SectionGeometry": {
       "type": "object",
       "description": "The cross-section as found on the board (mm); gaps are edge to edge, quantised as solved.",
       "properties": {
         "width": {
-          "description": "Track width.",
+          "description": "Conductor width: the track's, or across the same-net pad, teardrop or zone it runs onto (`copper`).",
           "type": "number",
           "minimum": 0
         },
@@ -555,6 +595,26 @@ export default {
           "type": [
             "number",
             "null"
+          ],
+          "default": null
+        },
+        "track_width": {
+          "description": "The track's own width where `copper` widens the conductor; null: none.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null
+        },
+        "copper": {
+          "description": "The same-net copper that widens the conductor here; null: the track alone.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SectionCopper"
+            },
+            {
+              "type": "null"
+            }
           ],
           "default": null
         }

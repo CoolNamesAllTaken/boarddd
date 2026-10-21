@@ -127,13 +127,13 @@ function layerIndex(copper, layer) {
   for (const p of copper.pads ?? []) {
     if (!p.layers.includes(layer)) continue;
     for (const ring of p.polygons ?? []) {
-      if (ring.length >= 3) items.push({ type: 'poly', rings: [ring], net: p.net, kind: 'pad', box: bboxOf(ring) });
+      if (ring.length >= 3) items.push({ type: 'poly', rings: [ring], net: p.net, kind: 'pad', ref: p.ref ?? null, number: p.number ?? '', box: bboxOf(ring) });
     }
   }
   for (const z of copper.zones ?? []) {
     if (z.layer !== layer) continue;
     for (const f of z.fill) {
-      items.push({ type: 'poly', rings: [f.outline, ...f.holes], net: z.net, kind: z.kind === 'teardrop' ? 'teardrop' : 'zone', box: bboxOf(f.outline) });
+      items.push({ type: 'poly', rings: [f.outline, ...f.holes], net: z.net, kind: z.kind === 'teardrop' ? 'teardrop' : 'zone', zone: z.kind, box: bboxOf(f.outline) });
     }
   }
   const grid = new Map();
@@ -277,6 +277,34 @@ function stackInfo(stackup) {
   return { copper, between, order: new Map(copper.map((c, i) => [c.name, i])) };
 }
 
+// ── the conductor ────────────────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The conductor at a station: the copper of the net on the trace's layer cut across the route, the track united
+ * with the pads, teardrops and zones of its net that it runs onto (not other tracks: at a bend their length would
+ * count). Returns null where that is the track alone, else { width, offset (its centre from the track's, along
+ * the left normal), copper: { kind: 'pad' | 'teardrop' | 'zone', ref, number } (the widest of them) }.
+ */
+function conductorOf(ctx, st) {
+  const n = [-st.d[1], st.d[0]];
+  const w = st.width;
+  const R = Math.max(2.5, 5 * w);
+  const p0 = [st.p[0] - n[0] * R, st.p[1] - n[1] * R], p1 = [st.p[0] + n[0] * R, st.p[1] + n[1] * R];
+  const own = [];
+  for (const it of query(ctx.index(st.layer), p0, p1)) {
+    if (it.net !== st.net || it.kind === 'track' || it.kind === 'via') continue;
+    for (const [lo, hi] of crossings(it, st.p, st.d, n)) if (hi > -R && lo < R) own.push({ lo: Math.max(lo, -R), hi: Math.min(hi, R), it });
+  }
+  if (!own.length) return null;
+  const run = union([[-w / 2, w / 2], ...own.map((x) => [x.lo, x.hi])]).find(([lo, hi]) => lo <= 1e-9 && hi >= -1e-9);
+  if (!run || (run[0] >= -w / 2 - 5e-4 && run[1] <= w / 2 + 5e-4)) return null;
+  const width = q(run[1] - run[0], 0.001), offset = q((run[0] + run[1]) / 2, 0.001);
+  const rank = { pad: 0, teardrop: 1, zone: 2 };
+  const by = own.filter((x) => x.hi >= run[0] - 1e-6 && x.lo <= run[1] + 1e-6 && (x.lo < -w / 2 - 5e-4 || x.hi > w / 2 + 5e-4))
+    .sort((a, b) => rank[a.it.kind] - rank[b.it.kind] || (b.hi - b.lo) - (a.hi - a.lo))[0]?.it;
+  return { width, offset, copper: by ? { kind: by.kind, ref: by.ref ?? null, number: by.number ?? null } : null };
+}
+
 // ── one station ──────────────────────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -316,7 +344,16 @@ function station(ctx, st) {
       const side = h.lo + h.hi > 0 ? 1 : -1;
       const gap = side > 0 ? h.lo - w / 2 : -w / 2 - h.hi;
       if (gap < 0 || gap > pairWin) continue;
-      if (!partner || gap < partner.gap) partner = { side, gap, width: h.it.width };
+      if (!partner || gap < partner.gap) partner = { side, gap, width: h.it.width, h };
+    }
+    if (partner) {
+      // its conductor too: the track united with the pads, teardrops and zones of its net it runs onto
+      const { h } = partner;
+      const run = union(hits.filter((x) => x.it.net === st.partner && x.it.kind !== 'via' && (x.it.kind !== 'track' || x === h)).map((x) => [x.lo, x.hi]))
+        .find(([lo, hi]) => lo <= h.lo + 1e-9 && hi >= h.hi - 1e-9);
+      partner = run && (run[0] < h.lo - 5e-4 || run[1] > h.hi + 5e-4)
+        ? { side: partner.side, gap: partner.side > 0 ? run[0] - w / 2 : -w / 2 - run[1], width: q(run[1] - run[0], 0.001) }
+        : { side: partner.side, gap: partner.gap, width: partner.width };
     }
   }
   // the structure's copper, relative x
@@ -587,6 +624,9 @@ export function analyzeNet(board, copper, net, options = {}) {
         const mid = e.path.at(g(fm));
         const d = e.forward ? mid.d : [-mid.d[0], -mid.d[1]];
         const st = { net: x, partner: kind === 'differential' ? nets[1 - k] : null, layer: e.track.layer, width: e.track.width, p: mid.p, d };
+        // where the track runs onto a wider pad, teardrop or zone of its net, that copper is the conductor
+        const cond = conductorOf(ctx, st);
+        if (cond) { st.width = cond.width; st.p = [mid.p[0] - d[1] * cond.offset, mid.p[1] + d[0] * cond.offset]; }
         stations += 1;
         let env = station(ctx, st);
         if (k === 1 && env.partner) continue;        // the coupled stretches are the first net's sections
@@ -596,7 +636,9 @@ export function analyzeNet(board, copper, net, options = {}) {
         const prev = sections[sections.length - 1];
         const s0 = R6(e.s0 + f0), s1 = R6(e.s0 + f1);
         const pA = e.path.at(g(f0)).p, pB = e.path.at(g(f1)).p;
-        if (prev && prev._key === key && prev.net === x && prev._run === e.run && Math.abs(prev.s1 - s0) < 1e-6 && prev.geometry.width === e.track.width) {
+        const copperId = cond?.copper ? `${cond.copper.kind} ${cond.copper.ref} ${cond.copper.number}` : '';
+        if (prev && prev._key === key && prev.net === x && prev._run === e.run && Math.abs(prev.s1 - s0) < 1e-6 && prev.geometry.width === st.width
+          && prev._tw === e.track.width && prev._copper === copperId) {
           prev.s1 = s1; prev.end = [R6(pB[0]), R6(pB[1])]; prev.length = R6(prev.s1 - prev.s0);
           if (e.track.id && !prev.tracks.includes(e.track.id)) prev.tracks.push(e.track.id);
           continue;
@@ -605,15 +647,17 @@ export function analyzeNet(board, copper, net, options = {}) {
         const nt = tr.find((t) => t.net === 'n');
         const gL = env.coplanar[0], gR = env.coplanar[1];
         sections.push({
-          _key: key, _run: e.run, _env: env,
+          _key: key, _run: e.run, _env: env, _tw: e.track.width, _copper: copperId,
           net: x, start: [R6(pA[0]), R6(pA[1])], end: [R6(pB[0]), R6(pB[1])], s0, s1, length: R6(s1 - s0),
           layer: st.layer, structure: env.structure, kind: env.kind,
           geometry: {
-            width: e.track.width, thickness: stack.copper[stack.order.get(st.layer)].t,
+            width: st.width, thickness: stack.copper[stack.order.get(st.layer)].t,
             partner_width: nt ? R6(nt.x1 - nt.x0) : null,
-            gap: nt ? R6(nt.x0 > 0 ? nt.x0 - e.track.width / 2 : -e.track.width / 2 - nt.x1) : null,
+            gap: nt ? R6(nt.x0 > 0 ? nt.x0 - st.width / 2 : -st.width / 2 - nt.x1) : null,
             coplanar_gap: [gL, gR],
             h_top: env.refs.top?.h ?? null, h_bottom: env.refs.bottom?.h ?? null,
+            track_width: cond ? e.track.width : null,
+            copper: cond ? { kind: cond.copper?.kind ?? 'zone', ref: cond.copper?.ref ?? null, number: cond.copper?.number ?? null, offset: cond.offset } : null,
           },
           z: null,
           refs: [env.refs.top, env.refs.bottom].filter(Boolean).map((r) => ({ side: r.side, layer: r.layer, net: r.net, h: r.h, extent: r.extent, skipped: r.skipped })),
@@ -671,7 +715,7 @@ export function analyzeNet(board, copper, net, options = {}) {
   const summary = summarise(sections.filter((s) => s.net === nets[0]), target, kind);
   if (wantLoss) summary.loss = lossSummary(sections.filter((s) => s.net === nets[0]), o.frequency, fs);
   const discontinuities = discontinuitiesOf(sections);
-  for (const s of sections) { delete s._key; delete s._run; delete s._env; }
+  for (const s of sections) { delete s._key; delete s._run; delete s._env; delete s._tw; delete s._copper; }
   const solveMs = now() - tSolve;
   const ms = now() - t0;
   return {
