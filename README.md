@@ -270,6 +270,8 @@ panel.on('result', (doc) => doc.summary.z_weighted);                    // the b
     verdict against the net class target (✓ in, ⚠ near the limit, ✗ out), a structure override that re-runs, and the
     layers.
   - Then Z along the route: hover it, and the stage shows the spot and its section while the cross-section follows.
+    `select({ nets, target })` / `setTarget()` hold it to a target other than the net class's (the layer view passes its
+    form's); with none, the line is drawn in the accent color, without a band.
   - `IL −1.39 dB  [18 GHz ▾]`: the route's insertion loss at a frequency (5.6 GHz by default, `frequency`), then two
     sparklines over 100 MHz–40 GHz: the route's loss and the hovered section's Z (values in the tooltips; click picks
     that frequency, no re-run).

@@ -70,6 +70,12 @@ export function verdict(z, target) {
   return dev > target.tolerance_pct ? 'bad' : dev > 0.8 * target.tolerance_pct ? 'warn' : 'ok';
 }
 const MARK = { ok: '✓', warn: '⚠', bad: '✗', none: '' };
+/** A target given to select() / setTarget(): Ω or { value, tolerance_pct }; anything else is none. */
+function targetFrom(t) {
+  const v = typeof t === 'number' ? { value: t } : t && typeof t === 'object' ? t : null;
+  if (!v || !(Number(v.value) > 0)) return null;
+  return { value: Number(v.value), ...(Number(v.tolerance_pct) > 0 && { tolerance_pct: Number(v.tolerance_pct) }) };
+}
 
 let cssDone = false;
 function injectCss(doc) {
@@ -83,7 +89,8 @@ function injectCss(doc) {
 /**
  * The impedance panel in `el` for a board@1 + copper@1 pair. With `stage` (a view2d stage showing the board) it
  * attaches the picker (click a trace: its net or pair; alt-click: one segment) and the highlight overlay, and
- * syncs hovers both ways. Options: `analyzer` (createAnalyzer options, or an analyzer), `options` (analyzeNet
+ * syncs hovers both ways. select() takes a `target` (Ω or { value, tolerance_pct }) the route is held to instead of the
+ * net class's. Options: `analyzer` (createAnalyzer options, or an analyzer), `options` (analyzeNet
  * options), `pick: false` (select() only), `layers` (what clicks may pick: a list or a function returning the
  * layers on show), `injectCss: false`, `frequency` (Hz, default 5.6 GHz: the loss shown, and analyzeNet's;
  * null: no loss), `group: false` (no group box). Events: 'select', 'result', 'hover', 'error', 'frequency', and
@@ -118,7 +125,7 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
   const empty = el('div', 'bdi-empty', root, '⊕');
   empty.title = 'click a trace on the board: its net (and its pair); alt-click: one segment';
 
-  let selection = { nets: [], track: null };
+  let selection = { nets: [], track: null, target: null };
   let result = null;
   let override = '';
   let runs = 0;
@@ -333,6 +340,7 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
     result = null;
     busy(true);
     const opts = { ...options };
+    if (selection.target) opts.target = selection.target;
     if (frequency != null && opts.frequency === undefined) opts.frequency = frequency;
     if (override) {
       opts.overrides = { net: { structure: override } };
@@ -370,7 +378,7 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
   const api = {
     root,
     analyzer: an,
-    get selection() { return { ...selection }; },
+    get selection() { const { target, ...s } = selection; return target ? { ...s, target } : s; },
     get result() { return result; },
     get runs() { return runs; },
     get section() { return current; },
@@ -381,7 +389,7 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
     /** Select nets ({ nets: [net] | [p, n], track? }; a string or an array also works) and analyse them. */
     select(s) {
       const v = typeof s === 'string' ? { nets: [s] } : Array.isArray(s) ? { nets: s } : s ?? { nets: [] };
-      selection = { nets: v.nets ?? [], track: v.track ?? null };
+      selection = { nets: v.nets ?? [], track: v.track ?? null, target: targetFrom(v.target) };
       lastHit = v.hit ?? null;
       if (grp) { if (grp.value) grp.clear(); grp.setSeed(seedOf(lastHit, null)); }
       hl?.set(selection);
@@ -396,6 +404,13 @@ export function impedancePanel(el0, { board, copper, stage = null, analyzer = {}
         return Promise.resolve(null);
       }
       return run();
+    },
+    /** The target the route is held to ({ value, tolerance_pct } or Ω; null: the net class's): re-runs when it changes. */
+    setTarget(t) {
+      const next = targetFrom(t);
+      if (JSON.stringify(next) === JSON.stringify(selection.target)) return Promise.resolve(result);
+      selection = { ...selection, target: next };
+      return selection.nets.length ? run() : Promise.resolve(null);
     },
     /** The frequency of the loss shown (Hz; snapped to the analysis's sweep, no re-run). */
     get frequency() { return freq; },
