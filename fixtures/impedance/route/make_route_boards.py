@@ -11,7 +11,9 @@ Synthetic boards, each {"board": boarddd/board@1, "copper": boarddd/copper@1} in
 * inner.json: a 0.15 mm In1.Cu trace between an F.Cu GND pour (0.2 mm above) and an In2.Cu GND plane (1.0 mm
   below) for 10 mm (an offset stripline), then 10 mm where F.Cu has no pour (an embedded microstrip);
 * pair.json: a 0.25/0.15 mm pair (90 ohm) on F.Cu over In1.Cu GND, coupled for 16 mm, fanning out to 3 mm apart at both
-  ends (the breakout).
+  ends (the breakout);
+* chain.json: lines through parts (a series resistor across two vias, a pair through AC caps), for the route
+  profile's path (src/impedance/ui/path.js).
 
 And royalblue-usb.json.gz: royalblue54L_feather's board@1 (stackup, nets) and the copper@1 near its USB pair
 (/Debugger/D+, /Debugger/D-; every item whose box comes within 3 mm of the pair's tracks), read with
@@ -84,7 +86,9 @@ def track(layer, net, w, a, b, tid) -> cu.Track:
     return cu.Track(layer=layer, net=net, width=w, start=a, end=b, id=tid)
 
 
-def doc(name: str, st: m.Stackup, nets: list[str], tracks, zones, net_classes=(), net_class_of=None) -> dict:
+def doc(
+    name: str, st: m.Stackup, nets: list[str], tracks, zones, net_classes=(), net_class_of=None, vias=(), pads=()
+) -> dict:
     board = m.Board(
         name=name,
         source=m.Source(kind="other", reader="fixtures/impedance/route/make_route_boards.py"),
@@ -100,6 +104,8 @@ def doc(name: str, st: m.Stackup, nets: list[str], tracks, zones, net_classes=()
         nets=nets,
         tracks=list(tracks),
         zones=list(zones),
+        vias=list(vias),
+        pads=list(pads),
     )
     copper.planes = cu.planes(copper.zones, cu.outline_area(board.outline), copper.layers)
     return {"board": board.to_dict(), "copper": copper.to_dict()}
@@ -206,6 +212,65 @@ def pair() -> dict:
     )
 
 
+def pad(ref, number, net, layer, x, y, w=0.5, h=0.5) -> cu.CopperPad:
+    ring = [(x - w / 2, y - h / 2), (x + w / 2, y - h / 2), (x + w / 2, y + h / 2), (x - w / 2, y + h / 2)]
+    return cu.CopperPad(
+        ref=ref,
+        number=number,
+        net=net,
+        layers=[layer],
+        at=(x, y),
+        shape="rect",
+        size=(w, h),
+        polygons=[ring],
+        type="smd",
+    )
+
+
+def via(net, x, y) -> cu.Via:
+    return cu.Via(at=(x, y), net=net, diameter=0.6, drill=0.3, span=("F.Cu", "B.Cu"), type="through")
+
+
+def chain() -> dict:
+    """Lines through parts: SIG_A (F.Cu, a via, B.Cu) → R1 → SIG_B (B.Cu, a via, F.Cu, back to J1), and the pair
+    TX_P/TX_N → C1/C2 (AC caps) → TX_CP/TX_CN; F.Cu over In1.Cu GND, B.Cu under In2.Cu +3V3."""
+    w, s = 0.25, 0.15
+    yp, yn = -4 + (w + s) / 2, -4 - (w + s) / 2
+    tr = [
+        track("F.Cu", "SIG_A", 0.3, (0.0, 4.0), (8.0, 4.0), "a-top"),
+        track("B.Cu", "SIG_A", 0.3, (8.0, 4.0), (12.0, 4.0), "a-bot"),
+        track("B.Cu", "SIG_B", 0.3, (13.6, 4.0), (16.0, 4.0), "b-bot"),
+        track("F.Cu", "SIG_B", 0.3, (16.0, 4.0), (20.0, 4.0), "b-top"),
+        track("F.Cu", "SIG_B", 0.3, (20.0, 4.0), (20.0, 8.0), "b-up"),
+        track("F.Cu", "SIG_B", 0.3, (20.0, 8.0), (4.0, 8.0), "b-back"),
+        track("F.Cu", "TX_P", w, (0.0, yp), (10.0, yp), "p-a"),
+        track("F.Cu", "TX_N", w, (0.0, yn), (10.0, yn), "n-a"),
+        track("F.Cu", "TX_CP", w, (11.5, yp), (24.0, yp), "p-b"),
+        track("F.Cu", "TX_CN", w, (11.5, yn), (24.0, yn), "n-b"),
+    ]
+    pads = [
+        pad("U1", "1", "SIG_A", "F.Cu", 0.0, 4.0),
+        pad("U1", "2", "TX_P", "F.Cu", 0.0, yp, 0.5, 0.2),
+        pad("U1", "3", "TX_N", "F.Cu", 0.0, yn, 0.5, 0.2),
+        pad("U1", "4", "GND", "F.Cu", 0.0, 0.0),
+        pad("R1", "1", "SIG_A", "B.Cu", 12.0, 4.0),
+        pad("R1", "2", "SIG_B", "B.Cu", 13.6, 4.0),
+        pad("C1", "1", "TX_P", "F.Cu", 10.0, yp, 0.4, 0.2),
+        pad("C1", "2", "TX_CP", "F.Cu", 11.5, yp, 0.4, 0.2),
+        pad("C2", "1", "TX_N", "F.Cu", 10.0, yn, 0.4, 0.2),
+        pad("C2", "2", "TX_CN", "F.Cu", 11.5, yn, 0.4, 0.2),
+        pad("J1", "1", "SIG_B", "F.Cu", 4.0, 8.0),
+        pad("J1", "2", "TX_CP", "F.Cu", 24.0, yp, 0.5, 0.2),
+        pad("J1", "3", "TX_CN", "F.Cu", 24.0, yn, 0.5, 0.2),
+        pad("J1", "4", "GND", "F.Cu", 24.0, 0.0),
+    ]
+    zones = [pour("In1.Cu", "GND", (-5, -10, 35, 10)), pour("In2.Cu", "+3V3", (-5, -10, 35, 10))]
+    nets = ["GND", "+3V3", "SIG_A", "SIG_B", "TX_P", "TX_N", "TX_CP", "TX_CN"]
+    return doc(
+        "chain", stackup(FOUR), nets, tr, zones, vias=[via("SIG_A", 8.0, 4.0), via("SIG_B", 16.0, 4.0)], pads=pads
+    )
+
+
 USB = ("/Debugger/D+", "/Debugger/D-")
 
 
@@ -256,7 +321,7 @@ def cm5() -> dict:
     return {"board": board.to_dict(), "copper": copper.to_dict()}
 
 
-CASES = {"split": split, "cpwg": cpwg, "inner": inner, "pair": pair}
+CASES = {"split": split, "cpwg": cpwg, "inner": inner, "pair": pair, "chain": chain}
 
 
 def outputs() -> dict[str, bytes]:

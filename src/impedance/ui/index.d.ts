@@ -46,7 +46,10 @@ export interface Highlight {
   set(sel: { nets?: string[]; track?: number | null }): void;
   section(s: Section | null): void;
   marker(p: Vec2 | null): void;
+  /** The cross-section's cut at a point of a trace (d: the trace's direction; half: mm, at least 14 px). */
+  cross(c: { p: Vec2; d: Vec2; half?: number } | null): void;
   rings(points: Vec2[] | null): void;
+  planes(list: Array<{ layer: string; net?: string | null }>): void;
   routeOf(net: string): RouteStep[];
   /** The layer on show: the nets' copper on other layers is drawn fainter (null: every layer alike). */
   focus(layer: string | null): void;
@@ -153,6 +156,56 @@ export interface ImpedancePanel {
   on(name: 'select' | 'result' | 'hover' | 'error' | 'focus' | 'frequency' | 'group', fn: (v: any) => void): () => void;
   destroy(): void;
 }
+export type Unit = string[];
+export interface PathUnit { nets: string[]; kind: 'single' | 'differential'; key: 'Z0' | 'Zdiff'; s0: number; s1: number; length: number; reversed: boolean;
+  start: Vec2; end: Vec2; target: { value: number; tolerance_pct?: number } | null; doc: ImpedanceAnalysis | null; index: number }
+export interface PathMark { type: 'part' | 'end' | 'gap' | Discontinuity['type']; s: number; label: string; refs?: string[]; detail?: string; layer?: string; unit: number }
+export interface RoutePathDoc {
+  length: number;
+  units: PathUnit[];
+  sections: Array<{ s0: number; s1: number; z: number | null; unit: number; section: Section }>;
+  marks: PathMark[];
+  routes: RouteStep[][];
+}
+export interface PathPoint { s: number; unit: PathUnit; local: number; p: Vec2 | null; d: Vec2 | null; layer: string | null; width: number | null; section: Section | null; z: number | null }
+export interface Bridge { a: number; b: number; refs: string[]; pads: Copper['pads'] }
+/** Grounds, supplies and solid planes: nets a series part may also have. */
+export function supplyNets(copper: Copper): Set<string>;
+/** The parts between units (every net of the part in the selection or a supply). */
+export function bridges(copper: Copper, units: Unit[]): Bridge[];
+/** The units in path order, through the parts; via null: not connected to the one before. */
+export function chainOrder(units: Unit[], links: Bridge[]): Array<{ unit: number; via: Bridge | null }>;
+/** One path through the selection's units from their analyses (null while one runs). */
+export function routePath(copper: Copper, units: Unit[], docs?: Array<ImpedanceAnalysis | null>, options?: { targets?: Array<{ value: number; tolerance_pct?: number } | null> }): RoutePathDoc;
+/** A route's point and direction at s. */
+export function routeAt(route: RouteStep[], s: number, tracks?: string[] | null): { p: Vec2; d: Vec2; layer: string; width: number; track: number } | null;
+export function sectionAt(path: Pick<RoutePathDoc, 'sections'>, s: number): RoutePathDoc['sections'][number] | null;
+/** What is at a path position: the section, its Z, the board point and the trace's direction. */
+export function pathAt(path: RoutePathDoc, s: number): PathPoint | null;
+/** A point on one of the selection's traces → its path position (a pair's second net: the first net's nearest point). */
+export function pathFromBoard(path: RoutePathDoc, copper: Copper, net: string, p: Vec2, track?: number | null): { s: number; unit: PathUnit; local: number; p?: Vec2; d?: Vec2; width?: number } | null;
+export function niceTicks(lo: number, hi: number, n?: number): number[];
+export interface RouteProfile {
+  readonly root: HTMLDivElement;
+  readonly analyzer: Analyzer;
+  readonly path: RoutePathDoc | null;
+  readonly docs: Array<ImpedanceAnalysis | null>;
+  readonly cursor: number | null;
+  readonly state: 'empty' | 'busy' | 'ready';
+  select(units: Unit[], options?: { targets?: Array<{ value: number; tolerance_pct?: number } | null>; options?: Array<Partial<RouteOptions>> }): Promise<RoutePathDoc | null>;
+  setTargets(targets: Array<{ value: number; tolerance_pct?: number } | null>): void;
+  /** The cursor at a path position (null: none), without 'hover'. */
+  show(s: number | null): PathPoint | null;
+  /** A point on a selected trace: the cursor at its place along the path. */
+  showBoard(net: string, p: Vec2, track?: number | null): (ReturnType<typeof pathFromBoard> & { at: PathPoint }) | null;
+  on(name: 'hover', fn: (h: { s: number; at: PathPoint } | null) => void): () => void;
+  on(name: 'path', fn: (p: RoutePathDoc | null) => void): () => void;
+  on(name: 'error', fn: (err: unknown) => void): () => void;
+  destroy(): void;
+}
+/** Z along the whole route of a selection: one plot, hover / tap / ← → for the cursor. */
+export function routeProfile(el: HTMLElement, options: { board: Board; copper: Copper; analyzer?: Analyzer | { worker?: boolean | string | URL }; options?: Partial<RouteOptions> }): RouteProfile;
+
 /** The click-a-trace impedance panel (see docs/impedance.md "UI"). */
 export function impedancePanel(el: HTMLElement, options: {
   board: Board;
@@ -221,7 +274,8 @@ export interface LayerView {
   readonly stop: LayerStop & { index: number };
   readonly selection: { nets: string[]; pairs: string[][]; layers: string[] } | null;
   readonly draft: ControlDraft | null;
-  readonly panel: ImpedancePanel | null;
+  /** Z along the route of the whole selection, under the board (with `route`). */
+  readonly profile: RouteProfile | null;
   /** What an app keeps across reloads (pass back as options). */
   readonly state: { region: Region | null; layer: string | null };
   /** A stop by index, or a copper layer by id. */

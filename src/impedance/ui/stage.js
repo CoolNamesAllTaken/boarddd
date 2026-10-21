@@ -1,6 +1,6 @@
 // boarddd/impedance/ui: copper on a view2d stage. copperContent draws a boarddd/copper@1 document (for boards
 // without Gerbers); createHighlight is an overlay showing the selected nets (the rest dimmed), a route section,
-// a position marker and discontinuity rings; attachPicker turns stage pointer events into copper picks (hover:
+// a position marker, the cross-section's cut and discontinuity rings; attachPicker turns stage pointer events into copper picks (hover:
 // net and width; click: the net, or its pair; alt-click: the segment alone).
 import { draw } from '../../view2d/content.js';
 import { netRoute } from '../route.js';
@@ -96,6 +96,7 @@ export function createHighlight(stage, copper, { dim = 0.55 } = {}) {
   let sec = null;
   let mark = null;
   let rings = [];
+  let cross = null; // { p, d, half }: a cut across the trace at p (d: the trace's direction)
   let tint = []; // reference planes: [{ layer, net }] (net '' or null: every zone on the layer)
   const routes = new Map();
   const routeOf = (net) => { if (!routes.has(net)) routes.set(net, netRoute(copper, net)); return routes.get(net); };
@@ -140,6 +141,16 @@ export function createHighlight(stage, copper, { dim = 0.55 } = {}) {
       }
       // rings and the marker: screen-sized (view2d world strokes are px)
       for (const r of rings) ctx.svg('circle', { cx: r[0], cy: r[1], r: 9 * px, 'stroke-width': 2, class: 'bdi-ring' }, g);
+      if (cross) {
+        const [nx, ny] = [-cross.d[1], cross.d[0]];
+        const h = Math.max(cross.half ?? 0, 14 * px), t = 5 * px;
+        const a = [cross.p[0] - nx * h, cross.p[1] - ny * h], b = [cross.p[0] + nx * h, cross.p[1] + ny * h];
+        const d = `M${a[0]},${a[1]}L${b[0]},${b[1]}`
+          + `M${a[0] - cross.d[0] * t},${a[1] - cross.d[1] * t}L${a[0] + cross.d[0] * t},${a[1] + cross.d[1] * t}`
+          + `M${b[0] - cross.d[0] * t},${b[1] - cross.d[1] * t}L${b[0] + cross.d[0] * t},${b[1] + cross.d[1] * t}`;
+        ctx.svg('path', { d, 'stroke-width': 5, class: 'bdi-cross-halo' }, g);
+        ctx.svg('path', { d, 'stroke-width': 2, class: 'bdi-cross' }, g);
+      }
       if (mark) {
         ctx.svg('circle', { cx: mark[0], cy: mark[1], r: 6 * px, 'stroke-width': 4, class: 'bdi-marker-halo' }, g);
         ctx.svg('circle', { cx: mark[0], cy: mark[1], r: 6 * px, 'stroke-width': 2, class: 'bdi-marker' }, g);
@@ -148,11 +159,13 @@ export function createHighlight(stage, copper, { dim = 0.55 } = {}) {
   });
   return {
     get selection() { return { ...sel }; },
-    set({ nets = [], track = null } = {}) { sel = { nets, track }; sec = null; mark = null; rings = []; tint = []; overlay.invalidate(); },
+    set({ nets = [], track = null } = {}) { sel = { nets, track }; sec = null; mark = null; cross = null; rings = []; tint = []; overlay.invalidate(); },
     /** The layer on show: the nets' copper on other layers is drawn fainter (null: every layer alike). */
     focus(layer) { if (layer !== focusLayer) { focusLayer = layer ?? null; overlay.invalidate(); } },
     section(s) { sec = s; overlay.invalidate(); },
     marker(p) { mark = p; overlay.invalidate(); },
+    /** The cross-section's cut at a point of a trace: { p, d (the trace's direction), half (mm; at least 14 px) } | null. */
+    cross(c) { cross = c?.p && c?.d ? c : null; overlay.invalidate(); },
     rings(points) { rings = points ?? []; overlay.invalidate(); },
     /** Tint reference planes: [{ layer, net? }] (the zones of that net on that layer; [] none). */
     planes(list) { tint = list ?? []; overlay.invalidate(); },

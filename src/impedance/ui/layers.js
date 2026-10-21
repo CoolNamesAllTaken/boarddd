@@ -7,6 +7,8 @@
 //      [MS ▾]  — [50] Ω  ⇄ [90] Ω ± [10] %
 //      F.Cu w 0.2  ≈ 52.3 Ω  50 Ω at w 0.212
 //      [✓ Save 3]
+//   under the board   Z along the whole route of the selection (profile.js): hover a selected trace for the
+//                     cross-section's cut on the board and the cursor on the plot; hover the plot for the spot
 // Selecting never moves the view: only a drag, the wheel, a pinch, ⌖ (the selection) and ⤢ (the board) do.
 // Works from a copper@1 document alone (plain Gerbers through boarddd.connectivity, or X2/KiCad copper); the
 // impedance figures are tier 1 (closed form) on `board.stackup`, the reference planes from analyzeNet along each
@@ -18,7 +20,8 @@ import { evaluateTarget } from '../stackup.js';
 import { createAnalyzer } from './analyzer.js';
 import { crossSection } from './crosssection.js';
 import { netPicker } from './netpick.js';
-import { impedancePanel, STRUCTURES } from './panel.js';
+import { STRUCTURES } from './panel.js';
+import { routeProfile } from './profile.js';
 import { copperHitIndex, pairOf, pairOrder, trackPath } from './pick.js';
 import { copperContent, createHighlight, layerColor } from './stage.js';
 import { IMPEDANCE_UI_CSS } from './style.js';
@@ -214,7 +217,7 @@ export function referenceBreaks(doc) {
 /**
  * The layer view in `el`. Options: `board` (board@1 with the stackup the figures are computed on), `copper`
  * (copper@1), `route` (createAnalyzer options, e.g. `{ worker: url }`: each selected net's route is analysed for its
- * reference planes, and the last one's impedance along it shows under the form; false: the stackup alone),
+ * reference planes, and the whole selection's impedance along it shows under the board; false: the stackup alone),
  * `netInfo` ({net: {auto, pads}}: auto-named nets can be renamed), `rename(net, name)` (async; omit: no ✎),
  * `evaluate(item)` (async; the app's tier-2 figure for one geometry: resolves { z, width, gap?, why? }),
  * `editable` (default true: the Save button), `defaults` ({ target: {single, differential}, tolerance, pair }),
@@ -244,6 +247,8 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
   root.setAttribute('aria-label', 'Board layers: ↑ ↓ step through them, click traces to pick their nets, Esc clears, Delete drops the last');
   const main = el('div', 'bdi-lv-main', root);
   const stepper = el('div', 'bdi-lv-steps', main);
+  const profEl = route ? el('div', 'bdi-lv-profile', root) : null;
+  if (profEl) profEl.hidden = true;
   const up = btn('bdi-lv-step', stepper, '▲', 'Layer above (↑)');
   const list = el('ol', 'bdi-lv-stack', stepper);
   const down = btn('bdi-lv-step', stepper, '▼', 'Layer below (↓)');
@@ -261,8 +266,6 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
   const unitsEl = el('div', 'bdi-lv-units', side);
   const form = el('div', 'bdi-ctl', side);
   form.hidden = true;
-  const routeBox = route ? el('details', 'bdi-lv-route', side) : null;
-  if (routeBox) { el('summary', null, routeBox, 'Z along the route'); routeBox.hidden = true; }
 
   // ---- the stage: one content per copper layer (scrubbing changes opacities only: no re-render)
   const bounds = copper.bounds ?? boundsOf(copper);
@@ -279,7 +282,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
   stage.setScene([{ layers: [...contents.map((content) => ({ content, opacity: 0 })).reverse(), { content: dielectric, opacity: 0 }] }]);
   const hl = createHighlight(stage, copper, { dim: 0.25 });
   const routeOpts = typeof route === 'object' ? route : {};
-  const panel = routeBox ? impedancePanel(routeBox, { board, copper, stage: null, pick: false, group: false, injectCss: false, analyzer: routeOpts }) : null;
+  const profile = profEl ? routeProfile(profEl, { board, copper, analyzer: routeOpts }) : null;
   // the reference planes along each selected route: tier 1 is enough to find them
   const refAn = route ? createAnalyzer({ board, copper, ...routeOpts }) : null;
   const index = copperHitIndex(copper);
@@ -407,12 +410,20 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     buildUnits();
     compute(true);
     runRefs();
-    if (panel) {
+    if (profile) {
       const us = units();
-      const last = us[us.length - 1];
-      routeBox.hidden = !last;
-      if (last) panel.select({ nets: last, hit: hits.get(last[0]) ?? null, target: routeTarget(last) })?.catch?.(() => {});
+      profEl.hidden = !us.length;
+      hl.cross(null);
+      profile.select(us, { targets: us.map(routeTarget), options: us.map(profileOptions) }).catch((err) => emit('error', err));
     }
+  }
+
+  /** A unit's analyzeNet options for the profile: the reference layer the user picked. */
+  function profileOptions(u) {
+    const pick = chosen.get(unitKey(u));
+    const g = pick ? routedOn(copper, u[0]) : null;
+    const ov = g ? overrideFor(g.layer, pick) : null;
+    return ov ? { overrides: { net: ov } } : {};
   }
 
   // ---- reference planes
@@ -571,6 +582,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
       if (tintKey === key) applyTint();
       compute(true);
       runRefs();
+      if (profile) { const us = units(); profile.select(us, { targets: us.map(routeTarget), options: us.map(profileOptions) }).catch((err) => emit('error', err)); }
     });
     el('div', 'bdi-lv-warns', box);
     fillRef(box, u);
@@ -600,8 +612,39 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
   // ---- picks
   const tip = el('div', 'bdi-tip', stage.root);
   tip.hidden = true;
+  /** Half the cut's length: across the trace, its pair partner and gap, or its coplanar ground. */
+  const halfCut = (sec, w0) => {
+    const g = sec?.geometry ?? {};
+    const w = g.width ?? w0 ?? 0.2;
+    if (g.gap != null) return w / 2 + g.gap + (g.partner_width ?? w) + w / 2;
+    const cg = (g.coplanar_gap ?? []).filter((x) => x != null);
+    return 1.5 * w + (cg.length ? Math.min(...cg) : 0);
+  };
+  let fromBoard = false; // the cut on the board is the pointer's (not the plot's)
+  /** A selected trace under the board pointer: the cut there, the plot's cursor at its place along the route. */
+  function boardCursor(d, x, y) {
+    const hit = profile && d?.kind === 'track' && sel.includes(d.net) ? profile.showBoard(d.net, [x, y], d.track) : null;
+    if (hit) {
+      fromBoard = true;
+      hl.cross({ p: hit.p, d: hit.d, half: halfCut(hit.at.section, hit.width) });
+      hl.section(hit.at.section);
+    } else if (fromBoard) {
+      fromBoard = false;
+      profile?.show(null);
+      hl.cross(null);
+      hl.section(null);
+    }
+    return hit;
+  }
+  profile?.on('hover', (h) => {
+    fromBoard = false;
+    hl.marker(h?.at.p ?? null);
+    hl.cross(h?.at.p ? { p: h.at.p, d: h.at.d, half: halfCut(h.at.section, h.at.width) } : null);
+    hl.section(h?.at.section ?? null);
+  });
   stage.on('move', (e) => {
     const d = pickAt(e.x, e.y);
+    boardCursor(d, e.x, e.y);
     if (!d) { tip.hidden = true; return; }
     tip.textContent = `${d.net || '(no net)'}${d.width ? ` · ${mm(d.width)} mm` : ''}${d.net ? (sel.includes(d.net) ? ' · click: drop' : ' · click: add') : ''}`;
     tip.hidden = false;
@@ -609,11 +652,13 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     tip.style.left = `${e.event.clientX - r.left + 12}px`;
     tip.style.top = `${e.event.clientY - r.top + 12}px`;
   });
-  stage.on('leave', () => { tip.hidden = true; });
+  stage.on('leave', () => { tip.hidden = true; boardCursor(null); });
   // a click (short, still: view2d's clickMaxMs) toggles the net under it; drags and long presses only pan
   stage.on('click', (e) => {
     const d = pickAt(e.x, e.y);
-    if (!d?.net) return;
+    if (!d?.net) { boardCursor(null); return; }
+    // a tap on a selected trace shows its place on the plot (no hover on touch); ✕ drops it
+    if (e.event?.pointerType && e.event.pointerType !== 'mouse' && boardCursor(d, e.x, e.y)) return;
     if (d.kind === 'track') {
       const t = copper.tracks[d.track];
       emit('segment', { track: d.track, net: t.net, layer: t.layer, width: t.width, length: len(t) });
@@ -761,10 +806,9 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
       target: targetS, target_differential: targetD, tolerance_pct: tolerance, items } : null;
     if (draft && items.length === 1) draft.target = items[0].target;
     emit('draft', draft);
-    if (panel && !routeBox.hidden) {
-      const lastU = us[us.length - 1];
+    if (profile && us.length) {
       clearTimeout(compute.routeTimer);
-      if (lastU) compute.routeTimer = setTimeout(() => panel.setTarget(routeTarget(lastU))?.catch?.(() => {}), 400);
+      compute.routeTimer = setTimeout(() => profile.setTargets(units().map(routeTarget)), 250);
     }
     if (evaluate && asTier2 !== null && rows.length) {
       const mine = ++t2Run;
@@ -807,7 +851,6 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
   }
   const zoomToSelection = () => { const b = selectionBounds(); if (b) stage.zoomTo(b, { minMm: 2 }); };
 
-  if (panel) panel.on('result', () => compute(true));
 
   // ---- keys, the stepper, the tools
   up.addEventListener('click', () => step(-1));
@@ -838,8 +881,8 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     get stop() { return { ...stops[at], index: at }; },
     get selection() { return sel.length ? { nets: [...sel], pairs: pairs.map((p) => [...p]), layers: layersOf(sel) } : null; },
     get draft() { return draft ? structuredClone(draft) : null; },
-    /** The route analysis panel (impedancePanel), with `route`. */
-    get panel() { return panel; },
+    /** Z along the route of the selection (routeProfile), with `route`. */
+    get profile() { return profile; },
     /** What an app keeps across reloads: the region on show (null: fitted) and the copper layer. */
     get state() { return { region: stage.getRegion(), layer: stops[at].layer ?? null }; },
     /** Show a stop by index, or a copper layer by id. */
@@ -886,7 +929,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
       compute(true);
     },
     on(name, fn) { if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(fn); return () => listeners.get(name)?.delete(fn); },
-    destroy() { destroyed = true; clearTimeout(compute.timer); clearTimeout(compute.routeTimer); refAn?.destroy(); panel?.destroy(); hl.remove(); stage.destroy?.(); root.remove(); },
+    destroy() { destroyed = true; clearTimeout(compute.timer); clearTimeout(compute.routeTimer); refAn?.destroy(); profile?.destroy(); hl.remove(); stage.destroy?.(); root.remove(); },
   };
   return api;
 }
