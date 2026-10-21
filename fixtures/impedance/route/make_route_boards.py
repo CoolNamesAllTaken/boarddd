@@ -86,7 +86,9 @@ def track(layer, net, w, a, b, tid) -> cu.Track:
     return cu.Track(layer=layer, net=net, width=w, start=a, end=b, id=tid)
 
 
-def doc(name: str, st: m.Stackup, nets: list[str], tracks, zones, net_classes=(), net_class_of=None, vias=(), pads=()) -> dict:
+def doc(
+    name: str, st: m.Stackup, nets: list[str], tracks, zones, net_classes=(), net_class_of=None, vias=(), pads=()
+) -> dict:
     board = m.Board(
         name=name,
         source=m.Source(kind="other", reader="fixtures/impedance/route/make_route_boards.py"),
@@ -212,8 +214,17 @@ def pair() -> dict:
 
 def pad(ref, number, net, layer, x, y, w=0.5, h=0.5) -> cu.CopperPad:
     ring = [(x - w / 2, y - h / 2), (x + w / 2, y - h / 2), (x + w / 2, y + h / 2), (x - w / 2, y + h / 2)]
-    return cu.CopperPad(ref=ref, number=number, net=net, layers=[layer], at=(x, y), shape="rect", size=(w, h),
-                        polygons=[ring], type="smd")
+    return cu.CopperPad(
+        ref=ref,
+        number=number,
+        net=net,
+        layers=[layer],
+        at=(x, y),
+        shape="rect",
+        size=(w, h),
+        polygons=[ring],
+        type="smd",
+    )
 
 
 def via(net, x, y) -> cu.Via:
@@ -238,17 +249,26 @@ def chain() -> dict:
         track("F.Cu", "TX_CN", w, (11.5, yn), (24.0, yn), "n-b"),
     ]
     pads = [
-        pad("U1", "1", "SIG_A", "F.Cu", 0.0, 4.0), pad("U1", "2", "TX_P", "F.Cu", 0.0, yp, 0.5, 0.2),
-        pad("U1", "3", "TX_N", "F.Cu", 0.0, yn, 0.5, 0.2), pad("U1", "4", "GND", "F.Cu", 0.0, 0.0),
-        pad("R1", "1", "SIG_A", "B.Cu", 12.0, 4.0), pad("R1", "2", "SIG_B", "B.Cu", 13.6, 4.0),
-        pad("C1", "1", "TX_P", "F.Cu", 10.0, yp, 0.4, 0.2), pad("C1", "2", "TX_CP", "F.Cu", 11.5, yp, 0.4, 0.2),
-        pad("C2", "1", "TX_N", "F.Cu", 10.0, yn, 0.4, 0.2), pad("C2", "2", "TX_CN", "F.Cu", 11.5, yn, 0.4, 0.2),
-        pad("J1", "1", "SIG_B", "F.Cu", 4.0, 8.0), pad("J1", "2", "TX_CP", "F.Cu", 24.0, yp, 0.5, 0.2),
-        pad("J1", "3", "TX_CN", "F.Cu", 24.0, yn, 0.5, 0.2), pad("J1", "4", "GND", "F.Cu", 24.0, 0.0),
+        pad("U1", "1", "SIG_A", "F.Cu", 0.0, 4.0),
+        pad("U1", "2", "TX_P", "F.Cu", 0.0, yp, 0.5, 0.2),
+        pad("U1", "3", "TX_N", "F.Cu", 0.0, yn, 0.5, 0.2),
+        pad("U1", "4", "GND", "F.Cu", 0.0, 0.0),
+        pad("R1", "1", "SIG_A", "B.Cu", 12.0, 4.0),
+        pad("R1", "2", "SIG_B", "B.Cu", 13.6, 4.0),
+        pad("C1", "1", "TX_P", "F.Cu", 10.0, yp, 0.4, 0.2),
+        pad("C1", "2", "TX_CP", "F.Cu", 11.5, yp, 0.4, 0.2),
+        pad("C2", "1", "TX_N", "F.Cu", 10.0, yn, 0.4, 0.2),
+        pad("C2", "2", "TX_CN", "F.Cu", 11.5, yn, 0.4, 0.2),
+        pad("J1", "1", "SIG_B", "F.Cu", 4.0, 8.0),
+        pad("J1", "2", "TX_CP", "F.Cu", 24.0, yp, 0.5, 0.2),
+        pad("J1", "3", "TX_CN", "F.Cu", 24.0, yn, 0.5, 0.2),
+        pad("J1", "4", "GND", "F.Cu", 24.0, 0.0),
     ]
     zones = [pour("In1.Cu", "GND", (-5, -10, 35, 10)), pour("In2.Cu", "+3V3", (-5, -10, 35, 10))]
     nets = ["GND", "+3V3", "SIG_A", "SIG_B", "TX_P", "TX_N", "TX_CP", "TX_CN"]
-    return doc("chain", stackup(FOUR), nets, tr, zones, vias=[via("SIG_A", 8.0, 4.0), via("SIG_B", 16.0, 4.0)], pads=pads)
+    return doc(
+        "chain", stackup(FOUR), nets, tr, zones, vias=[via("SIG_A", 8.0, 4.0), via("SIG_B", 16.0, 4.0)], pads=pads
+    )
 
 
 USB = ("/Debugger/D+", "/Debugger/D-")
