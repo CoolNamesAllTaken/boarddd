@@ -245,7 +245,17 @@ def _layer_index(copper: dict, layer: str) -> dict:
             continue
         for ring in p.get("polygons") or []:
             if len(ring) >= 3:
-                items.append({"type": "poly", "rings": [ring], "net": p["net"], "kind": "pad", "box": _bbox(ring)})
+                items.append(
+                    {
+                        "type": "poly",
+                        "rings": [ring],
+                        "net": p["net"],
+                        "kind": "pad",
+                        "ref": p.get("ref"),
+                        "number": p.get("number") or "",
+                        "box": _bbox(ring),
+                    }
+                )
     for z in copper.get("zones") or []:
         if z["layer"] != layer:
             continue
@@ -256,6 +266,7 @@ def _layer_index(copper: dict, layer: str) -> dict:
                     "rings": [f["outline"], *f.get("holes", [])],
                     "net": z["net"],
                     "kind": "teardrop" if z["kind"] == "teardrop" else "zone",
+                    "zone": z["kind"],
                     "box": _bbox(f["outline"]),
                 }
             )
@@ -423,6 +434,47 @@ class _Stack:
 # ── one station ──────────────────────────────────────────────────────────────────────────────────────────────
 
 
+def _conductor(ctx: dict, st: dict) -> dict | None:
+    """The conductor at a station (the JS conductorOf): the track united with the pads, teardrops and zones of its
+    net it runs onto, cut across the route; None where that is the track alone."""
+    d = st["d"]
+    n = (-d[1], d[0])
+    w = st["width"]
+    p = st["p"]
+    R = max(2.5, 5 * w)
+    p0, p1 = (p[0] - n[0] * R, p[1] - n[1] * R), (p[0] + n[0] * R, p[1] + n[1] * R)
+    own: list[dict] = []
+    for it in _query(ctx["index"](st["layer"]), p0, p1):
+        if it["net"] != st["net"] or it["kind"] in ("track", "via"):
+            continue
+        for lo, hi in _crossings(it, p, d, n):
+            if hi > -R and lo < R:
+                own.append({"lo": max(lo, -R), "hi": min(hi, R), "it": it})
+    if not own:
+        return None
+    run = next(
+        (
+            iv
+            for iv in _union([[-w / 2, w / 2], *([x["lo"], x["hi"]] for x in own)])
+            if iv[0] <= 1e-9 and iv[1] >= -1e-9
+        ),
+        None,
+    )
+    if run is None or (run[0] >= -w / 2 - 5e-4 and run[1] <= w / 2 + 5e-4):
+        return None
+    width, offset = _q(run[1] - run[0], 0.001), _q((run[0] + run[1]) / 2, 0.001)
+    rank = {"pad": 0, "teardrop": 1, "zone": 2}
+    cands = [
+        x
+        for x in own
+        if x["hi"] >= run[0] - 1e-6 and x["lo"] <= run[1] + 1e-6 and (x["lo"] < -w / 2 - 5e-4 or x["hi"] > w / 2 + 5e-4)
+    ]
+    cands.sort(key=lambda x: (rank[x["it"]["kind"]], -(x["hi"] - x["lo"])))
+    by = cands[0]["it"] if cands else None
+    copper = {"kind": by["kind"], "ref": by.get("ref"), "number": by.get("number")} if by else None
+    return {"width": width, "offset": offset, "copper": copper}
+
+
 def _station(ctx: dict, st: dict) -> dict:
     """The environment of the trace at a station (the JS station)."""
     o, stack, index, ground_nets = ctx["o"], ctx["stack"], ctx["index"], ctx["ground_nets"]
@@ -462,7 +514,23 @@ def _station(ctx: dict, st: dict) -> dict:
             if gap < 0 or gap > pair_win:
                 continue
             if partner is None or gap < partner["gap"]:
-                partner = {"side": side, "gap": gap, "width": it["width"]}
+                partner = {"side": side, "gap": gap, "width": it["width"], "h": h}
+        if partner:
+            # its conductor too: the track united with the pads, teardrops and zones of its net it runs onto
+            h = partner["h"]
+            ivs = _union(
+                [x["lo"], x["hi"]]
+                for x in hits
+                if x["it"]["net"] == st["partner"]
+                and x["it"]["kind"] != "via"
+                and (x["it"]["kind"] != "track" or x is h)
+            )
+            run = next((iv for iv in ivs if iv[0] <= h["lo"] + 1e-9 and iv[1] >= h["hi"] - 1e-9), None)
+            if run and (run[0] < h["lo"] - 5e-4 or run[1] > h["hi"] + 5e-4):
+                gap = run[0] - w / 2 if partner["side"] > 0 else -w / 2 - run[1]
+                partner = {"side": partner["side"], "gap": gap, "width": _q(run[1] - run[0], 0.001)}
+            else:
+                partner = {"side": partner["side"], "gap": partner["gap"], "width": partner["width"]}
     traces = [{"x0": -w / 2, "x1": w / 2, "net": "p" if partner else "sig"}]
     if partner:
         g, wn = _qlog(partner["gap"], 0.02, 0.01), _q(partner["width"], 0.001)
@@ -892,6 +960,11 @@ def analyze_net(board, copper, net: str | list[str] | tuple[str, str], *, cache:
                     "p": p,
                     "d": dd,
                 }
+                # where the track runs onto a wider pad, teardrop or zone of its net, that copper is the conductor
+                cond = _conductor(ctx, st)
+                if cond:
+                    st["width"] = cond["width"]
+                    st["p"] = (p[0] - dd[1] * cond["offset"], p[1] + dd[0] * cond["offset"])
                 stations += 1
                 env = _station(ctx, st)
                 if k == 1 and env["partner"]:
@@ -901,6 +974,8 @@ def analyze_net(board, copper, net: str | list[str] | tuple[str, str], *, cache:
                 env = _overridden(env, ov, stack, t["layer"])
                 key = _geometry_key(t["layer"], env, o["solver"])
                 prev = sections[-1] if sections else None
+                cc = cond["copper"] if cond else None
+                copper_id = f"{cc['kind']} {_js(cc['ref'])} {_js(cc['number'])}" if cc else ""
                 s0, s1 = R6(e["s0"] + f0), R6(e["s0"] + f1)
                 pa, pb = e["path"].at(g(f0))[0], e["path"].at(g(f1))[0]
                 if (
@@ -909,7 +984,9 @@ def analyze_net(board, copper, net: str | list[str] | tuple[str, str], *, cache:
                     and prev["net"] == x
                     and prev["_run"] == e["run"]
                     and abs(prev["s1"] - s0) < 1e-6
-                    and prev["geometry"]["width"] == t["width"]
+                    and prev["geometry"]["width"] == st["width"]
+                    and prev["_tw"] == t["width"]
+                    and prev["_copper"] == copper_id
                 ):
                     prev["s1"] = s1
                     prev["end"] = [R6(pb[0]), R6(pb[1])]
@@ -924,6 +1001,8 @@ def analyze_net(board, copper, net: str | list[str] | tuple[str, str], *, cache:
                         "_key": key,
                         "_run": e["run"],
                         "_env": env,
+                        "_tw": t["width"],
+                        "_copper": copper_id,
                         "net": x,
                         "start": [R6(pa[0]), R6(pa[1])],
                         "end": [R6(pb[0]), R6(pb[1])],
@@ -934,17 +1013,28 @@ def analyze_net(board, copper, net: str | list[str] | tuple[str, str], *, cache:
                         "structure": env["structure"],
                         "kind": env["kind"],
                         "geometry": {
-                            "width": t["width"],
+                            "width": st["width"],
                             "thickness": stack.copper[stack.order[t["layer"]]]["t"],
                             "partner_width": R6(nt["x1"] - nt["x0"]) if nt else None,
                             "gap": (
-                                R6(nt["x0"] - t["width"] / 2 if nt["x0"] > 0 else -t["width"] / 2 - nt["x1"])
+                                R6(nt["x0"] - st["width"] / 2 if nt["x0"] > 0 else -st["width"] / 2 - nt["x1"])
                                 if nt
                                 else None
                             ),
                             "coplanar_gap": [env["coplanar"][0], env["coplanar"][1]],
                             "h_top": refs["top"]["h"] if refs["top"] else None,
                             "h_bottom": refs["bottom"]["h"] if refs["bottom"] else None,
+                            "track_width": t["width"] if cond else None,
+                            "copper": (
+                                {
+                                    "kind": cc["kind"] if cc else "zone",
+                                    "ref": cc["ref"] if cc else None,
+                                    "number": cc["number"] if cc else None,
+                                    "offset": cond["offset"],
+                                }
+                                if cond
+                                else None
+                            ),
                         },
                         "z": None,
                         "refs": [
@@ -1025,7 +1115,7 @@ def analyze_net(board, copper, net: str | list[str] | tuple[str, str], *, cache:
         summary["loss"] = _loss_summary([s for s in sections if s["net"] == nets[0]], o["frequency"], fs)
     discontinuities = _discontinuities(sections)
     for s in sections:
-        for k2 in ("_key", "_run", "_env"):
+        for k2 in ("_key", "_run", "_env", "_tw", "_copper"):
             del s[k2]
     solve_ms = _now() - t_solve
     ms = _now() - t0

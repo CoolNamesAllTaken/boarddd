@@ -105,6 +105,8 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-rp-mark:is(.is-plane_gap, .is-no_ref) { stroke: var(--bdi-bad); }
 .bdi-rp-mlabel { fill: var(--bdi-muted); font: var(--bdi-font); font-size: 11px; cursor: help; }
 .bdi-rp-mlabel:is(.is-part, .is-end) { fill: var(--bdi-fg); font-weight: 600; } .bdi-rp-mlabel:is(.is-plane_gap, .is-no_ref) { fill: var(--bdi-bad); }
+.bdi-rp-cu { fill: var(--bdi-cu); fill-opacity: 0.2; } .bdi-rp-cu:is(.is-teardrop, .is-zone) { fill-opacity: 0.1; }
+.bdi-rp-culabel { fill: var(--bdi-cu); font: var(--bdi-font); font-size: 10px; font-weight: 600; cursor: help; }
 .bdi-rp-layer { opacity: 0.85; } .bdi-rp-dot { fill: var(--bdi-cross); stroke: #000; stroke-width: 1; }
 .bdi-rp-cursor { stroke: var(--bdi-cross); stroke-width: 1.5; }
 .bdi-rp-tip { position: absolute; z-index: 5; pointer-events: none; max-width: 240px; background: var(--bdi-bg); color: var(--bdi-fg); font: var(--bdi-font); padding: 3px 7px; border-radius: 4px; border: 1px solid var(--bdi-line); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }

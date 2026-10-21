@@ -441,6 +441,41 @@ test('Z along the whole route: two nets through R1 and their vias as one path un
   expect(errors).toEqual([]);
 });
 
+test('a trace onto a wide pad: the plot shades and names the pads, the tooltip and cut use the pad\'s copper', async ({ page }) => {
+  const errors = await openRoute(page, 'launch');
+  await page.evaluate(() => window.demo.view.add('RF'));
+  const prof = page.locator('.bdi-lv-profile');
+  await expect(prof.locator('.bdi-rp')).toHaveAttribute('data-state', 'ready', { timeout: 60_000 });
+  await expect(prof.locator('.bdi-rp-cu.is-pad')).toHaveCount(3);
+  await expect(prof.locator('.bdi-rp-cu.is-teardrop')).toHaveCount(1);
+  // named where there is room (TP1.1's 0.5 mm is not: its shading's tooltip names it)
+  expect(await prof.locator('.bdi-rp-culabel').evaluateAll((ts) => ts.map((t) => t.firstChild.textContent))).toEqual(['J1.1', 'TP2.1']);
+  await expect(prof.locator('.bdi-rp-cu.is-pad').last().locator('title')).toContainText('pad TP1.1');
+  await expect(prof.locator('.bdi-rp-cu.is-pad').first().locator('title')).toContainText('pad J1.1: the conductor is its copper, up to 1.5 mm wide (track 0.3 mm)');
+  // hover the track where it runs over J1.1 (x 0..3): 1.5 mm wide, 0.3 mm to the pour, In1.Cu cut out under it
+  await page.evaluate(() => window.demo.view.stage.zoomTo({ minX: -1, maxX: 9, minY: -3, maxY: 3 }));
+  await page.evaluate(() => window.demo.view.stage.ready());
+  await page.mouse.move(...(await onStage(page, [2.5, 0])));
+  const tip = prof.locator('.bdi-rp-tip');
+  await expect(tip).toContainText('w 1.5 mm (pad J1.1)');
+  await expect(tip).toContainText('ground 0.301 mm');
+  await expect(tip).toContainText('over In2.Cu (GND)');
+  const want = await page.evaluate(() => window.demo.view.profile.path.sections.find((x) => x.s0 === 0).z);
+  await expect(tip.locator('.bdi-rp-tz')).toContainText(`${want.toFixed(1)} Ω`);
+  // the cut spans the pad and its gaps (not the 0.3 mm track's)
+  const cut = await page.locator('.bdi-hl .bdi-cross').getAttribute('d');
+  const [, y0, , y1] = cut.match(/^M([-\d.e]+),([-\d.e]+)L([-\d.e]+),([-\d.e]+)/).slice(1).map(Number);
+  expect(Math.abs(y1 - y0)).toBeGreaterThan(4);
+  // off the pad, the track alone
+  await page.mouse.move(...(await onStage(page, [5, 0])));
+  await expect(tip).toContainText('w 0.3 mm');
+  await expect(tip).not.toContainText('pad');
+  await page.mouse.move(...(await onStage(page, [8.2, 0])));
+  await expect(tip).toContainText('w 1 mm (pad TP2.1)');
+  await shot(page, 'route-pad');
+  expect(errors).toEqual([]);
+});
+
 test('a pair through AC caps is one path; a tap on a selected trace shows its place instead of dropping it', async ({ page }) => {
   const errors = await openRoute(page, 'chain');
   await page.evaluate(() => { const v = window.demo.view; for (const n of ['TX_P', 'TX_N', 'TX_CP', 'TX_CN']) v.add(n); v.pair('TX_P', 'TX_N'); v.pair('TX_CP', 'TX_CN'); });

@@ -64,7 +64,8 @@ test('click a trace: its net and pair, Z as analyzeNet gives it, hover tooltip',
   expect(Math.abs(got.doc.summary.z_weighted - golden.z_weighted) / golden.z_weighted).toBeLessThan(0.01);
   const shown = await page.locator('.bdi-z').textContent();
   expect(Math.abs(parseFloat(shown) - got.doc.summary.z_weighted)).toBeLessThan(0.06);
-  await expect(page.locator('.bdi-verdict')).toHaveText(/✗ 90 ±10 %/); // 107 Ω against the 90 Ω entered in the example
+  // against the 90 Ω entered in the example: just out of its half-tolerance with the pads it runs onto counted
+  await expect(page.locator('.bdi-verdict')).toHaveText(/⚠ 90 ±10 %/);
   expect(await page.locator('.bdi-hl-track').count()).toBeGreaterThan(20);
   await shot(page, 'select-pair');
   expect(errors).toEqual([]);
@@ -144,7 +145,8 @@ test('CM5 MINIMA: the 100 Ω Ethernet pair, within its class target', async ({ p
   const doc = await page.evaluate(() => window.demo.panel.result);
   expect(doc.nets).toEqual(['/CM5/ETH_PI.TRD0_P', '/CM5/ETH_PI.TRD0_N']);
   expect(doc.target.value).toBe(100);
-  expect(Math.abs(doc.summary.z_weighted - 101.19)).toBeLessThan(0.5); // python/tests/test_impedance_route.py, docs
+  // docs/impedance.md: the line is 101.1 (kipr 101.17); J1's and the ESD part's (U401) pads, 63-80 Ω, bring it down
+  expect(Math.abs(doc.summary.z_weighted - 98.24)).toBeLessThan(0.5);
   await expect(page.locator('.bdi-verdict')).toHaveText(/✓ 100 ±10 %/);
   await shot(page, 'cm5-eth');
   expect(errors).toEqual([]);
@@ -209,7 +211,8 @@ test('file:// bundle: the panel runs on the main thread', async ({ page }, testI
     return { mode: panel.analyzer.mode, z: panel.result?.summary.z_weighted, xs: !!document.querySelector('svg.bdi-xs') };
   }, USB);
   expect(res.mode).toBe('main');
-  expect(res.z).toBeGreaterThan(100);
+  expect(res.z).toBeGreaterThan(95); // 98.98: ~100 Ω, its ESD part's and TP8's pads lower
+  expect(res.z).toBeLessThan(105);
   expect(res.xs).toBe(true);
   expect(errors).toEqual([]);
 });

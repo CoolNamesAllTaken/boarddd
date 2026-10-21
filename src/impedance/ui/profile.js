@@ -51,6 +51,36 @@ function planesText(sec) {
   return `between ${one(r[0])} and ${one(r[1])}`;
 }
 
+/** 'pad J3.1', 'teardrop' or 'zone': the same-net copper that is the conductor at a section (analyzeNet), or ''. */
+export function copperText(sec) {
+  const c = sec?.geometry?.copper;
+  if (!c) return '';
+  if (c.kind !== 'pad') return c.kind;
+  return c.ref ? `pad ${c.ref}${c.number ? `.${c.number}` : ''}` : 'pad';
+}
+
+/**
+ * The stretches of a path whose conductor is a pad, teardrop or zone (consecutive sections on the same copper):
+ * [{ s0, s1, kind, label ('J3.1' for a pad), text (copperText), width (the widest), track (the track's width) }].
+ */
+export function copperSpans(path) {
+  const out = [];
+  for (const x of path?.sections ?? []) {
+    const text = copperText(x.section);
+    const prev = out[out.length - 1];
+    if (!text) continue;
+    const g = x.section.geometry;
+    if (prev && prev.text === text && prev.unit === x.unit && Math.abs(prev.s1 - x.s0) < 1e-6) {
+      prev.s1 = x.s1; prev.width = Math.max(prev.width, g.width);
+      continue;
+    }
+    const c = g.copper;
+    out.push({ s0: x.s0, s1: x.s1, unit: x.unit, kind: c.kind, text, width: g.width, track: g.track_width ?? null,
+      label: c.kind === 'pad' && c.ref ? `${c.ref}${c.number ? `.${c.number}` : ''}` : '' });
+  }
+  return out;
+}
+
 /**
  * The plot in `el`. Options: `board`, `copper`, `analyzer` (createAnalyzer options, or an analyzer), `options`
  * (analyzeNet options for every unit). select(units, { targets, options }) analyses each unit ([net] | [p, n]; with
@@ -156,6 +186,14 @@ export function routeProfile(el0, { board, copper, analyzer = {}, options = {} }
         if (name.length * 6 > w - 8) tx.textContent = `${name.slice(0, Math.max(3, Math.floor((w - 8) / 6) - 1))}…`;
       }
     }
+    // where the conductor is a pad, teardrop or zone of the net (wider than the track): shaded, pads named
+    for (const c of copperSpans(path)) {
+      const x0 = X(c.s0), w = Math.max(1, X(c.s1) - x0);
+      const r = svg('rect', { x: x0, width: w, y: T, height: yb - T, class: `bdi-rp-cu is-${c.kind}` }, g);
+      const words = `${c.text}: the conductor is its copper, up to ${mm(c.width)} mm wide${c.track != null ? ` (track ${mm(c.track)} mm)` : ''}`;
+      svg('title', {}, r, words);
+      if (c.label && c.label.length * 6 + 4 <= w) svg('title', {}, svg('text', { x: x0 + w / 2, y: yb - 16, class: 'bdi-rp-culabel', 'text-anchor': 'middle' }, g, c.label), words);
+    }
     // the layer under the trace
     for (const x of path.sections) {
       const r = svg('rect', { x: X(x.s0), width: Math.max(1, X(x.s1) - X(x.s0)), y: yb + 2, height: 6, class: 'bdi-rp-layer', fill: layerColor(copper, x.section.layer) }, g);
@@ -245,7 +283,8 @@ export function routeProfile(el0, { board, copper, analyzer = {}, options = {} }
     if (!sec) return [...out, u.nets.join(' ')];
     const g = sec.geometry ?? {};
     out.push(`${u.nets.map(pathNetName).join(' ')} · ${sec.layer} · ${STRUCTURES[sec.structure]?.[0] ?? sec.structure}`);
-    out.push(`w ${mm(g.width)} mm${g.gap != null ? ` · gap ${mm(g.gap)} mm` : ''}${(g.coplanar_gap ?? []).some((x) => x != null) ? ` · ground ${mm(Math.min(...g.coplanar_gap.filter((x) => x != null)))} mm` : ''}`);
+    const cu = copperText(sec);
+    out.push(`w ${mm(g.width)} mm${cu ? ` (${cu})` : ''}${g.gap != null ? ` · gap ${mm(g.gap)} mm` : ''}${(g.coplanar_gap ?? []).some((x) => x != null) ? ` · ground ${mm(Math.min(...g.coplanar_gap.filter((x) => x != null)))} mm` : ''}`);
     out.push(planesText(sec));
     return out;
   }

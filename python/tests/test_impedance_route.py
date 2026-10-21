@@ -155,6 +155,30 @@ def test_offset_stripline_then_embedded_microstrip():
     assert [x["type"] for x in d["discontinuities"]] == ["ref_change"]
 
 
+def test_trace_onto_wider_pads_and_a_teardrop():
+    data = case("launch.json")
+    st = data["board"]["stackup"]
+    d = run(data, "RF")
+
+    def at(s):
+        return next(x for x in d["sections"] if x["s0"] <= s < x["s1"])
+
+    j1, line, tp2, tear = at(0.5), at(3), at(6.5), at(13.6)
+    g = j1["geometry"]
+    assert g["copper"] == {"kind": "pad", "ref": "J1", "number": "1", "offset": 0}
+    assert (g["width"], g["track_width"]) == (1.5, 0.3)
+    assert all(rel(x, 0.3) < 0.05 for x in g["coplanar_gap"])
+    assert [r["layer"] for r in j1["refs"]] == ["In2.Cu"]
+    ref = tier1(
+        st, "F.Cu", width=1.5, structure="coplanar_grounded", coplanar_gap=g["coplanar_gap"][0], ref_bottom="In2.Cu"
+    )["Z0"]
+    assert rel(j1["z"]["Z0"], ref) < 0.03
+    assert (line["geometry"]["width"], line["geometry"]["copper"]) == (0.3, None)
+    assert (tp2["s0"], tp2["s1"], tp2["geometry"]["width"], tp2["geometry"]["copper"]["ref"]) == (6, 7, 1, "TP2")
+    assert tp2["z"]["Z0"] < line["z"]["Z0"] - 15
+    assert tear["geometry"]["copper"]["kind"] == "teardrop" and 0.3 < tear["geometry"]["width"] < 1
+
+
 def test_pair_breaking_out():
     data = case("pair.json")
     d = run(data, ["USB_P", "USB_N"])
@@ -327,6 +351,8 @@ PARITY = [
         {"overrides": {"net": {"refBottom": "In2.Cu"}}},
     ),
     ("royalblue-usb.json.gz", USB, {}, {}),
+    ("launch.json", "RF", {}, {}),
+    ("chain.json", "SIG_A", {}, {}),
 ]
 
 

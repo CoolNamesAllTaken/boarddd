@@ -22,6 +22,7 @@ __all__ = [
     "Target",
     "Section",
     "SectionGeometry",
+    "SectionCopper",
     "SectionZ",
     "Reference",
     "Summary",
@@ -55,10 +56,22 @@ class Target:
 
 
 @dataclass(kw_only=True)
+class SectionCopper:
+    """Same-net copper the track runs onto (a pad, teardrop or zone): the conductor is the two together, cut across."""
+
+    kind: Literal["pad", "teardrop", "zone"] = _f("What widens the conductor (the widest, a pad first).")
+    ref: str | None = _f("A pad's component reference.", default=None)
+    number: str | None = _f("A pad's number.", default=None)
+    offset: float = _f("The conductor's centre from the track's centre line, to the left along the route, mm.")
+
+
+@dataclass(kw_only=True)
 class SectionGeometry:
     """The cross-section as found on the board (mm); gaps are edge to edge, quantised as solved."""
 
-    width: float = _f("Track width.", minimum=0)
+    width: float = _f(
+        "Conductor width: the track's, or across the same-net pad, teardrop or zone it runs onto (`copper`).", minimum=0
+    )
     thickness: float = _f("Copper thickness (stackup).", minimum=0)
     partner_width: float | None = _f("Pairs: the partner's width.", default=None)
     gap: float | None = _f("Pairs: the gap to the partner.", default=None)
@@ -67,6 +80,12 @@ class SectionGeometry:
     )
     h_top: float | None = _f("Dielectric height to the reference plane above.", default=None)
     h_bottom: float | None = _f("Dielectric height to the reference plane below.", default=None)
+    track_width: float | None = _f(
+        "The track's own width where `copper` widens the conductor; null: none.", default=None
+    )
+    copper: SectionCopper | None = _f(
+        "The same-net copper that widens the conductor here; null: the track alone.", default=None
+    )
 
 
 @dataclass(kw_only=True)

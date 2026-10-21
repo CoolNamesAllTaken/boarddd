@@ -285,7 +285,7 @@ const doc = analyzeNet(board, copper, ['/CM5/ETH_PI.TRD0_P', '/CM5/ETH_PI.TRD0_N
 //   geometry: { width: 0.13, gap: 0.252, coplanar_gap: [0.206, 0.206], h_bottom: 0.0994, ... },
 //   z: { Zdiff: 100.30, Zcommon: ..., error_pct: ..., solver: 'field' }, refs: [{ side: 'bottom', layer: 'In1.Cu',
 //   net: 'GND', h: 0.0994, extent: [null, null], skipped: [] }], flags: [], tracks: [...] }, ...]
-// doc.summary: { key: 'Zdiff', length, z_weighted: 101.2, z_min, z_max, out_of_tolerance_length, within, ... }
+// doc.summary: { key: 'Zdiff', length, z_weighted: 98.2, z_min, z_max, out_of_tolerance_length, within, ... }
 // doc.discontinuities: [{ type: 'via' | 'ref_change' | 'plane_gap' | 'width_change' | 'uncoupled' | 'no_ref' | 'ref_edge', at, s, ... }]
 ```
 
@@ -304,6 +304,13 @@ doc = analyze_net(board, copper, "/USB_C.D_P", target=90, solver="closedform")  
 3. **The cut.** At each station a line is cast across the trace, ±`window` (max(1 mm, w/2 + 8h), where h is the
    nearest dielectric). It is intersected with the copper@1 items it meets: track capsules, via discs, pad and
    zone polygons with their holes. A 1 mm grid index keeps this cheap.
+   - **The conductor:** the copper of the net on the trace's layer along the cut: the track united with the pads,
+     teardrops and zones of its net that it runs onto (an edge-launch pad, a series part's or a test point's pad,
+     a teardrop). Other tracks of the net are left out (at a bend their length would count). Where that copper is
+     wider than the track, it is the conductor: `geometry.width` is its extent across the route (`track_width`
+     the track's own), the station is centred on it (`copper.offset`), and the gaps and the reference planes
+     below are measured from its edges. `geometry.copper` names it (`{ kind: 'pad', ref: 'J3', number: '1' }`,
+     the widest, a pad first); a pad's stretch is its own section, with `width_change` at its ends.
    - **Same layer, partner:** for a pair, the partner is its nearest parallel track (within 20°) whose edge is
      within `pairWindow` (max(0.5 mm, 4w)). Where there is none, the stretch is `uncoupled`, and its Zdiff is
      2 Z0 (the two lines independent).
@@ -381,7 +388,8 @@ KiCad's CM5 MINIMA demo against kipr's per-class check (infinite planes):
 | 90ohm, 0.14 mm microstrip | 52.50 Ω | 52.52 Ω |
 
 Where kipr's single number can't see it, the analysis shows the CPWG stretches (100.3 Ω), plane edges, breakouts
-and vias. The pair's length-weighted Zdiff is 101.2 Ω.
+and vias, and the pads it runs onto (J1's, and the ESD part U401's it passes through: 63–80 Ω there). The pair's
+length-weighted Zdiff is 98.2 Ω (101.2 Ω on the tracks alone).
 
 **Speed** (node 22 / Chromium, one core), first analysis:
 
@@ -697,7 +705,10 @@ and show symbols and numbers, with the words in tooltips. The README has the API
   - **Hover sync.** A selected trace under the pointer (`pathFromBoard`: the track's own route position; a pair's
     second net maps to the first net's nearest point) draws the cross-section's cut across it on the board
     (`Highlight.cross`: across the trace, its partner and gap, or its coplanar ground) and puts the plot's cursor
-    there with a tooltip (Z and verdict, net, layer, structure, width, gap, reference plane). Hovering the plot
+    there with a tooltip (Z and verdict, net, layer, structure, width and the pad it is, `w 1.5 mm (pad J3.1)`,
+    gap, reference plane). A pad or teardrop of a selected net under the pointer counts as its trace. Stretches
+    whose conductor is a pad, teardrop or zone (`copperSpans`) are shaded on the plot, pads named where there is
+    room; the cut is centred on that copper. Hovering the plot
     (`pathAt`) does the reverse: a dot, the cut and the section's stretch on the board. Touch: a tap on a selected
     trace shows its place (✕ drops a net); a tap on the plot moves the cursor. The plot is a slider: ← → (Shift:
     10 %), Home, End, Esc. Each unit is analysed once (cached per nets and reference override); a new target only
@@ -729,8 +740,8 @@ and show symbols and numbers, with the words in tooltips. The README has the API
   (symmetry, L C0 = I/c²), tolerance-driven refinement, and (Python, when installed) live cross-checks against
   `scipy.special.ellipk` and scikit-rf. `test/browser/impedance-field.spec.mjs` runs the solver in Chromium on
   the main thread, in its worker and from a `file://` bundle, and prints the timings.
-- Along a route: `fixtures/impedance/route/` (`make_route_boards.py`, `--check` in CI). It holds four synthetic
-  boards (split, cpwg, inner, pair) and royalblue's USB pair with its nearby copper (`royalblue-usb.json.gz`).
+- Along a route: `fixtures/impedance/route/` (`make_route_boards.py`, `--check` in CI). It holds six synthetic
+  boards (split, cpwg, inner, pair, chain, launch: a trace onto wide pads and a teardrop) and royalblue's USB pair with its nearby copper (`royalblue-usb.json.gz`).
   There is also `fixtures/cm5_minima/` (KiCad's controlled-impedance demo).
   - `python/tests/test_impedance_route.py`: the synthetic boards against tier 1 and direct solves, CM5 against
     kipr, and the royalblue subset against the whole board. It also checks overrides, tier 1, the cache, the

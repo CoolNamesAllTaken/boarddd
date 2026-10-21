@@ -12,6 +12,9 @@ Synthetic boards, each {"board": boarddd/board@1, "copper": boarddd/copper@1} in
   below) for 10 mm (an offset stripline), then 10 mm where F.Cu has no pour (an embedded microstrip);
 * pair.json: a 0.25/0.15 mm pair (90 ohm) on F.Cu over In1.Cu GND, coupled for 16 mm, fanning out to 3 mm apart at both
   ends (the breakout);
+* launch.json: a 0.3 mm F.Cu trace (RF) in a GND pour from the 1.5 mm wide edge-launch pad J1.1, its In1.Cu plane
+  cut out under the pad (the reference drops to In2.Cu there), through the 1 mm test pad TP2.1 halfway and a
+  teardrop into the 1 mm pad TP1.1 at its end: the conductor is the pad's copper, not the track;
 * chain.json: lines through parts (a series resistor across two vias, a pair through AC caps), for the route
   profile's path (src/impedance/ui/path.js).
 
@@ -271,6 +274,27 @@ def chain() -> dict:
     )
 
 
+def launch() -> dict:
+    """A trace onto wide pads: J1.1 (1.5 mm, 0.3 mm to the pour, no In1.Cu under it), TP2.1 halfway, a teardrop into
+    TP1.1."""
+    tr = [track("F.Cu", "RF", 0.3, (1.5, 0.0), (16.0, 0.0), "rf")]
+    pads = [
+        pad("J1", "1", "RF", "F.Cu", 1.5, 0.0, 3.0, 1.5),
+        pad("TP2", "1", "RF", "F.Cu", 8.0, 0.0, 1.0, 1.0),
+        pad("TP1", "1", "RF", "F.Cu", 16.0, 0.0, 1.0, 1.0),
+    ]
+    tear = [(14.5, 0.15), (15.5, 0.5), (15.5, -0.5), (14.5, -0.15)]
+    # the GND pour: 0.3 mm from J1.1, 0.2 mm from the track, 0.25 mm from TP2.1, clear of the teardrop and TP1.1
+    gaps = ((-5, 3.3, 1.05), (3.3, 7.25, 0.35), (7.25, 8.75, 0.75), (8.75, 14.0, 0.35))
+    zones = [
+        pour("F.Cu", "GND", *[(x0, y0, x1, y1) for x0, x1, g in gaps for y0, y1 in ((g, 10), (-10, -g))]),
+        cu.Zone(layer="F.Cu", net="RF", kind="teardrop", fill=[cu.FillPolygon(outline=tear)], area=0.65),
+        pour("In1.Cu", "GND", (-5, 2, 35, 10), (-5, -10, 35, -2), (3.5, -2, 35, 2)),
+        pour("In2.Cu", "GND", (-5, -10, 35, 10)),
+    ]
+    return doc("launch", stackup(FOUR), ["GND", "RF"], tr, zones, pads=pads)
+
+
 USB = ("/Debugger/D+", "/Debugger/D-")
 
 
@@ -321,7 +345,7 @@ def cm5() -> dict:
     return {"board": board.to_dict(), "copper": copper.to_dict()}
 
 
-CASES = {"split": split, "cpwg": cpwg, "inner": inner, "pair": pair, "chain": chain}
+CASES = {"split": split, "cpwg": cpwg, "inner": inner, "pair": pair, "chain": chain, "launch": launch}
 
 
 def outputs() -> dict[str, bytes]:
