@@ -42,7 +42,7 @@ export function routeSlice(route: RouteStep[], s0: number, s1: number, tracks?: 
 export function routePoint(route: RouteStep[], s: number, tracks?: string[] | null): { p: Vec2; layer: string } | null;
 
 export interface Highlight {
-  readonly selection: { nets: string[]; track: number | null };
+  readonly selection: { nets: string[]; track: number | null; target?: { value: number; tolerance_pct?: number } };
   set(sel: { nets?: string[]; track?: number | null }): void;
   section(s: Section | null): void;
   marker(p: Vec2 | null): void;
@@ -124,10 +124,11 @@ export function netGroup(el: HTMLElement, options: { copper: Copper; board?: Pic
 /** A short name for a net or a pair (last path part, without the pair suffix). */
 export function shortName(nets: string[]): string;
 
+export type RouteTarget = number | { value: number; tolerance_pct?: number };
 export interface ImpedancePanel {
   readonly root: HTMLDivElement;
   readonly analyzer: Analyzer;
-  readonly selection: { nets: string[]; track: number | null };
+  readonly selection: { nets: string[]; track: number | null; target?: { value: number; tolerance_pct?: number } };
   readonly result: ImpedanceAnalysis | null;
   readonly runs: number;
   /** The section in the cross-section. */
@@ -136,7 +137,10 @@ export interface ImpedancePanel {
   readonly group: NetGroup | null;
   /** ≋ from the current pick. */
   selectSimilar(): NetGroupValue | null;
-  select(s: string | string[] | Selection): Promise<void | null>;
+  /** `target`: Ω or { value, tolerance_pct } the route is held to instead of the net class's. */
+  select(s: string | string[] | (Selection & { target?: RouteTarget | null })): Promise<void | null>;
+  /** Hold the route to another target (re-runs when it changes; null: the net class's). */
+  setTarget(target: RouteTarget | null): Promise<ImpedanceAnalysis | null | void>;
   setOverride(structure: '' | Section['structure']): Promise<void>;
   /** Show route position s (mm along the first net): stage marker, section, cross-section. */
   hover(s: number | null, section?: Section | null): void;

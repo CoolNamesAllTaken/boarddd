@@ -343,3 +343,27 @@ test('a still view draws no frames (no redraw loop between the highlight and the
   });
   expect(frames).toBeLessThan(3);
 });
+
+test('Z along the route draws without a net-class target, and takes the form\'s target (band, verdict colors)', async ({ page }) => {
+  const errors = await openRoute(page, 'cpwg');
+  await page.evaluate(() => window.demo.view.add('RF'));
+  const route = page.locator('.bdi-lv-route');
+  await expect(route).toBeVisible();
+  await route.locator('summary').click();
+  await expect(route.locator('.bdi-panel')).toHaveAttribute('data-state', 'ready', { timeout: 60_000 });
+  const segs = route.locator('.bdi-profile .bdi-seg');
+  await expect(segs).not.toHaveCount(0);
+  // every segment is stroked: a class with no target used to draw `stroke: none`
+  const strokes = await segs.evaluateAll((ls) => ls.map((l) => getComputedStyle(l).stroke));
+  expect(strokes.every((s) => s && s !== 'none')).toBe(true);
+  // held to the form's target: the band and the target line, segments coloured by verdict
+  await expect(route.locator('.bdi-profile .bdi-band')).toHaveCount(1);
+  await expect(route.locator('.bdi-verdict')).toHaveText(/50 ±10 %/);
+  expect(await segs.evaluateAll((ls) => ls.every((l) => /bdi-(ok|warn|bad)/.test(l.getAttribute('class'))))).toBe(true);
+  // a new target in the form moves the band
+  await page.locator('.bdi-ctl-target').fill('75');
+  await page.locator('.bdi-ctl-target').dispatchEvent('input');
+  await expect(route.locator('.bdi-verdict')).toHaveText(/75 ±10 %/, { timeout: 30_000 });
+  await shot(page, 'route-profile');
+  expect(errors).toEqual([]);
+});

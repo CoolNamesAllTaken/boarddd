@@ -45,7 +45,7 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-profile { height: 64px; }
 .bdi-chart { display: block; width: 100%; height: 100%; }
 .bdi-band { fill: var(--bdi-band); } .bdi-target { stroke: var(--bdi-muted); stroke-dasharray: 3 3; stroke-width: 1; }
-.bdi-seg { stroke-width: 3; stroke-linecap: round; } .bdi-ok { stroke: var(--bdi-ok); } .bdi-warn { stroke: var(--bdi-warn); } .bdi-bad { stroke: var(--bdi-bad); }
+.bdi-seg { stroke-width: 3; stroke-linecap: round; } .bdi-none { stroke: var(--bdi-accent); } .bdi-ok { stroke: var(--bdi-ok); } .bdi-warn { stroke: var(--bdi-warn); } .bdi-bad { stroke: var(--bdi-bad); }
 .bdi-noz { fill: var(--bdi-muted); } .bdi-via { stroke: var(--bdi-muted); stroke-width: 1; opacity: 0.6; }
 .bdi-cursor { stroke: var(--bdi-accent); stroke-width: 1; } .bdi-hit { fill: transparent; cursor: crosshair; }
 .bdi-xsbox { height: 150px; }

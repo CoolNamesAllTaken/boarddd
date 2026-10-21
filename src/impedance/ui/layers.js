@@ -411,7 +411,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
       const us = units();
       const last = us[us.length - 1];
       routeBox.hidden = !last;
-      if (last) panel.select({ nets: last, hit: hits.get(last[0]) ?? null })?.catch?.(() => {});
+      if (last) panel.select({ nets: last, hit: hits.get(last[0]) ?? null, target: routeTarget(last) })?.catch?.(() => {});
     }
   }
 
@@ -692,6 +692,12 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
   }
 
   let t2Run = 0;
+  /** The form's target for a unit, which the route below is held to. */
+  function routeTarget(u) {
+    const value = Number(u.length === 2 ? diffIn.value : tgtIn.value);
+    return value > 0 ? { value, tolerance_pct: Number(tolIn.value) > 0 ? Number(tolIn.value) : undefined } : null;
+  }
+
   function compute(asTier2 = false) {
     const us = units();
     const forced = structSel.value || null;
@@ -755,6 +761,11 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
       target: targetS, target_differential: targetD, tolerance_pct: tolerance, items } : null;
     if (draft && items.length === 1) draft.target = items[0].target;
     emit('draft', draft);
+    if (panel && !routeBox.hidden) {
+      const lastU = us[us.length - 1];
+      clearTimeout(compute.routeTimer);
+      if (lastU) compute.routeTimer = setTimeout(() => panel.setTarget(routeTarget(lastU))?.catch?.(() => {}), 400);
+    }
     if (evaluate && asTier2 !== null && rows.length) {
       const mine = ++t2Run;
       clearTimeout(compute.timer);
@@ -875,7 +886,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
       compute(true);
     },
     on(name, fn) { if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(fn); return () => listeners.get(name)?.delete(fn); },
-    destroy() { destroyed = true; clearTimeout(compute.timer); refAn?.destroy(); panel?.destroy(); hl.remove(); stage.destroy?.(); root.remove(); },
+    destroy() { destroyed = true; clearTimeout(compute.timer); clearTimeout(compute.routeTimer); refAn?.destroy(); panel?.destroy(); hl.remove(); stage.destroy?.(); root.remove(); },
   };
   return api;
 }
