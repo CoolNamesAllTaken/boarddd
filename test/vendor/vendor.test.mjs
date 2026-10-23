@@ -116,9 +116,10 @@ test('subpaths come from the exports map and pull in what they import', () => {
   // a future export with assets: "./gerber": "./src/gerber/index.js" -> the whole src/gerber dir
   assert.equal(exportDirs({ exports: { './gerber': { types: './src/gerber/index.d.ts', default: './src/gerber/index.js' } } }).get('gerber'), 'src/gerber');
   const shipped = new Map(files(SRC).filter((f) => !f.startsWith('.git/')).map((f) => [f, fs.readFileSync(path.join(SRC, f))]));
-  // footprint builds on board, board on geom and gerber, gerber on the vendored upstream core (+ wasm)
+  // footprint builds on board, board on geom and gerber, gerber on the vendored upstream core (+ wasm);
+  // buildComponent's typings name the board model's
   assert.deepEqual(closeSubpaths(shipped, dirs, ['footprint']),
-    { subpaths: ['geom', 'board', 'footprint', 'gerber'], added: ['geom', 'board', 'gerber'], extra: ['third_party/wasm-gerber-renderer'] });
+    { subpaths: ['geom', 'board', 'footprint', 'gerber', 'model'], added: ['geom', 'board', 'gerber', 'model'], extra: ['third_party/wasm-gerber-renderer'] });
   assert.deepEqual(closeSubpaths(shipped, dirs, ['scene']), { subpaths: ['scene'], added: [], extra: [] });
   assert.deepEqual(closeSubpaths(shipped, dirs, ['geom']).subpaths, ['geom']);
   assert.deepEqual(closeSubpaths(shipped, dirs, ['model']), { subpaths: ['model'], added: [], extra: [] });
