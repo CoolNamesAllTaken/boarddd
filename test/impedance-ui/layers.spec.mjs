@@ -496,3 +496,49 @@ test('a pair through AC caps is one path; a tap on a selected trace shows its pl
   await shot(page, 'route-pair');
   expect(errors).toEqual([]);
 });
+
+test('a preview: other nets on their layer, lighter, the selection, plot and layer event untouched; null restores', async ({ page }) => {
+  const errors = await openRoute(page, 'chain');
+  await page.evaluate(() => { const { view } = window.demo; window.demo.layers = []; view.on('layer', (s) => window.demo.layers.push(s.layer)); view.add('SIG_A'); view.show('B.Cu'); window.demo.layers = []; });
+  await page.locator('.bdi-lv-profile .bdi-rp[data-state=ready]').waitFor({ timeout: 60_000 });
+  const before = await camera(page);
+  const plot = await page.locator('.bdi-lv-profile').innerHTML();
+  const drawn = (sel) => page.evaluate((sel) => [...document.querySelectorAll(`.bdi-hl${sel} .bdi-hl-track`)].length, sel);
+  const shown = await drawn(':not(.is-preview)');
+  // a pair, on screen: its layer (where it is routed), only its nets drawn, lighter; the camera stays
+  await page.evaluate(() => window.demo.view.preview(['TX_P', 'TX_N']));
+  await page.evaluate(() => window.demo.view.stage.ready());
+  await expect(page.locator('.bdi-lv-caption')).toHaveText('F.Cu');
+  await expect(page.locator('.bdi-lv')).toHaveClass(/is-preview/);
+  expect(await page.evaluate(() => window.demo.view.previewing)).toEqual(['TX_P', 'TX_N']);
+  const txTracks = await page.evaluate(() => window.demo.copper.tracks.filter((t) => t.net === 'TX_P' || t.net === 'TX_N').length);
+  expect(await drawn('.is-preview')).toBe(txTracks);
+  const opacity = await page.evaluate(() => getComputedStyle(document.querySelector('.bdi-hl.is-preview .bdi-hl-track:not(.bdi-hl-other)')).opacity);
+  expect(Number(opacity)).toBeLessThan(1);
+  expect(await page.evaluate(() => window.demo.view.selection.nets)).toEqual(['SIG_A']);
+  expect(await page.locator('.bdi-lv-profile').innerHTML()).toBe(plot);
+  expect(await camera(page)).toEqual(before);
+  // another, on a given layer; then null: the layer and the selection's highlight as they were, no 'layer' event
+  await page.evaluate(() => window.demo.view.preview(['SIG_B'], { layer: 'B.Cu' }));
+  await expect(page.locator('.bdi-lv-caption')).toHaveText('B.Cu');
+  await page.evaluate(() => window.demo.view.preview(null));
+  await page.evaluate(() => window.demo.view.stage.ready());
+  await expect(page.locator('.bdi-lv-caption')).toHaveText('B.Cu');
+  await expect(page.locator('.bdi-lv')).not.toHaveClass(/is-preview/);
+  expect(await page.evaluate(() => window.demo.view.previewing)).toBeNull();
+  expect(await drawn(':not(.is-preview)')).toBe(shown);
+  expect(await page.evaluate(() => window.demo.layers)).toEqual([]);
+  // off screen: the camera goes to it, and back after
+  await page.evaluate(() => {
+    const { view, copper } = window.demo;
+    const t = copper.tracks.find((x) => x.net === 'SIG_A');
+    view.stage.zoomTo({ minX: t.start[0] - 0.2, maxX: t.start[0] + 0.2, minY: t.start[1] - 0.2, maxY: t.start[1] + 0.2 });
+  });
+  await page.evaluate(() => window.demo.view.stage.ready());
+  const zoomed = await view(page);
+  await page.evaluate(() => window.demo.view.preview(['TX_P', 'TX_N']));
+  expect(await view(page)).not.toEqual(zoomed);
+  await page.evaluate(() => window.demo.view.preview(null));
+  expect(await view(page)).toEqual(zoomed);
+  expect(errors).toEqual([]);
+});

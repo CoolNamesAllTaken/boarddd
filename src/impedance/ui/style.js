@@ -87,6 +87,9 @@ export const IMPEDANCE_UI_CSS = `
 .bdi-msym { color: var(--bdi-muted); }
 .bdi-hl .bdi-hl-plane { fill: var(--bdi-accent); opacity: 0.3; }
 .bdi-hl .bdi-hl-other { opacity: 0.35; } .bdi-hl .bdi-hl-zone.bdi-hl-other { opacity: 0.18; }
+/* a preview (layerView.preview: a hover elsewhere, e.g. a table row): the selection's highlight, lighter */
+.bdi-hl.is-preview :is(.bdi-hl-track, .bdi-hl-pad, .bdi-hl-via):not(.bdi-hl-other) { opacity: 0.75; } .bdi-hl.is-preview .bdi-hl-zone:not(.bdi-hl-other) { opacity: 0.35; }
+.bdi-lv.is-preview .bdi-lv-caption::after { content: ' · preview'; opacity: 0.7; }
 .bdi-lv { display: grid; grid-template-columns: minmax(0, 3fr) minmax(240px, 1fr); grid-template-rows: auto 1fr;
   grid-template-areas: "main side" "prof side"; align-items: start; gap: 8px; font: var(--bdi-font); color: var(--bdi-fg); outline: none; }
 .bdi-lv-main { grid-area: main; } .bdi-lv-side { grid-area: side; } .bdi-lv-profile { grid-area: prof; min-width: 0; }

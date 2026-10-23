@@ -98,6 +98,7 @@ export function createHighlight(stage, copper, { dim = 0.55 } = {}) {
   let rings = [];
   let cross = null; // { p, d, half }: a cut across the trace at p (d: the trace's direction)
   let tint = []; // reference planes: [{ layer, net }] (net '' or null: every zone on the layer)
+  let peek = null; // { nets }: a preview drawn in place of the selection (lighter), which stays as it was
   const routes = new Map();
   const routeOf = (net) => { if (!routes.has(net)) routes.set(net, netRoute(copper, net)); return routes.get(net); };
   const overlay = stage.addOverlay({
@@ -105,6 +106,8 @@ export function createHighlight(stage, copper, { dim = 0.55 } = {}) {
     className: 'bdi-hl',
     draw(g, ctx) {
       g.replaceChildren();
+      g.classList.toggle('is-preview', !!peek);
+      if (peek) return drawPeek(g, ctx);
       if (!sel.nets.length && sel.track == null && !rings.length) return;
       const b = stage.bounds ?? { minX: -1e3, maxX: 1e3, minY: -1e3, maxY: 1e3 };
       if (sel.nets.length || sel.track != null) ctx.svg('rect', { x: b.minX - 50, y: b.minY - 50, width: b.maxX - b.minX + 100, height: b.maxY - b.minY + 100, class: 'bdi-dim', 'fill-opacity': dim }, g);
@@ -157,8 +160,29 @@ export function createHighlight(stage, copper, { dim = 0.55 } = {}) {
       }
     },
   });
+  /** A preview: its nets as the selection would be drawn, under a lighter dim; no section, cut, rings or tint. */
+  function drawPeek(g, ctx) {
+    const b = stage.bounds ?? { minX: -1e3, maxX: 1e3, minY: -1e3, maxY: 1e3 };
+    ctx.svg('rect', { x: b.minX - 50, y: b.minY - 50, width: b.maxX - b.minX + 100, height: b.maxY - b.minY + 100, class: 'bdi-dim', 'fill-opacity': dim * 0.6 }, g);
+    const nets = new Set(peek.nets);
+    const on = (l) => !focusLayer || l === focusLayer;
+    const other = (x) => (on(x) ? '' : ' bdi-hl-other');
+    const zones = (copper.zones ?? []).filter((z) => nets.has(z.net));
+    const tracks = (copper.tracks ?? []).filter((t) => nets.has(t.net));
+    for (const z of [...zones.filter((z) => !on(z.layer)), ...zones.filter((z) => on(z.layer))]) {
+      for (const f of z.fill) ctx.svg('path', { d: [f.outline, ...f.holes].map(ringPath).join(''), class: `bdi-hl-zone${other(z.layer)}`, 'fill-rule': 'evenodd', 'data-layer': z.layer }, g);
+    }
+    for (const t of [...tracks.filter((t) => !on(t.layer)), ...tracks.filter((t) => on(t.layer))]) {
+      ctx.svg('polyline', { points: trackPath(t).map((p) => p.join(',')).join(' '), 'stroke-width': t.width, class: `bdi-hl-track${other(t.layer)}`, 'data-layer': t.layer }, g);
+    }
+    for (const p of copper.pads ?? []) if (nets.has(p.net)) for (const r of p.polygons ?? []) ctx.svg('path', { d: ringPath(r), class: `bdi-hl-pad${focusLayer && !p.layers.includes(focusLayer) ? ' bdi-hl-other' : ''}` }, g);
+    for (const v of copper.vias ?? []) if (nets.has(v.net)) ctx.svg('circle', { cx: v.at[0], cy: v.at[1], r: v.diameter / 2, class: 'bdi-hl-via' }, g);
+  }
   return {
     get selection() { return { ...sel }; },
+    /** Draw these nets instead of the selection, lighter (a hover elsewhere); null: the selection again, untouched. */
+    preview(nets) { const next = nets?.length ? { nets: [...nets] } : null; if (next || peek) { peek = next; overlay.invalidate(); } },
+    get previewing() { return peek ? [...peek.nets] : null; },
     set({ nets = [], track = null } = {}) { sel = { nets, track }; sec = null; mark = null; cross = null; rings = []; tint = []; overlay.invalidate(); },
     /** The layer on show: the nets' copper on other layers is drawn fainter (null: every layer alike). */
     focus(layer) { if (layer !== focusLayer) { focusLayer = layer ?? null; overlay.invalidate(); } },
