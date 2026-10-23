@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>boarddd buildComponent</title>
+<script src="/test/browser/pages/importmap.js"></script>
+<style>html, body { margin: 0; background: #f0f; }</style>
+<canvas id="c" width="400" height="400"></canvas>
+<script type="module">
+// One component of a small board model, drawn from one side on magenta (`?ref=K1|R1&view=top|bottom|front&opacity=`).
+// window.sample([[x, y, z], ...]) reads the pixels under footprint-frame points (mm, z up from the board's bottom face).
+import * as THREE from 'three';
+import { parseKicadFootprint, buildComponent } from '/src/footprint/index.js';
+import { footprintToBoard } from '/src/model/index.js';
+
+try {
+  const q = new URLSearchParams(location.search);
+  const text = async (p) => (await fetch(p)).text();
+  const relay = parseKicadFootprint(await text('/test/fixtures/footprints/Relay_SPST_THT_boarddd.kicad_mod'));
+  const resistor = parseKicadFootprint(await text('/test/fixtures/pad_placement/R_0603_1608Metric.kicad_mod'));
+  const K1 = { ref: 'K1', side: 'bottom', x: 50, y: -40, rotation: 90, footprint: 'Relay' };
+  const via = footprintToBoard(K1, [5, -3]);
+  const board = {
+    stackup: { thickness: 1.6 }, footprints: { Relay: relay, R_0603: resistor },
+    components: [K1, { ref: 'R1', side: 'top', x: 0, y: 0, rotation: 0, footprint: 'R_0603' }],
+    drills: [{ x: via[0], y: via[1], diameter: 0.6, plated: true }],
+  };
+  const built = buildComponent(board, q.get('ref') || 'K1', { boardOpacity: Number(q.get('opacity') || 1) });
+  const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: false, preserveDrawingBuffer: true });
+  renderer.setClearColor(0xff00ff, 1);
+  const scene = new THREE.Scene();
+  scene.add(new THREE.AmbientLight(0xffffff, 2.5));
+  scene.add(built.group);
+  const box = new THREE.Box3().setFromObject(built.group);
+  const c = box.getCenter(new THREE.Vector3());
+  const half = Math.max(box.max.x - box.min.x, box.max.y - box.min.y) / 2 + 1;
+  const camera = new THREE.OrthographicCamera(-half, half, half, -half, 0.1, 200);
+  const view = q.get('view') || 'top';
+  const from = { top: [0, 0, 1], bottom: [0, 0, -1], front: [0, -1, 0.0001] }[view];
+  camera.up.set(...(view === 'front' ? [0, 0, 1] : [0, 1, 0]));
+  camera.position.copy(c).add(new THREE.Vector3(...from).multiplyScalar(50));
+  camera.lookAt(c);
+  camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+  const gl = renderer.getContext();
+  window.sample = (points) => points.map((p) => {
+    const v = new THREE.Vector3(...p).project(camera);
+    const x = Math.round((v.x + 1) / 2 * 400), y = Math.round((v.y + 1) / 2 * 400);
+    const px = new Uint8Array(4);
+    gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    return [...px.slice(0, 3)];
+  });
+  window.harness = { info: {
+    copper: built.meshes.copper.map((m) => ({ pad: m.userData.pad, side: m.userData.side })),
+    barrels: built.meshes.barrels.length, holes: built.holes.kept.length, thickness: built.thickness,
+  } };
+} catch (error) {
+  window.harness = { error: String(error.stack || error) };
+}
+</script>

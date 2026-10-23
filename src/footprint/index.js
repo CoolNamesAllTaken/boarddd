@@ -2,3 +2,4 @@
 // and a reader for .kicad_mod files.
 export * from './kicad_mod.js';
 export * from './build.js';
+export * from './component.js';

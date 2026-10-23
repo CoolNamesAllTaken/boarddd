@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import {
   BOARD_THICKNESS, COPPER_THICKNESS, PASTE_THICKNESS, kicadToBoard, kicadModelMatrix, counterClockwise, clockwise, loopBounds,
   padBounds, rectLoop, clearance, strokeLoops, padCopperLoops, padDrillLoop, padCopperSides, padHasCopper, padDrill,
+  usableHoles, holeLoop, signedArea2,
 } from '../geom/index.js';
 import { COLORS as BOARD_COLORS, faceMaterial, planarUVs, splitCaps, canvasTexture } from '../board/solid.js';
 
@@ -91,6 +92,18 @@ export function wallGeometry(loop, z0, z1) {
   return g;
 }
 
+// A loop too small to draw (a custom pad's zero-size anchor): earcut would make a degenerate shape of it.
+const drawable = (loop) => loop.length >= 3 && Math.abs(signedArea2(loop)) > 1e-10;
+
+// Which of a pad's copper loops the hole goes in: the one around its middle, else the first.
+function loopWithHole(loops, hole) {
+  if (!hole) return -1;
+  const b = loopBounds(hole);
+  const at = [(b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2];
+  const k = loops.findIndex((l) => clearance(l, at[0], at[1]).inside);
+  return k >= 0 ? k : 0;
+}
+
 function sheet(loops, z, depth) {
   const shapes = loops.filter((l) => l.length >= 3).map((l) => new THREE.Shape(v2(counterClockwise(l))));
   if (!shapes.length) return null;
@@ -128,8 +141,14 @@ export function padFilled(pad, upTo) {
  *               the copper whole on both faces (VIPPO; e.g. thermal vias in an exposed pad)
  *   paste       true: each pad's shape on its paste layers (paste margins are not applied), PASTE_THICKNESS
  *               high on the copper, in group 'paste' (default false: no paste meshes)
+ *   holes       more drills, board frame of the footprint (y up), as parseExcellon / geom usableHoles take them
+ *               ({x, y, diameter, plated, x2?, y2?}): vias and board holes around the part, punched through the
+ *               board; the plated ones get a barrel (group 'barrels', userData.hole = index)
+ *   boardOpacity  below 1, the board is see-through (no depth write): pads on the far face and barrels show
+ *               through it from any side (default 1)
+ * Copper meshes carry userData {pad: number, side: 'top' | 'bottom'}; barrels {pad} or {hole}.
  * Returns {group, outline, thickness, meshes: {board, copper[], barrels[], paste[], silk[], fab[], courtyard[]},
- *          modelMatrix(model), dispose()}.
+ *          holes: usableHoles report of `holes`, modelMatrix(model), dispose()}.
  */
 export function buildFootprint(fp, options = {}) {
   const thickness = options.thickness ?? BOARD_THICKNESS;
@@ -160,6 +179,11 @@ export function buildFootprint(fp, options = {}) {
     const inside = loop.every(([x, y]) => { const c = clearance(outline.board, x, y); return c.inside && c.distance > 1e-3; });
     if (inside) { drills.push({ pad, loop }); shape.holes.push(new THREE.Path(v2(clockwise(loop)))); }
   }
+  // A board drill that is a pad's own hole is that pad's: punching it twice breaks the board's triangulation.
+  const padHoles = fp.pads.map((pad) => padDrillLoop(pad)).filter(Boolean);
+  const own = (h) => padHoles.some((l) => clearance(l, Number(h.x), Number(h.y)).inside);
+  const extra = usableHoles((options.holes || []).filter((h) => !own(h)), outline);
+  for (const hole of extra.kept) shape.holes.push(new THREE.Path(v2(clockwise(holeLoop(hole)))));
   const slab = new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false, curveSegments: 1 });
   const uvBounds = options.uvBounds || loopBounds(outline.board);
   planarUVs(slab, uvBounds);
@@ -168,6 +192,10 @@ export function buildFootprint(fp, options = {}) {
   const faces = options.faces || {};
   const faceMats = { top: faceMaterial(faces.top ?? colors.mask), bottom: faceMaterial(faces.bottom ?? colors.mask) };
   const wallMat = new THREE.MeshStandardMaterial({ color: colors.fr4, roughness: 0.85 });
+  const opacity = options.boardOpacity ?? 1;
+  if (opacity < 1) {
+    for (const m of [faceMats.top, faceMats.bottom, wallMat]) Object.assign(m, { transparent: true, opacity, depthWrite: false });
+  }
   add(slab, [faceMats.top, faceMats.bottom, wallMat], 'board', 'footprint-board');
 
   // --- copper: each pad's outline with its hole, as thin plates on the faces it is on
@@ -176,17 +204,22 @@ export function buildFootprint(fp, options = {}) {
   for (const pad of fp.pads) {
     if (!padHasCopper(pad)) continue;
     const sides = padCopperSides(pad);
-    const loops = padCopperLoops(pad, 8);
+    const loops = padCopperLoops(pad, 8).filter(drawable);
+    if (!loops.length) continue;
     const hole = drills.find((d) => d.pad === pad)?.loop || (padFilled(pad, options.fillUpTo) ? null : padDrillLoop(pad));
+    const holeIn = loopWithHole(loops, hole);
     const shapes = loops.map((l, i) => {
       const s = new THREE.Shape(v2(counterClockwise(l)));
-      if (hole && i === 0) s.holes.push(new THREE.Path(v2(clockwise(hole))));
+      if (i === holeIn) s.holes.push(new THREE.Path(v2(clockwise(hole))));
       return s;
     });
     const plate = new THREE.ExtrudeGeometry(shapes, { depth: COPPER_THICKNESS, bevelEnabled: false, curveSegments: 1 });
     const label = `pad-${pad.number}`;
-    if (sides.top) add(plate.clone().translate(0, 0, thickness), padMat, 'copper', label);
-    if (sides.bottom) add(plate.clone().translate(0, 0, -COPPER_THICKNESS), padMat, 'copper', label);
+    for (const side of ['top', 'bottom']) {
+      if (!sides[side]) continue;
+      const m = add(plate.clone().translate(0, 0, side === 'top' ? thickness : -COPPER_THICKNESS), padMat, 'copper', label);
+      Object.assign(m.userData, { pad: pad.number ?? '', side });
+    }
     plate.dispose();
   }
   // --- paste: the pad's shape on its paste layers, on top of the copper
@@ -195,9 +228,12 @@ export function buildFootprint(fp, options = {}) {
     const sides = padPasteSides(pad);
     if (!sides.top && !sides.bottom) continue;
     const hole = drills.find((d) => d.pad === pad)?.loop;
-    const shapes = padCopperLoops(pad, 8).map((l, i) => {
+    const loops = padCopperLoops(pad, 8).filter(drawable);
+    if (!loops.length) continue;
+    const holeIn = loopWithHole(loops, hole);
+    const shapes = loops.map((l, i) => {
       const s = new THREE.Shape(v2(counterClockwise(l)));
-      if (hole && i === 0) s.holes.push(new THREE.Path(v2(clockwise(hole))));
+      if (i === holeIn) s.holes.push(new THREE.Path(v2(clockwise(hole))));
       return s;
     });
     const deposit = new THREE.ExtrudeGeometry(shapes, { depth: PASTE_THICKNESS, bevelEnabled: false, curveSegments: 1 });
@@ -209,8 +245,11 @@ export function buildFootprint(fp, options = {}) {
   // --- plated barrels: the drill outline (a stadium for slots) as a wall through the board
   for (const { pad, loop } of drills) {
     if (pad.type !== 'thru_hole') continue;
-    add(wallGeometry(loop, 0, thickness), barrelMat, 'barrels', `barrel-${pad.number}`);
+    add(wallGeometry(loop, 0, thickness), barrelMat, 'barrels', `barrel-${pad.number}`).userData.pad = pad.number ?? '';
   }
+  extra.kept.forEach((hole, i) => {
+    if (hole.plated) add(wallGeometry(holeLoop(hole), 0, thickness), barrelMat, 'barrels', `barrel-hole-${i}`).userData.hole = i;
+  });
 
   // --- graphics: silk, fab, courtyard as thin sheets just above the copper (below it on the back)
   const gfxMats = {};
@@ -255,7 +294,7 @@ export function buildFootprint(fp, options = {}) {
 
   const materials = [faceMats.top, faceMats.bottom, wallMat, padMat, barrelMat, pasteMat, ...Object.values(gfxMats)];
   return {
-    group, outline, thickness, meshes, uvBounds,
+    group, outline, thickness, meshes, uvBounds, holes: extra,
     /** Matrix4 array for one of fp.models, board frame (apply to the loaded model's root). */
     modelMatrix: (model) => footprintModelMatrix(model, thickness),
     dispose() {

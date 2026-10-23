@@ -11,7 +11,8 @@ PR review) and internal tools. Framework-free ES modules, no build step, `.d.ts`
   holes and stadium slots, hole budget, KiCad pad shapes (shape offset, rotation, roundrect, ...).
 - **`boarddd/board`**: the board solid from an outline and drills (plated barrels, caps, UVs), face
   textures from Gerbers via `boarddd/gerber`, copper-diff textures.
-- **`boarddd/footprint`**: one KiCad footprint on a small board: pads, copper, silk, courtyard.
+- **`boarddd/footprint`**: one KiCad footprint on a small board: pads, copper, silk, courtyard; one placed
+  component of a board model on a slice of its board (`buildComponent`).
 - **`boarddd/models`**: GLB and STEP loading (occt in a Worker), units/up-axis detection, colour
   space, matching meshes to reference designators.
 - **`boarddd/scene`**: `createViewer`: renderer, camera, controls, KiCad-like lighting, render on
@@ -165,6 +166,24 @@ bounds) adds them as transparent sheets in those groups: the way to show text, w
 sheets leave out. `paste: true` adds each pad's paste layers as 0.12 mm deposits on the copper (group
 `paste`; paste margins are not applied), and `fillUpTo: mm` fills and caps plated round pad holes up to
 that drill (e.g. thermal vias in an exposed pad: no hole, no barrel).
+
+The standard way to draw a part on its pads: `buildComponent(board, ref)` takes a board model (`board.json`)
+and a component's reference and builds its footprint on a slice of the board, in the footprint's frame:
+
+```js
+import { buildComponent } from 'boarddd/footprint';
+const built = buildComponent(board, 'K1', { boardOpacity: 0.5 });  // thickness from board.stackup
+scene.add(built.group);                     // part's own face on top (z = thickness), footprint origin at (0, 0)
+built.group.matrix.fromArray(built.matrix); // or: where it sits in the board frame (bottom parts turned over)
+```
+
+Every pad is drawn on each copper face it is on (`F.Cu`, `B.Cu`, `*.Cu`), plated holes get a barrel, and
+the board's own drills in the slice (vias, mounting holes; `drills: false` leaves them out) are punched
+through it with their pads' holes, slots included. Copper meshes carry `userData.pad` and `userData.side`
+(`top`/`bottom`). `boardOpacity` below 1 makes the slice see-through, so far-face pads and barrels show
+from any side. `buildFootprint` takes the same `holes` (board frame of the footprint, as `parseExcellon`
+gives them) and `boardOpacity`. `componentMatrix(component, thickness)` and `boardToComponent` are the
+two frames' maps.
 
 `parseKicadFootprint` reads pads, graphics (flattened to polylines) and models from a `.kicad_mod`
 (KiCad 6 to 10, and the old `module` form). Pad objects are also kipr's `geom.json` pads.
