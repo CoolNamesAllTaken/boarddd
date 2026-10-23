@@ -338,7 +338,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     down.disabled = at >= stops.length - 1;
   }
 
-  function show() {
+  function show(quiet = false) {
     const s = stops[at];
     const k = s.kind === 'copper' ? order.indexOf(s.layer) : stops.slice(0, at).filter((x) => x.kind === 'copper').length - 1;
     order.forEach((l, i) => {
@@ -351,7 +351,7 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     hl.focus?.(s.kind === 'copper' ? s.layer : null);
     drawStack();
     for (const c of unitsEl.querySelectorAll('.bdi-ctl-layer')) c.classList.toggle('is-on', c.textContent === s.layer);
-    emit('layer', { ...s, index: at });
+    if (!quiet) emit('layer', { ...s, index: at });
   }
 
   function step(d) {
@@ -851,16 +851,49 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     return out;
   }
 
-  function selectionBounds() {
+  function selectionBounds(list = sel) {
     const b = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
     const put = (x, y, r = 0) => { b.minX = Math.min(b.minX, x - r); b.maxX = Math.max(b.maxX, x + r); b.minY = Math.min(b.minY, y - r); b.maxY = Math.max(b.maxY, y + r); };
-    const nets = new Set(sel);
+    const nets = new Set(list);
     for (const t of copper.tracks ?? []) if (nets.has(t.net)) for (const p of trackPath(t)) put(p[0], p[1], t.width / 2);
     for (const p of copper.pads ?? []) if (nets.has(p.net)) for (const r of p.polygons ?? []) for (const q of r) put(q[0], q[1]);
     if (!Number.isFinite(b.minX)) for (const z of copper.zones ?? []) if (nets.has(z.net)) for (const f of z.fill) for (const q of f.outline) put(q[0], q[1]);
     return Number.isFinite(b.minX) ? b : null;
   }
   const zoomToSelection = () => { const b = selectionBounds(); if (b) stage.zoomTo(b, { minMm: 2 }); };
+
+  // ---- a preview: other nets shown for a moment (an app's hover elsewhere), the selection, form and plot untouched
+  let peek = null; // what ending it restores: { at, view } (view: only when the preview moved the camera)
+  /** Any of a box (board mm) in the pane. */
+  function onScreen(b) {
+    const pane = stage.panes[0]?.el;
+    if (!pane || !pane.clientWidth) return true;
+    const ps = [[b.minX, b.minY], [b.maxX, b.minY], [b.minX, b.maxY], [b.maxX, b.maxY]].map(([x, y]) => stage.toScreen(x, y));
+    const xs = ps.map((p) => p[0]), ys = ps.map((p) => p[1]);
+    return Math.max(...xs) > 0 && Math.min(...xs) < pane.clientWidth && Math.max(...ys) > 0 && Math.min(...ys) < pane.clientHeight;
+  }
+  function preview(nets, { layer = null, reveal = true } = {}) {
+    const list = [...new Set((nets ?? []).filter(Boolean))];
+    if (!list.length) { endPreview(); return; }
+    if (!peek) peek = { at, view: null };
+    const l = layer ?? routedOn(copper, list[0])?.layer ?? layersOf(list)[0] ?? null;
+    const i = l ? stops.findIndex((s) => s.layer === l) : -1;
+    if (i >= 0 && i !== at) { at = i; show(true); }
+    hl.preview(list);
+    root.classList.add('is-preview');
+    const b = reveal ? selectionBounds(list) : null;
+    // the camera moves only when none of it is in sight, and goes back when the preview ends
+    if (b && !onScreen(b)) { peek.view ??= stage.getView(); stage.zoomTo(b, { minMm: 2 }); }
+  }
+  function endPreview() {
+    if (!peek) return;
+    const was = peek;
+    peek = null;
+    hl.preview(null);
+    root.classList.remove('is-preview');
+    if (was.at !== at) { at = was.at; show(true); }
+    if (was.view) stage.setView(was.view);
+  }
 
 
   // ---- keys, the stepper, the tools
@@ -930,6 +963,15 @@ export function layerView(el0, { board, copper, route = false, netInfo = {}, ren
     /** Tint a selected net's reference planes on the board (null: none). */
     tint(nets) { const u = nets ? units().find((x) => x.includes(nets[0] ?? nets)) : null; tintKey = u ? unitKey(u) : null; buildUnits(); applyTint(); },
     zoomToSelection,
+    /**
+     * Show other nets for a moment (an app's hover over its own list): highlighted as the selection would be,
+     * lighter, on `layer` (default: where the first is mostly routed); `reveal` (default true) moves the camera only
+     * when none of them is in sight. The selection, the form, the plot and the 'layer' event are untouched;
+     * preview(null) puts the layer and the camera back. End it before changing the view yourself.
+     */
+    preview,
+    /** The nets on preview, or null. */
+    get previewing() { return peek ? hl.previewing : null; },
     fit() { stage.fit(); },
     clear() { sel = []; pairs = []; hits.clear(); split.clear(); tintKey = null; changed(); },
     /** Set the form's figures (e.g. a row the app already has). */

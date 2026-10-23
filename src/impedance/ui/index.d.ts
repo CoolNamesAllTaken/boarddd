@@ -53,6 +53,9 @@ export interface Highlight {
   routeOf(net: string): RouteStep[];
   /** The layer on show: the nets' copper on other layers is drawn fainter (null: every layer alike). */
   focus(layer: string | null): void;
+  /** Draw these nets instead of the selection, lighter (null: the selection again, untouched). */
+  preview(nets: string[] | null): void;
+  readonly previewing: string[] | null;
   invalidate(): void;
   remove(): void;
 }
@@ -303,6 +306,14 @@ export interface LayerView {
   tint(nets: string[] | null): void;
   /** The explicit camera moves: the selection, the board. */
   zoomToSelection(): void;
+  /**
+   * Show other nets for a moment (an app's hover over its own list), lighter than the selection, on `layer`
+   * (default: where the first is mostly routed); `reveal` (default true) moves the camera only when none of them is
+   * in sight. Selection, form, plot and the 'layer' event untouched; preview(null) restores the layer and camera.
+   */
+  preview(nets: string[] | null, options?: { layer?: string | null; reveal?: boolean }): void;
+  /** The nets on preview, or null. */
+  readonly previewing: string[] | null;
   fit(): void;
   clear(): void;
   setTarget(v: { target?: number; differential?: number; tolerance?: number }): void;

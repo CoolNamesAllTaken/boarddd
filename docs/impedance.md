@@ -672,6 +672,12 @@ and show symbols and numbers, with the words in tooltips. The README has the API
     always takes its room (a pick never resizes the stage) and double click does not fit (`dblclickFit: false`).
     Only a drag, the wheel, a pinch, the target button (`zoomToSelection`) and ⤢ (`fit`) do; a reference break's `show` pans only
     when the spot is off screen. `state` ({ region, layer }) passed back as options keeps the view across reloads.
+  - **A preview** (`preview(nets, { layer, reveal })`, v0.16): an app's hover over its own list (a table of
+    targets) shows other nets for a moment: drawn as the selection would be, lighter (`.bdi-hl.is-preview`, a third
+    less dim, the copper at 75 %), on `layer` (default: where the first net is mostly routed), the caption marked
+    `· preview`. The selection, the form, the plot and the `'layer'` event are untouched; the camera moves only
+    when none of the nets is in sight (`reveal: false`: never). `preview(null)` puts the layer and the camera
+    back; a preview over a preview restores to the state before the first. `previewing` is the nets on show.
   - **Pairs.** Two selected nets pair by themselves when one is the other's partner (`pairOf` by name, else
     `parallelPartner`: the net beside it at one gap for half its route or more); ✂ splits them (and they stay
     split), `⇄ +N13` adds a single net's partner, `⇄…` types one (the partner first), `⇄ A B` pairs the last two.
