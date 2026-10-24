@@ -16,7 +16,7 @@
   window.requestAnimationFrame = (f) => { window.rafCalls++; return raf(f); };
   window.errors = [];
   try {
-    const v = createViewer(document.getElementById('v'), { controls: q.get('controls') || 'trackball', theme: q.get('theme') || 'light' });
+    const v = createViewer(document.getElementById('v'), { controls: q.get('controls') || 'trackball', theme: q.get('theme') || 'light', focusOnPick: q.get('focusOnPick') !== '0' });
     window.v = v;
     window.THREE = THREE;
     if (q.get('model') === 'step') {

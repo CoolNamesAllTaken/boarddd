@@ -247,6 +247,7 @@ v.fit();                      // refit from the current direction
 v.setTheme('dark');
 const png = v.capture({ width: 1200, height: 800, transparent: true });
 await v.flyTo(part.box, { minSize: 4 });   // eased camera move to frame a box, same direction
+await v.focus('U3');          // orbit around a part (ref, object(s) or box); null: the content's centre
 const shot = v.captureObjects([partGroup], { width: 512, height: 512 });   // that part alone, framed
 v.on('context', (hit, { clientX, clientY }) => {});   // right click or touch long-press
 v.setPanes([[baseGroup], [headGroup]]);   // side by side with ONE camera (null: one view again)
@@ -257,6 +258,13 @@ v.dispose();                  // frees GL (content included) and removes the can
 - Renders on demand: no animation loop; frames are drawn while the controls move and then stop.
 - KiCad-like look: neutral tone mapping, a generated room environment (no network), ambient + key +
   camera headlight, light/dark gradient backgrounds. Near/far are fitted to the content every frame.
+- Orbit around the selected part: `focus(what)` eases `controls.target` to the middle of the part's
+  bounding box (every content object with that `userData.ref`) and keeps the camera's direction and
+  distance, backing off only when the part would not fit (`frame: true` always frames it, `false` never
+  changes the distance). A click on a part with a ref focuses it (`focusOnPick: false` turns that off);
+  a click on nothing keeps the centre where it is, so deselecting never moves the view (call
+  `focus(null)` to go back to the content's centre). Pan moves the centre as usual; the next selection
+  re-targets. Hosts with their own selection (a table row, a search, a link) call `focus(ref)`.
 - `flyTo` keeps the view direction unless given one; a press, another flight or
   `prefers-reduced-motion` cuts it short. `captureObjects` hides the rest of the content for one frame
   and puts it and the camera back.

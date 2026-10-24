@@ -25,6 +25,8 @@ export interface ViewerOptions {
   /** A right click, or a touch held still: the hit under it (null for none) and where it was. */
   onContextPick?(hit: PickHit | null, where: ContextWhere): void;
   onRender?(): void;
+  /** A click on content with a userData.ref makes it the orbit centre (viewer.focus); a click on nothing keeps it. Default true. */
+  focusOnPick?: boolean;
 }
 export interface ContextWhere { clientX: number; clientY: number; pointerType: string }
 export interface FlyOptions {
@@ -36,6 +38,19 @@ export interface FlyOptions {
   /** Keep the current direction unless given. */
   view?: ViewName | View | null;
 }
+export interface FocusOptions {
+  /** Ease there (default true); false, or prefers-reduced-motion, jumps. */
+  animate?: boolean;
+  duration?: number;
+  /** 'auto' (default): keep the distance unless the part would not fit, then back off to frame it; true: always frame it; false: keep the distance. */
+  frame?: 'auto' | boolean;
+  pad?: number;
+  /** With frame: true, frame at least this many mm. */
+  minSize?: number;
+  /** Look from this direction instead of the current one. */
+  view?: ViewName | View | null;
+}
+export type FocusTarget = string | Object3D | Object3D[] | Box3 | { min: Vec3; max: Vec3 };
 export interface CaptureObjectsOptions { width?: number; height?: number; view?: ViewName | View | null; pad?: number; transparent?: boolean; type?: string }
 export interface CaptureOptions { width?: number; height?: number; transparent?: boolean; viewCube?: boolean; type?: string }
 export interface Viewer {
@@ -68,6 +83,14 @@ export interface Viewer {
   capture(opts?: CaptureOptions): string;
   /** Ease the camera to frame a box (Box3 or {min, max}); resolves once there. A press cuts it short. */
   flyTo(box: Box3 | { min: Vec3; max: Vec3 }, opts?: FlyOptions): Promise<Viewer>;
+  /**
+   * Orbit around a part: controls.target eases to the middle of its bounding box, keeping direction and
+   * distance (backing off only if it would not fit). A ref matches content objects by userData.ref; null
+   * goes back to the content's centre. Resolves null (camera unmoved) when nothing matched.
+   */
+  focus(what: FocusTarget | null, opts?: FocusOptions): Promise<Viewer | null>;
+  /** World bounding box of a ref / object(s) / box, or null when nothing matches. */
+  boxOf(what: FocusTarget): Box3 | null;
   /** PNG data URL of these objects alone, framed; the rest of the content and the camera are put back. */
   captureObjects(objects: Object3D | Object3D[], opts?: CaptureObjectsOptions): string | null;
   captureBlob(opts?: CaptureOptions): Promise<Blob>;

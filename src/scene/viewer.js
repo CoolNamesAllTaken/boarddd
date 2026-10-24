@@ -21,6 +21,7 @@ import { VIEWS, fitCamera, clipPlanes } from './views.js';
 
 const CLICK_SLOP_PX = 5;
 const FLY_MS = 380;
+const FOCUS_PAD = 1.4;
 const LONG_PRESS_MS = 550;
 
 function disposeTree(root) {
@@ -59,12 +60,14 @@ function makeControls(kind, camera, el) {
  *   colours, one colour, or null for transparent; viewCube (true); fov (30); pixelRatio;
  *   environment (true: RoomEnvironment reflections); onPick({object, ref, point} | null);
  *   onContextPick(hit | null, {clientX, clientY, pointerType}) for a right click or a touch
- *   long-press; onRender(); antialias (true).
+ *   long-press; onRender(); antialias (true); focusOnPick (true): a click on content with a
+ *   userData.ref makes it the orbit centre (focus); a click on nothing keeps the centre.
  */
 export function createViewer(el, opts = {}) {
   const {
     controls: controlsKind = 'trackball', fov = 30, viewCube = true, environment = true,
     antialias = true, onPick = null, onContextPick = null, onRender = null, preserveDrawingBuffer = false,
+    focusOnPick = true,
   } = opts;
   let theme = opts.theme === 'dark' ? 'dark' : 'light';
   let backgroundSpec = opts.background === undefined ? 'theme' : opts.background;
@@ -291,7 +294,9 @@ export function createViewer(el, opts = {}) {
       }
       return;
     }
-    if (onPick) onPick(api.pick(e.clientX, e.clientY));
+    const hit = (onPick || focusOnPick) ? api.pick(e.clientX, e.clientY) : null;
+    if (focusOnPick && hit && hit.ref !== null) api.focus(hit.ref);
+    if (onPick) onPick(hit);
   };
   const onLeave = () => { if (cube?.setHover(null)) requestRender(); };
   const onCancel = () => { cancelLongPress(); deferredContext = null; };
@@ -313,6 +318,36 @@ export function createViewer(el, opts = {}) {
   canvas.addEventListener('wheel', onWheel, { passive: true });
   const resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => resize()) : null;
   resizeObserver?.observe(el);
+
+  /** Ease target, position and up to `end` over `duration` ms (0, or reduced motion: at once). */
+  function fly(end, duration) {
+    const start = { target: controls.target.clone(), position: camera.position.clone(), up: camera.up.clone() };
+    if (flight) { cancelAnimationFrame(flight.frame); flight.done(); }
+    const still = duration <= 0 || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    return new Promise((resolve) => {
+      const t0 = performance.now();
+      const me = { frame: 0, done: () => { if (flight === me) flight = null; resolve(api); } };
+      flight = me;
+      const step = () => {
+        const k = still ? 1 : Math.min(1, (performance.now() - t0) / duration);
+        const e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2;
+        controls.target.lerpVectors(start.target, end.target, e);
+        // Along the arc rather than the chord, so the distance eases too and nothing clips through.
+        const from = start.position.clone().sub(start.target), to = end.position.clone().sub(end.target);
+        const length = from.length() + (to.length() - from.length()) * e;
+        const way = from.normalize().lerp(to.normalize(), e);
+        if (way.lengthSq() < 1e-9) way.copy(to);
+        camera.position.copy(controls.target).addScaledVector(way.normalize(), length);
+        camera.up.lerpVectors(start.up, end.up, e).normalize();
+        camera.lookAt(controls.target);
+        controls.update();
+        onControlsChange();
+        if (k < 1 && flight === me) me.frame = requestAnimationFrame(step);
+        else me.done();
+      };
+      step();
+    });
+  }
 
   const api = {
     renderer, scene, camera, content, canvas, controls: null, stats,
@@ -382,33 +417,57 @@ export function createViewer(el, opts = {}) {
       const v = typeof view === 'string' ? VIEWS[view] : view;
       const dir = v || { dir: camera.position.clone().sub(controls.target).toArray(), up: camera.up.toArray() };
       const f = fitCamera({ min: b.min.toArray(), max: b.max.toArray() }, dir, camera.fov, aspect(), pad);
-      const end = { target: new THREE.Vector3(...f.target), position: new THREE.Vector3(...f.position), up: new THREE.Vector3(...f.up) };
-      const start = { target: controls.target.clone(), position: camera.position.clone(), up: camera.up.clone() };
-      if (flight) { cancelAnimationFrame(flight.frame); flight.done(); }
-      const still = duration <= 0 || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      return new Promise((resolve) => {
-        const t0 = performance.now();
-        const me = { frame: 0, done: () => { if (flight === me) flight = null; resolve(api); } };
-        flight = me;
-        const step = () => {
-          const k = still ? 1 : Math.min(1, (performance.now() - t0) / duration);
-          const e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2;
-          controls.target.lerpVectors(start.target, end.target, e);
-          // Along the arc rather than the chord, so the distance eases too and nothing clips through.
-          const from = start.position.clone().sub(start.target), to = end.position.clone().sub(end.target);
-          const length = from.length() + (to.length() - from.length()) * e;
-          const way = from.normalize().lerp(to.normalize(), e);
-          if (way.lengthSq() < 1e-9) way.copy(to);
-          camera.position.copy(controls.target).addScaledVector(way.normalize(), length);
-          camera.up.lerpVectors(start.up, end.up, e).normalize();
-          camera.lookAt(controls.target);
-          controls.update();
-          onControlsChange();
-          if (k < 1 && flight === me) me.frame = requestAnimationFrame(step);
-          else me.done();
-        };
-        step();
-      });
+      return fly({ target: new THREE.Vector3(...f.target), position: new THREE.Vector3(...f.position), up: new THREE.Vector3(...f.up) }, duration);
+    },
+
+    /**
+     * Orbit around a part: the orbit centre (controls.target) moves to the middle of `what`'s
+     * bounding box, eased, and the camera keeps its direction and distance; it backs off only when
+     * the part would not fit on screen from there. `what`: a ref (every content object whose
+     * userData.ref is it, case-insensitive as a fallback), an Object3D or an array of them, a Box3
+     * or {min, max}; null goes back to the content's centre. opts: animate (true), duration,
+     * frame ('auto'; true always frames it, like flyTo; false never changes the distance), pad
+     * (1.4), minSize (mm, with frame: true), view (a direction to look from instead of the current
+     * one). Resolves with the viewer once there, or with null when `what` matched nothing (the
+     * camera does not move).
+     */
+    focus(what, { animate = true, duration = FLY_MS, frame = 'auto', pad = FOCUS_PAD, minSize = 0, view = null } = {}) {
+      const b = what === null || what === undefined ? new THREE.Box3().setFromObject(content) : api.boxOf(what);
+      if (!b || b.isEmpty()) return Promise.resolve(null);
+      if (frame === true && minSize > 0) {
+        const size = b.getSize(new THREE.Vector3()), mid = b.getCenter(new THREE.Vector3());
+        b.setFromCenterAndSize(mid, size.max(new THREE.Vector3(minSize, minSize, Math.min(minSize, size.z || minSize))));
+      }
+      const v = typeof view === 'string' ? VIEWS[view] : view;
+      const offset = camera.position.clone().sub(controls.target);
+      const dir = v || { dir: offset.toArray(), up: camera.up.toArray() };
+      const f = fitCamera({ min: b.min.toArray(), max: b.max.toArray() }, dir, camera.fov, aspect(), pad);
+      const kept = offset.length() || f.distance;
+      const distance = frame === true ? f.distance : frame === false ? kept : Math.max(kept, f.distance);
+      const back = new THREE.Vector3(...dir.dir).normalize();
+      const target = new THREE.Vector3(...f.target);
+      const end = { target, position: target.clone().addScaledVector(back, distance), up: new THREE.Vector3(...f.up) };
+      return fly(end, animate ? duration : 0);
+    },
+
+    /**
+     * World bounding box of a ref (every content object with that userData.ref; the visible ones
+     * when any are), an Object3D, an array of them, or a Box3 / {min, max}; null when nothing matches.
+     */
+    boxOf(what) {
+      if (what?.isBox3) return what.clone();
+      if (what && Array.isArray(what.min) && Array.isArray(what.max)) return new THREE.Box3(new THREE.Vector3(...what.min), new THREE.Vector3(...what.max));
+      let list;
+      if (typeof what === 'string') {
+        const find = (same) => { const out = []; content.traverse((n) => { if (n.userData?.ref != null && same(String(n.userData.ref))) out.push(n); }); return out; };
+        list = find((r) => r === what);
+        if (!list.length) list = find((r) => r.toUpperCase() === what.toUpperCase());
+        const shown = list.filter((n) => { for (let o = n; o; o = o.parent) if (!o.visible) return false; return true; });
+        if (shown.length) list = shown;
+      } else list = [what].flat().filter((o) => o?.isObject3D);
+      const box = new THREE.Box3();
+      for (const o of list) box.union(new THREE.Box3().setFromObject(o));
+      return box.isEmpty() ? null : box;
     },
 
     /**
