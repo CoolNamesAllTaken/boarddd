@@ -1,4 +1,4 @@
-// createViewer: renderer, camera, controls, KiCad-like lighting, render on demand, view cube,
+// createViewer: renderer, camera, controls, camera-relative lighting, render on demand, view cube,
 // presets, capture, dispose. Works in the board frame (mm, z up, camera.up = +z).
 //
 // Ported from kipr web/library/js/view3d.js (lighting, tone mapping, gradient background,
@@ -16,7 +16,7 @@ import * as THREE from 'three';
 import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ViewCube } from './viewcube.js';
-import { BACKGROUNDS, gradientTexture, roomEnvironment, kicadLights } from './lighting.js';
+import { BACKGROUNDS, gradientTexture, roomEnvironment, kicadLights, cameraLighting } from './lighting.js';
 import { VIEWS, fitCamera, clipPlanes } from './views.js';
 
 const CLICK_SLOP_PX = 5;
@@ -61,13 +61,14 @@ function makeControls(kind, camera, el) {
  *   environment (true: RoomEnvironment reflections); onPick({object, ref, point} | null);
  *   onContextPick(hit | null, {clientX, clientY, pointerType}) for a right click or a touch
  *   long-press; onRender(); antialias (true); focusOnPick (true): a click on content with a
- *   userData.ref makes it the orbit centre (focus); a click on nothing keeps the centre.
+ *   userData.ref makes it the orbit centre (focus); a click on nothing keeps the centre;
+ *   lighting 'camera' (default: lit from the viewer's side, cameraLighting) | 'kicad'.
  */
 export function createViewer(el, opts = {}) {
   const {
     controls: controlsKind = 'trackball', fov = 30, viewCube = true, environment = true,
     antialias = true, onPick = null, onContextPick = null, onRender = null, preserveDrawingBuffer = false,
-    focusOnPick = true,
+    focusOnPick = true, lighting: lightingKind = 'camera',
   } = opts;
   let theme = opts.theme === 'dark' ? 'dark' : 'light';
   let backgroundSpec = opts.background === undefined ? 'theme' : opts.background;
@@ -85,14 +86,24 @@ export function createViewer(el, opts = {}) {
   el.appendChild(canvas);
 
   const scene = new THREE.Scene();
-  const envTarget = environment ? roomEnvironment(renderer) : null;
-  if (envTarget) {
-    scene.environment = envTarget.texture;
-    scene.environmentIntensity = 0.15;
-    if (scene.environmentRotation) scene.environmentRotation.x = Math.PI / 2;   // room's y-up -> z-up
+  // 'camera': the side facing the viewer is always lit (cameraLighting); 'kicad': the older world-fixed rig.
+  let lighting;
+  if (lightingKind === 'kicad') {
+    const envTarget = environment ? roomEnvironment(renderer) : null;
+    if (envTarget) {
+      scene.environment = envTarget.texture;
+      scene.environmentIntensity = 0.15;
+      if (scene.environmentRotation) scene.environmentRotation.x = Math.PI / 2;   // room's y-up -> z-up
+    }
+    const lights = kicadLights();
+    scene.add(lights.group);
+    lighting = {
+      update: (cam) => lights.update(cam, controls.target),
+      dispose() { lights.dispose(); envTarget?.dispose(); },
+    };
+  } else {
+    lighting = cameraLighting(renderer, scene, { environment });
   }
-  const lights = kicadLights();
-  scene.add(lights.group);
   const content = new THREE.Group();
   content.name = 'boarddd-content';
   scene.add(content);
@@ -174,7 +185,7 @@ export function createViewer(el, opts = {}) {
     const { near, far } = clipPlanes(camera.position.toArray(), contentSphere());
     camera.near = near;
     camera.far = far;
-    lights.update(camera, controls.target);
+    lighting.update(camera);
     if (!panes) {
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
@@ -640,8 +651,7 @@ export function createViewer(el, opts = {}) {
       controls.dispose();
       if (freeContent) disposeTree(content);
       scene.remove(content);
-      lights.dispose();
-      envTarget?.dispose();
+      lighting.dispose();
       bgTexture?.dispose();
       cube?.dispose();
       renderer.renderLists.dispose();

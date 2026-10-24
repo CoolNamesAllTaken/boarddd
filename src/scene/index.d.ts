@@ -18,6 +18,9 @@ export interface ViewerOptions {
   fov?: number;
   pixelRatio?: number;
   environment?: boolean;
+  /** 'camera' (default): lights and reflections fixed to the camera, so the side facing you is lit, the underside too
+   *  (cameraLighting). 'kicad': a world-fixed key and fill plus a headlight, reflections fixed to the board. */
+  lighting?: 'camera' | 'kicad';
   antialias?: boolean;
   /** Keep the drawn frame readable after compositing (toDataURL / drawImage outside a frame). Default false. */
   preserveDrawingBuffer?: boolean;
@@ -115,3 +118,32 @@ export const BACKGROUNDS: Record<'light' | 'dark', [string, string]>;
 export function gradientTexture(stops: [string, string]): Texture;
 export function roomEnvironment(renderer: WebGLRenderer): import("three").WebGLRenderTarget;
 export function kicadLights(): { group: Group; headlight: DirectionalLight; update(camera: PerspectiveCamera, target: import('three').Vector3): void; dispose(): void };
+export interface CameraLightsOptions {
+  /** Headlight intensity (2.0). */
+  headlight?: number;
+  /** Hemisphere fill intensity (0.8). */
+  fill?: number;
+  sky?: import('three').ColorRepresentation;
+  ground?: import('three').ColorRepresentation;
+  /** The headlight's direction in camera space (x right, y up, z toward the viewer); default [-0.35, 0.45, 1]. */
+  offset?: Vec3;
+}
+export interface CameraLights {
+  group: Group;
+  headlight: DirectionalLight;
+  fill: import('three').HemisphereLight;
+  /** Before each draw (per camera); with a scene, turns scene.environment with the camera. */
+  update(camera: import('three').Camera, scene?: Scene): void;
+  dispose(): void;
+}
+export function cameraLights(opts?: CameraLightsOptions): CameraLights;
+export interface CameraLightingOptions extends CameraLightsOptions {
+  environment?: boolean;
+  environmentIntensity?: number;
+  exposure?: number;
+}
+export function cameraLighting(renderer: WebGLRenderer, scene: Scene, opts?: CameraLightingOptions): {
+  lights: CameraLights;
+  update(camera: import('three').Camera): void;
+  dispose(): void;
+};

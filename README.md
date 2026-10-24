@@ -15,8 +15,8 @@ PR review) and internal tools. Framework-free ES modules, no build step, `.d.ts`
   component of a board model on a slice of its board (`buildComponent`).
 - **`boarddd/models`**: GLB and STEP loading (occt in a Worker), units/up-axis detection, colour
   space, matching meshes to reference designators.
-- **`boarddd/scene`**: `createViewer`: renderer, camera, controls, KiCad-like lighting, render on
-  demand, view cube, view presets, capture.
+- **`boarddd/scene`**: `createViewer`: renderer, camera, controls, camera-relative lighting, render on
+  demand, view cube, view presets, capture; `cameraLighting` for pages with their own three.js scene.
 - **`boarddd/model`**: the normalised board model `boarddd/board@1` (`board.json`): typings,
   `validateBoard`, `footprintToBoard`. The schema is `schema/board.schema.json`; see
   [docs/model.md](docs/model.md).
@@ -256,8 +256,14 @@ v.dispose();                  // frees GL (content included) and removes the can
 ```
 
 - Renders on demand: no animation loop; frames are drawn while the controls move and then stop.
-- KiCad-like look: neutral tone mapping, a generated room environment (no network), ambient + key +
-  camera headlight, light/dark gradient backgrounds. Near/far are fitted to the content every frame.
+- Lit from the viewer's side (`lighting: 'camera'`, the default): a headlight just above-left of the
+  eye, a hemisphere fill whose sky is the screen's up, and a generated room environment (no network)
+  that turns with the camera, under neutral tone mapping. Whatever faces you is lit, the underside and
+  the bottom pads included, and metals reflect the same studio from any side. `lighting: 'kicad'` is the
+  older rig (world-fixed key and fill, reflections fixed to the board). Light/dark gradient
+  backgrounds. Near/far are fitted to the content every frame.
+- Own three.js scene: `const l = cameraLighting(renderer, scene)` once, `l.update(camera)` before each
+  `renderer.render` (once per camera when several viewports share the scene), `l.dispose()`.
 - Orbit around the selected part: `focus(what)` eases `controls.target` to the middle of the part's
   bounding box (every content object with that `userData.ref`) and keeps the camera's direction and
   distance, backing off only when the part would not fit (`frame: true` always frames it, `false` never

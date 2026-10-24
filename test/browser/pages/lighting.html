@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>boarddd viewer lighting</title>
+<style>html, body { margin: 0 } #v { width: 640px; height: 480px }</style>
+<script src="/test/browser/pages/importmap.js"></script>
+<div id="v"></div>
+<script type="module">
+// The viewer's lighting on a through-hole part (pads on both faces) and the tiny board's GLB parts:
+// ?lighting=camera|kicad&view=top|bottom|front|iso|under (under: iso turned to the underside).
+// window.sample([[x, y, z], ...]) reads the colours under board-frame points; window.v is the viewer.
+import * as THREE from 'three';
+import { createViewer } from '/src/scene/index.js';
+import { parseKicadFootprint, buildComponent } from '/src/footprint/index.js';
+
+const q = new URLSearchParams(location.search);
+try {
+  const relay = parseKicadFootprint(await (await fetch('/test/fixtures/footprints/Relay_SPST_THT_boarddd.kicad_mod')).text());
+  const K1 = { ref: 'K1', side: 'top', x: 0, y: 0, rotation: 0, footprint: 'Relay' };
+  const built = buildComponent({ stackup: { thickness: 1.6 }, footprints: { Relay: relay }, components: [K1] }, 'K1');
+  const v = createViewer(document.getElementById('v'), {
+    lighting: q.get('lighting') || undefined, viewCube: false, preserveDrawingBuffer: true, pixelRatio: 1, antialias: false,
+  });
+  v.add(built.group);
+  // A part body over the pads, so the underside view shows the board, the pads and the body's bottom.
+  const body = new THREE.Mesh(new THREE.BoxGeometry(6, 9, 4), new THREE.MeshStandardMaterial({ color: 0x202020, roughness: 0.5, metalness: 0.1 }));
+  const box = new THREE.Box3().setFromObject(built.group);
+  const c = box.getCenter(new THREE.Vector3());
+  body.position.set(c.x, c.y, box.max.z + 2);
+  v.add(body);
+  const name = q.get('view') || 'iso';
+  v.setView(name === 'under' ? { dir: [0.55, -1, -0.95], up: [0, 0, 1] } : name);
+  v.render();
+  const gl = v.renderer.getContext();
+  window.sample = (points) => {
+    v.render();
+    const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight;
+    return points.map((p) => {
+      const s = new THREE.Vector3(...p).project(v.camera);
+      const px = new Uint8Array(4);
+      gl.readPixels(Math.round((s.x + 1) / 2 * w), Math.round((s.y + 1) / 2 * h), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      return [...px.slice(0, 3)];
+    });
+  };
+  window.v = v;
+  window.harness = { info: { box: [box.min.toArray(), box.max.toArray()], pads: built.meshes.copper.map((m) => m.userData.side) } };
+} catch (error) {
+  window.harness = { error: String(error.stack || error) };
+}
+</script>
