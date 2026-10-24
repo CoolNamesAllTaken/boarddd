@@ -267,13 +267,16 @@ test('flyTo: eases to frame a part, keeps the direction, and resolves there', as
 test('flyTo: a press cuts the flight short', async ({ page }) => {
   await open(page);
   const box = await page.locator('#v canvas').boundingBox();
-  const moved = page.evaluate(() => window.v.flyTo({ min: [9, 9, 1.6], max: [11, 11, 3.6] }, { duration: 5000 })
+  const start = await page.evaluate(() => window.v.controls.target.toArray());
+  const moved = page.evaluate(() => window.v.flyTo({ min: [9, 9, 1.6], max: [11, 11, 3.6] }, { duration: 60_000 })
     .then(() => window.v.controls.target.toArray()));
-  await page.waitForTimeout(150);
+  // Under way before the press; long enough that SwiftShader under load cannot finish it first.
+  await page.waitForFunction((s) => window.v.controls.target.distanceTo(new window.THREE.Vector3(...s)) > 0.01, start);
   await page.mouse.move(box.x + 50, box.y + 50);
   await page.mouse.down();
-  await page.mouse.up();
+  // The press alone stops it (a release on a part would then focus it: a new, deliberate move).
   const target = await moved;
+  await page.mouse.up();
   expect(Math.hypot(target[0] - 10, target[1] - 10)).toBeGreaterThan(0.5);
 });
 
@@ -345,4 +348,104 @@ test('context: a touch held still is a long-press; a moving one is not', async (
   await page.waitForTimeout(2000);
   await touch('pointerup', at.x + 30, at.y);
   expect(await page.evaluate(() => window.contexts)).toEqual(['U1']);
+});
+
+// Orbit around the selected part: focus() moves controls.target to the part's centre, eased,
+// keeping the camera's direction and distance unless the part would not fit.
+const pose = (page) => page.evaluate(() => {
+  const v = window.v;
+  const off = v.camera.position.clone().sub(v.controls.target);
+  return { target: v.controls.target.toArray(), distance: off.length(), dir: off.normalize().toArray(), frames: v.stats.frames };
+});
+const partCentre = (page, ref = 'U1') => page.evaluate((r) => window.v.boxOf(r).getCenter(new window.THREE.Vector3()).toArray(), ref);
+const near = (a, b, tol = 1e-4) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) < tol;
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+for (const controls of ['trackball', 'orbit']) {
+  test(`focus (${controls}): a ref becomes the orbit centre, eased, same direction and distance`, async ({ page }) => {
+    await open(page, `?controls=${controls}`);
+    const before = await pose(page);
+    const result = await page.evaluate(() => window.v.focus('u1').then((v) => v === window.v));   // case-insensitive fallback
+    const after = await pose(page);
+    expect(result).toBe(true);
+    expect(near(after.target, await partCentre(page))).toBe(true);
+    expect(after.distance).toBeCloseTo(before.distance, 3);
+    expect(dot(after.dir, before.dir)).toBeGreaterThan(0.9999);
+    expect(after.frames - before.frames).toBeGreaterThan(1);   // animated, not a jump
+  });
+}
+
+test('focus: backs off to frame a part that would not fit at the current distance', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => window.v.focus('U1', { frame: true, animate: false }));   // close in on the small part
+  const close = await pose(page);
+  const out = await page.evaluate(async () => {
+    const v = window.v;
+    const board = v.content.children.find((o) => o.userData.ref !== 'U1');
+    await v.focus(board, { animate: false });
+    return v.boxOf(board).getCenter(new window.THREE.Vector3()).toArray();
+  });
+  const after = await pose(page);
+  expect(near(after.target, out)).toBe(true);
+  expect(after.distance).toBeGreaterThan(close.distance * 2);
+  // ...and frame: false keeps the distance even then.
+  await page.evaluate(() => window.v.focus('U1', { frame: true, animate: false }));
+  const close2 = await pose(page);
+  await page.evaluate(() => window.v.focus({ min: [0, 0, 0], max: [50, 40, 1.6] }, { frame: false, animate: false }));
+  expect((await pose(page)).distance).toBeCloseTo(close2.distance, 3);
+});
+
+test('focus: unknown ref resolves null and leaves the camera; null returns to the content centre', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => window.v.focus('U1', { animate: false }));
+  const at = await pose(page);
+  expect(await page.evaluate(() => window.v.focus('R99'))).toBeNull();
+  expect(near((await pose(page)).target, at.target)).toBe(true);
+  const centre = await page.evaluate(async () => {
+    await window.v.focus(null, { animate: false });
+    return new window.THREE.Box3().setFromObject(window.v.content).getCenter(new window.THREE.Vector3()).toArray();
+  });
+  expect(near((await pose(page)).target, centre)).toBe(true);
+});
+
+test('click: picking a part orbits around it; a click on nothing keeps the centre; pan still works and a pick re-targets', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => window.v.setView('top'));
+  const centre = await partCentre(page);
+  let p = await screenOf(page, centre[0], centre[1], 3.6);
+  await page.mouse.click(p.x, p.y);
+  await page.waitForTimeout(700);
+  expect(near((await pose(page)).target, centre, 1e-3)).toBe(true);
+
+  // Background: off the board (top-left corner of the canvas), below the view cube.
+  const box = await page.locator('#v canvas').boundingBox();
+  await page.mouse.click(box.x + 8, box.y + box.height - 8);
+  await page.waitForTimeout(500);
+  expect(near((await pose(page)).target, centre, 1e-3)).toBe(true);
+
+  // Pan (right drag on the trackball) moves the centre away...
+  await page.mouse.move(box.x + 320, box.y + 240);
+  await page.mouse.down({ button: 'right' });
+  for (let i = 1; i <= 10; i++) await page.mouse.move(box.x + 320 + i * 8, box.y + 240 + i * 4);
+  await page.mouse.up({ button: 'right' });
+  await page.waitForTimeout(300);
+  const panned = await pose(page);
+  expect(near(panned.target, centre, 0.5)).toBe(false);
+  // ...and picking the part again puts it back on the part.
+  p = await screenOf(page, centre[0], centre[1], 3.6);
+  await page.mouse.click(p.x, p.y);
+  await page.waitForTimeout(700);
+  expect(near((await pose(page)).target, centre, 1e-3)).toBe(true);
+});
+
+test('focusOnPick: false leaves the camera alone on a click', async ({ page }) => {
+  await page.goto('/test/browser/pages/scene.html?focusOnPick=0');
+  await page.waitForFunction(() => window.ready, null, { timeout: 90_000 });
+  await page.evaluate(() => window.v.setView('top'));
+  const before = await pose(page);
+  const c = await partCentre(page);
+  const p = await screenOf(page, c[0], c[1], 3.6);
+  await page.mouse.click(p.x, p.y);
+  await page.waitForTimeout(500);
+  expect(near((await pose(page)).target, before.target)).toBe(true);
 });
