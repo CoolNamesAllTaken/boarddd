@@ -12,3 +12,22 @@ async function orbit(): Promise<void> {
   if (box) await v.focus(box, { frame: false });
 }
 void orbit;
+
+import { cameraLighting, cameraLights, type CameraLights } from "../../src/scene/index.js";
+import type { Scene, WebGLRenderer, Camera } from "three";
+
+declare const renderer: WebGLRenderer;
+declare const scene: Scene;
+declare const camera: Camera;
+
+function lit(): void {
+  createViewer(el, { lighting: "camera" });
+  createViewer(el, { lighting: "kicad" });
+  const l = cameraLighting(renderer, scene, { environmentIntensity: 0.3, headlight: 2, offset: [-0.3, 0.4, 1] });
+  l.update(camera);
+  const rig: CameraLights = cameraLights({ fill: 1, sky: 0xffffff, ground: "#888" });
+  rig.update(camera, scene);
+  rig.dispose();
+  l.dispose();
+}
+void lit;
